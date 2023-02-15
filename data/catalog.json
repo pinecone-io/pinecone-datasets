@@ -1,0 +1,16 @@
+[
+    {
+        "name": "cc-news_msmarco-MiniLM-L6-cos-v5",
+        "created_at": "Feb 13, 2023, 3:27:55 PM",
+        "dense_model": 
+            {
+                "name":"sentence-transformers/msmarco-MiniLM-L6-cos-v5",
+                "dimension": 384,
+                "tokenizer": null
+            },
+        "sparse_model": {
+            "name":"term-frequency",
+            "tokenizer": null
+        }
+    }
+]
