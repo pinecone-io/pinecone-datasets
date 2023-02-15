@@ -13,6 +13,16 @@ list_public_datasets()
 # ["cc-news_msmarco-MiniLM-L6-cos-v5", ... ]
 
 dataset = load_public_dataset("cc-news_msmarco-MiniLM-L6-cos-v5")
+
+dataset.head()
+```
+
+### Loading a dataset from file
+
+```python
+dataset = Dataset.from_file("https://storage.googleapis.com/gareth-pinecone-datasets/quora.parquet")
+
+dataset.head()
 ```
 
 ### Loading a dataset from a local directory 
@@ -81,3 +91,4 @@ for batch in dataset.iter_docs(batch_size=100):
 # Or accessing the document dataframe direcly
 df: polars.DataFrame = dataset.documents
 ```
+

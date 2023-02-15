@@ -30,8 +30,8 @@ class Dataset(object):
             raise ValueError("Path must be a parquet file")
         else:
             ds = cls()
-            ds.documents = pl.read_parquet(path)
-            ds.queries = pl.DataFrame()
+            ds._documents = pl.read_parquet(path)
+            ds._queries = pl.DataFrame()
             return ds
 
     def _create_path(self, dataset_id: str) -> str:
