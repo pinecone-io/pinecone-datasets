@@ -11,6 +11,8 @@ pyarrow = "^11.0.0"
 fsspec = "^2023.1.0"
 gcsfs = "^2023.1.0"
 s3fs = "^2023.1.0"
+pinecone-client = "^2.1.0"
+pydantic = "^1.10.5"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

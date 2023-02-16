@@ -4,10 +4,10 @@ from .dataset import Dataset
 from .catalog import Catalog
 from . import cfg
 
-catalog = Catalog()
+catalog = Catalog.load()
 
-def load_public_dataset(dataset_id: str) -> Dataset:
+def load_dataset(dataset_id: str) -> Dataset:
     return Dataset(dataset_id)
 
-def list_public_datasets() -> list:
+def list_datasets() -> list:
     return catalog.list_datasets()

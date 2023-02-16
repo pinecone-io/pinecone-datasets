@@ -24,15 +24,16 @@ class Dataset(object):
         if dataset_id:
             self._load(dataset_id)
 
-    @classmethod
-    def from_file(cls, path: str) -> "Dataset":
-        if not path.endswith('.parquet'):
-            raise ValueError("Path must be a parquet file")
-        else:
-            ds = cls()
-            ds._documents = pl.read_parquet(path)
-            ds._queries = pl.DataFrame()
-            return ds
+    # @classmethod
+    # TODO: remove this
+    # def from_file(cls, path: str) -> "Dataset":
+    #     if not path.endswith('.parquet'):
+    #         raise ValueError("Path must be a parquet file")
+    #     else:
+    #         ds = cls()
+    #         ds._documents = pl.read_parquet(path)
+    #         ds._queries = pl.DataFrame()
+    #         return ds
 
     def _create_path(self, dataset_id: str) -> str:
         path = os.path.join(self._base_path, f"{dataset_id}")
@@ -50,7 +51,7 @@ class Dataset(object):
         if self._is_datatype_exists(data_type, dataset_id):
             dataset = pq.ParquetDataset(read_path, filesystem=self._fs)
             try:
-                df = pl.from_arrow(dataset.read()) # TODO: fix schema enforcement on read
+                df = pl.from_arrow(dataset.read(), schema_overrides=enforced_schema) # TODO: fix schema enforcement on read -- Ram: important for v0.1
                 return df
             except pl.PanicException as pe:
                 print("error, file is not matching Pinecone Datasets Schmea: {}".format(pe), file=sys.stderr)
@@ -66,15 +67,23 @@ class Dataset(object):
         self._documents = self._safe_read_from_path("documents", dataset_id, self._config.Schema.documents)
         self._queries = self._safe_read_from_path("queries", dataset_id, self._config.Schema.queries)
 
+    def __getitem__(self, key: str) -> pl.DataFrame:
+        if key in ["documents", "queries"]:
+            return getattr(self, key)
+        else:
+            raise KeyError("Dataset does not have key: {}".format(key))
+
     @property
     def documents(self) -> pl.DataFrame: 
         return self._documents
 
     def iter_docs(self, batch_size:int=-1) -> Iterator[Union[dict[str, Any], List[dict[str, Any]]]]:
         if batch_size == -1:
-            return self._documents.iter_rows(named=True)
+            return self._documents.select(["id", "values", "sparse_values", "metadata"]).iter_rows(named=True)
         elif batch_size > 0:
-            return map(lambda x: x.to_dicts(), self._documents.iter_slices(n_rows=batch_size))
+            return map(lambda x: x.to_dicts(), self._documents.select(["id", "values", "sparse_values", "metadata"]).iter_slices(n_rows=batch_size))
+        # TODO: add support for Vector and GRPCVector so can load directly to Pinecone
+        # TODO: Will be fixed by client to support for GRPCVector
         else:
             raise ValueError("batch_size must be greater than 0")
 
@@ -82,11 +91,6 @@ class Dataset(object):
     def queries(self) -> pl.DataFrame:
         return self._queries
     
-    def __getitem__(self, key: str) -> pl.DataFrame:
-        if key in ["documents", "queries"]:
-            return getattr(self, key)
-        else:
-            raise KeyError("Dataset does not have key: {}".format(key))
 
     def iter_queries(self) -> Iterator[dict[str, Any]]:
         return self._queries.iter_rows(named=True)

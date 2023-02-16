@@ -7,17 +7,30 @@ You can use Pinecone Datasets to load our public datasets or with your own datas
 ### Loading Pinecone Public Datasets
 
 ```python
-from datasets import list_public_datasets, load_public_dataset
+from datasets import list_datasets, load_dataset
 
-list_public_datasets()
+list_datasets()
 # ["cc-news_msmarco-MiniLM-L6-cos-v5", ... ]
 
-dataset = load_public_dataset("cc-news_msmarco-MiniLM-L6-cos-v5")
+dataset = load_dataset("cc-news_msmarco-MiniLM-L6-cos-v5")
 
 dataset.head()
+
+# Prints
+ ┌─────┬───────────────────────────┬─────────────────────────────────────┬───────────────────┬──────┐
+ │ id  ┆ values                    ┆ sparse_values                       ┆ metadata          ┆ blob │
+ │ --- ┆ ---                       ┆ ---                                 ┆ ---               ┆ ---  │
+ │ str ┆ list[f32]                 ┆ struct[2]                           ┆ struct[3]         ┆      │
+ ╞═════╪═══════════════════════════╪═════════════════════════════════════╪═══════════════════╪══════╡
+ │ 0   ┆ [0.118014, -0.069717, ... ┆ {[470065541, 52922727, ... 22364... ┆ {2017,12,"other"} ┆ .... │
+ │     ┆ 0.0060...                 ┆                                     ┆                   ┆      │
+ └─────┴───────────────────────────┴─────────────────────────────────────┴───────────────────┴──────┘
 ```
 
-### Loading a dataset from file
+
+
+
+<!-- ### Loading a dataset from file
 
 ```python
 dataset = Dataset.from_file("https://storage.googleapis.com/gareth-pinecone-datasets/quora.parquet")
@@ -75,9 +88,23 @@ from datasets import Dataset
 # Dataset(dataset_id: str = None, path: str = None)
 
 dataset = Dataset("two_docs-edo-edo", path="data/")
-```
+``` -->
 
 ### Iterating over a Dataset documents
+
+```python
+# Dict Iterator with ("id", "metadata", "values", "sparse_values")
+dataset.iter_docs() 
+
+# List Iterator, where every list of size N Dicts with ("id", "metadata", "values", "sparse_values")
+dataset.iter_docs(batch_size=n) 
+
+# polars iter_rows 
+# https://pola-rs.github.io/polars/py-polars/html/reference/dataframe/api/polars.DataFrame.iter_rows.html
+dataset.documents.iter_rows() 
+```
+
+### upserting to Index
 
 ```python
 # Iterating over documents one by one
@@ -87,8 +114,5 @@ for doc in dataset.iter_docs():
 # Iterating over documents in batches
 for batch in dataset.iter_docs(batch_size=100):
     index.upsert(vectors=batch)
-
-# Or accessing the document dataframe direcly
-df: polars.DataFrame = dataset.documents
 ```
 
