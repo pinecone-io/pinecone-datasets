@@ -1,11 +1,13 @@
 from dataclasses import dataclass
 import json
-from typing import Optional
+from typing import List, Optional
 
 import gcsfs
 import polars as pl
+from google.cloud import storage
 from pydantic import BaseModel, Field
 
+storage_client = storage.Client()
 
 class DenseModelMetadata(BaseModel):
     name: str

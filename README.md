@@ -107,6 +107,29 @@ dataset.documents.iter_rows()
 ### upserting to Index
 
 ```python
+import pinecone
+pinecone.init(api_key="API_KEY", environment="us-west1-gcp")
+
+pinecone.create_index(name="my-index", dimension=384, pod_type='s1')
+
+index = pinecone.Index("my-index")
+
+# Iterating over documents one by one
+for doc in dataset.iter_docs():
+    index.upsert(vectors=[doc])
+
+# Or: Iterating over documents in batches
+for batch in dataset.iter_docs(batch_size=100):
+    index.upsert(vectors=batch)
+```
+
+#### upserting to an index with GRPC
+
+Simply use GRPCIndex and do:
+
+```python
+index = pinecone.GRPCIndex("my-index")
+
 # Iterating over documents one by one
 for doc in dataset.iter_docs():
     index.upsert(vectors=[doc])
@@ -115,4 +138,6 @@ for doc in dataset.iter_docs():
 for batch in dataset.iter_docs(batch_size=100):
     index.upsert(vectors=batch)
 ```
+
+or for high performance
 

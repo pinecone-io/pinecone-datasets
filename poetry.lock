@@ -451,7 +451,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "flake8 (<5)", "pytest-co
 
 [[package]]
 name = "ipykernel"
-version = "6.21.1"
+version = "6.21.2"
 description = "IPython Kernel for Jupyter"
 category = "dev"
 optional = false
@@ -468,7 +468,7 @@ matplotlib-inline = ">=0.1"
 nest-asyncio = "*"
 packaging = "*"
 psutil = "*"
-pyzmq = ">=17"
+pyzmq = ">=20"
 tornado = ">=6.1"
 traitlets = ">=5.4.0"
 
@@ -692,6 +692,7 @@ description = "Pinecone client and SDK"
 category = "main"
 optional = false
 python-versions = ">=3.6"
+develop = false
 
 [package.dependencies]
 dnspython = ">=2.0.0"
@@ -705,6 +706,12 @@ urllib3 = ">=1.21.1"
 
 [package.extras]
 grpc = ["grpcio (>=1.44.0)", "grpc-gateway-protoc-gen-openapiv2 (==0.1.0)", "googleapis-common-protos (>=1.53.0)", "lz4 (>=3.1.3)", "protobuf (==3.19.3)"]
+
+[package.source]
+type = "git"
+url = "git@github.com:pinecone-io/pinecone-python-client.git"
+reference = "add_dict_support"
+resolved_reference = "8377f435dfa0d3005e9fbdbb2f0ec5beb82c2a0a"
 
 [[package]]
 name = "platformdirs"
@@ -731,7 +738,7 @@ dev = ["pre-commit", "tox"]
 
 [[package]]
 name = "polars"
-version = "0.16.4"
+version = "0.16.5"
 description = "Blazingly fast DataFrame library"
 category = "main"
 optional = false
@@ -741,16 +748,16 @@ python-versions = ">=3.7"
 typing_extensions = {version = ">=4.0.1", markers = "python_version < \"3.11\""}
 
 [package.extras]
+timezone = ["backports.zoneinfo", "tzdata"]
 fsspec = ["fsspec"]
 connectorx = ["connectorx"]
-pyarrow = ["pyarrow (>=4.0.0)"]
-pandas = ["pyarrow (>=4.0.0)", "pandas"]
-timezone = ["backports.zoneinfo", "tzdata"]
-matplotlib = ["matplotlib"]
-all = ["polars"]
-deltalake = ["deltalake (>=0.6.2)"]
 numpy = ["numpy (>=1.16.0)"]
+all = ["polars"]
+matplotlib = ["matplotlib"]
+pandas = ["pyarrow (>=4.0.0)", "pandas"]
+deltalake = ["deltalake (>=0.6.2)"]
 xlsx2csv = ["xlsx2csv (>=0.8.0)"]
+pyarrow = ["pyarrow (>=4.0.0)"]
 
 [[package]]
 name = "prompt-toolkit"
@@ -765,11 +772,11 @@ wcwidth = "*"
 
 [[package]]
 name = "protobuf"
-version = "4.21.12"
-description = ""
+version = "3.19.6"
+description = "Protocol Buffers"
 category = "main"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.5"
 
 [[package]]
 name = "psutil"
@@ -1057,7 +1064,7 @@ test = ["argcomplete (>=2.0)", "pre-commit", "pytest", "pytest-mock"]
 
 [[package]]
 name = "typing-extensions"
-version = "4.4.0"
+version = "4.5.0"
 description = "Backported and Experimental Type Hints for Python 3.7+"
 category = "main"
 optional = false
@@ -1130,7 +1137,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "flake8 (<5)", "pytest-co
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "82941b1b73ffb5a7631027c4bd1af4abeab770478762daaa160f533a5a17c016"
+content-hash = "392a80305087053d58b9391db430afbe1ee9bd75c0378cbfd1a657bd5e8dc3bd"
 
 [metadata.files]
 aiobotocore = []

@@ -24,16 +24,15 @@ class Dataset(object):
         if dataset_id:
             self._load(dataset_id)
 
-    # @classmethod
-    # TODO: remove this
-    # def from_file(cls, path: str) -> "Dataset":
-    #     if not path.endswith('.parquet'):
-    #         raise ValueError("Path must be a parquet file")
-    #     else:
-    #         ds = cls()
-    #         ds._documents = pl.read_parquet(path)
-    #         ds._queries = pl.DataFrame()
-    #         return ds
+    @classmethod
+    def from_file(cls, path: str) -> "Dataset":
+        if not path.endswith('.parquet'):
+            raise ValueError("Path must be a parquet file")
+        else:
+            ds = cls()
+            ds._documents = pl.read_parquet(path)
+            ds._queries = pl.DataFrame()
+            return ds
 
     def _create_path(self, dataset_id: str) -> str:
         path = os.path.join(self._base_path, f"{dataset_id}")
@@ -82,8 +81,6 @@ class Dataset(object):
             return self._documents.select(["id", "values", "sparse_values", "metadata"]).iter_rows(named=True)
         elif batch_size > 0:
             return map(lambda x: x.to_dicts(), self._documents.select(["id", "values", "sparse_values", "metadata"]).iter_slices(n_rows=batch_size))
-        # TODO: add support for Vector and GRPCVector so can load directly to Pinecone
-        # TODO: Will be fixed by client to support for GRPCVector
         else:
             raise ValueError("batch_size must be greater than 0")
 
@@ -91,7 +88,6 @@ class Dataset(object):
     def queries(self) -> pl.DataFrame:
         return self._queries
     
-
     def iter_queries(self) -> Iterator[dict[str, Any]]:
         return self._queries.iter_rows(named=True)
 
