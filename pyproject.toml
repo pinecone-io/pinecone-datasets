@@ -14,6 +14,7 @@ s3fs = "^2023.1.0"
 pydantic = "^1.10.5"
 protobuf = ">=3.19.5,<3.20.0"
 pinecone-client = {git = "git@github.com:pinecone-io/pinecone-python-client.git", rev = "add_dict_support"}
+pandas = "^1.5.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

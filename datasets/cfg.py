@@ -14,5 +14,6 @@ class Schema:
     queries = {
         "id": Utf8,
         "values": List(Float32),
-        "sparse_values": Struct([Field('indices', List(Int64)), Field('values', List(Float32))])
+        "sparse_values": Struct([Field('indices', List(Int64)), Field('values', List(Float32))]),
+        "top_k": Int64
     }
