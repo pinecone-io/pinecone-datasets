@@ -299,26 +299,24 @@ gcsfuse = ["fusepy"]
 
 [[package]]
 name = "google-api-core"
-version = "2.11.0"
+version = "2.8.2"
 description = "Google API client core library"
 category = "main"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.6"
 
 [package.dependencies]
-google-auth = ">=2.14.1,<3.0dev"
+google-auth = ">=1.25.0,<3.0dev"
 googleapis-common-protos = ">=1.56.2,<2.0dev"
-protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<5.0.0dev"
+protobuf = ">=3.15.0,<5.0.0dev"
 requests = ">=2.18.0,<3.0.0dev"
 
 [package.extras]
-grpc = ["grpcio (>=1.33.2,<2.0dev)", "grpcio-status (>=1.33.2,<2.0dev)", "grpcio (>=1.49.1,<2.0dev)", "grpcio-status (>=1.49.1,<2.0dev)"]
-grpcgcp = ["grpcio-gcp (>=0.2.2,<1.0dev)"]
-grpcio-gcp = ["grpcio-gcp (>=0.2.2,<1.0dev)"]
+grpc = ["grpcio (>=1.33.2,<2.0dev)", "grpcio-status (>=1.33.2,<2.0dev)"]
 
 [[package]]
 name = "google-auth"
-version = "2.16.0"
+version = "2.16.1"
 description = "Google Authentication Library"
 category = "main"
 optional = false
@@ -413,17 +411,39 @@ requests = ["requests (>=2.18.0,<3.0.0dev)"]
 
 [[package]]
 name = "googleapis-common-protos"
-version = "1.58.0"
+version = "1.56.4"
 description = "Common protobufs used in Google APIs"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 
 [package.dependencies]
-protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<5.0.0dev"
+protobuf = ">=3.15.0,<5.0.0dev"
 
 [package.extras]
-grpc = ["grpcio (>=1.44.0,<2.0.0dev)"]
+grpc = ["grpcio (>=1.0.0,<2.0.0dev)"]
+
+[[package]]
+name = "grpc-gateway-protoc-gen-openapiv2"
+version = "0.1.0"
+description = "Provides the missing pieces for gRPC Gateway."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+googleapis-common-protos = "*"
+
+[[package]]
+name = "grpcio"
+version = "1.52.0"
+description = "HTTP/2-based RPC framework"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.extras]
+protobuf = ["grpcio-tools (>=1.52.0)"]
 
 [[package]]
 name = "idna"
@@ -540,7 +560,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "jupyter-client"
-version = "8.0.2"
+version = "8.0.3"
 description = "Jupyter protocol implementation and client libraries"
 category = "dev"
 optional = false
@@ -589,6 +609,19 @@ win32-setctime = {version = ">=1.0.0", markers = "sys_platform == \"win32\""}
 
 [package.extras]
 dev = ["colorama (>=0.3.4)", "docutils (==0.16)", "flake8 (>=3.7.7)", "tox (>=3.9.0)", "pytest (>=4.6.2)", "pytest-cov (>=2.7.1)", "black (>=19.10b0)", "isort (>=5.1.1)", "Sphinx (>=4.1.1)", "sphinx-autobuild (>=0.7.1)", "sphinx-rtd-theme (>=0.4.3)"]
+
+[[package]]
+name = "lz4"
+version = "4.3.2"
+description = "LZ4 Bindings for Python"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.extras]
+docs = ["sphinx (>=1.6.0)", "sphinx-bootstrap-theme"]
+flake8 = ["flake8"]
+tests = ["pytest (!=3.3.0)", "psutil", "pytest-cov"]
 
 [[package]]
 name = "matplotlib-inline"
@@ -716,7 +749,12 @@ develop = false
 
 [package.dependencies]
 dnspython = ">=2.0.0"
+googleapis-common-protos = {version = ">=1.53.0", optional = true, markers = "extra == \"grpc\""}
+grpc-gateway-protoc-gen-openapiv2 = {version = "0.1.0", optional = true, markers = "extra == \"grpc\""}
+grpcio = {version = ">=1.44.0", optional = true, markers = "extra == \"grpc\""}
 loguru = ">=0.5.0"
+lz4 = {version = ">=3.1.3", optional = true, markers = "extra == \"grpc\""}
+protobuf = {version = "3.19.3", optional = true, markers = "extra == \"grpc\""}
 python-dateutil = ">=2.5.3"
 pyyaml = ">=5.4"
 requests = ">=2.19.0"
@@ -758,7 +796,7 @@ dev = ["pre-commit", "tox"]
 
 [[package]]
 name = "polars"
-version = "0.16.5"
+version = "0.16.6"
 description = "Blazingly fast DataFrame library"
 category = "main"
 optional = false
@@ -768,16 +806,16 @@ python-versions = ">=3.7"
 typing_extensions = {version = ">=4.0.1", markers = "python_version < \"3.11\""}
 
 [package.extras]
-timezone = ["backports.zoneinfo", "tzdata"]
-fsspec = ["fsspec"]
-connectorx = ["connectorx"]
-numpy = ["numpy (>=1.16.0)"]
-all = ["polars"]
-matplotlib = ["matplotlib"]
-pandas = ["pyarrow (>=4.0.0)", "pandas"]
-deltalake = ["deltalake (>=0.6.2)"]
 xlsx2csv = ["xlsx2csv (>=0.8.0)"]
+all = ["polars"]
+pandas = ["pyarrow (>=4.0.0)", "pandas"]
+connectorx = ["connectorx"]
+timezone = ["backports.zoneinfo", "tzdata"]
 pyarrow = ["pyarrow (>=4.0.0)"]
+numpy = ["numpy (>=1.16.0)"]
+matplotlib = ["matplotlib"]
+deltalake = ["deltalake (>=0.6.2)"]
+fsspec = ["fsspec"]
 
 [[package]]
 name = "prompt-toolkit"
@@ -792,7 +830,7 @@ wcwidth = "*"
 
 [[package]]
 name = "protobuf"
-version = "3.19.6"
+version = "3.19.3"
 description = "Protocol Buffers"
 category = "main"
 optional = false
@@ -1152,7 +1190,7 @@ multidict = ">=4.0"
 
 [[package]]
 name = "zipp"
-version = "3.13.0"
+version = "3.14.0"
 description = "Backport of pathlib-compatible object wrapper for zip files"
 category = "dev"
 optional = false
@@ -1165,7 +1203,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "flake8 (<5)", "pytest-co
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "c2fff411f93241a5f9e3c2e8b7aca009f03403a010b4a73abbed4dfabeb61a14"
+content-hash = "b451289753f3c10e94f680cd9bd95e63a8d9a13ae3f30f0f8f2fdde6a310820d"
 
 [metadata.files]
 aiobotocore = []
@@ -1212,6 +1250,8 @@ google-cloud-storage = []
 google-crc32c = []
 google-resumable-media = []
 googleapis-common-protos = []
+grpc-gateway-protoc-gen-openapiv2 = []
+grpcio = []
 idna = []
 importlib-metadata = []
 ipykernel = []
@@ -1224,6 +1264,7 @@ loguru = [
     {file = "loguru-0.6.0-py3-none-any.whl", hash = "sha256:4e2414d534a2ab57573365b3e6d0234dfb1d84b68b7f3b948e6fb743860a77c3"},
     {file = "loguru-0.6.0.tar.gz", hash = "sha256:066bd06758d0a513e9836fd9c6b5a75bfb3fd36841f4b996bc60b547a309d41c"},
 ]
+lz4 = []
 matplotlib-inline = []
 more-itertools = []
 multidict = []
