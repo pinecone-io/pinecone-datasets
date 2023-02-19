@@ -6,8 +6,8 @@ from . import cfg
 
 catalog = Catalog.load()
 
-def load_dataset(dataset_id: str) -> Dataset:
-    return Dataset(dataset_id)
+def load_dataset(dataset_id: str, **kwargs) -> Dataset:
+    return Dataset(dataset_id, **kwargs)
 
 def list_datasets() -> list:
     return catalog.list_datasets()
