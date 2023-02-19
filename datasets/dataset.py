@@ -48,13 +48,11 @@ class Dataset(object):
             return os.path.exists(os.path.join(self._create_path(dataset_id), data_type))
 
     def _safe_read_from_path(self, data_type: str, dataset_id: str, enforced_schema: Dict[str, Any]) -> pl.DataFrame:
-        read_path_str = os.path.join(self._create_path(dataset_id), data_type, "*.parquet") # TODO: change to s3/gcs
+        read_path_str = os.path.join(self._create_path(dataset_id), data_type, "*.parquet")
         read_path = self._fs.glob(read_path_str) if self._fs else glob.glob(read_path_str)
         if self._is_datatype_exists(data_type, dataset_id):
             dataset = pq.ParquetDataset(read_path, filesystem=self._fs)
             try:
-                # TODO: change to pandas
-                # dataset = load_dataset("name", engine='polars')
                 if self._engine == 'pandas':
                     df = dataset.read_pandas().to_pandas()
                 elif self._engine == 'polars':
