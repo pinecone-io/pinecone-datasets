@@ -93,15 +93,9 @@ dataset = Dataset("two_docs-edo-edo", path="data/")
 ### Iterating over a Dataset documents
 
 ```python
-# Dict Iterator with ("id", "metadata", "values", "sparse_values")
-dataset.iter_docs() 
 
 # List Iterator, where every list of size N Dicts with ("id", "metadata", "values", "sparse_values")
-dataset.iter_docs(batch_size=n) 
-
-# polars iter_rows 
-# https://pola-rs.github.io/polars/py-polars/html/reference/dataframe/api/polars.DataFrame.iter_rows.html
-dataset.documents.iter_rows() 
+dataset.iter_documents(batch_size=n) 
 ```
 
 ### upserting to Index
@@ -114,12 +108,8 @@ pinecone.create_index(name="my-index", dimension=384, pod_type='s1')
 
 index = pinecone.Index("my-index")
 
-# Iterating over documents one by one
-for doc in dataset.iter_docs():
-    index.upsert(vectors=[doc])
-
 # Or: Iterating over documents in batches
-for batch in dataset.iter_docs(batch_size=100):
+for batch in dataset.iter_documents(batch_size=100):
     index.upsert(vectors=batch)
 ```
 
@@ -130,12 +120,8 @@ Simply use GRPCIndex and do:
 ```python
 index = pinecone.GRPCIndex("my-index")
 
-# Iterating over documents one by one
-for doc in dataset.iter_docs():
-    index.upsert(vectors=[doc])
-
 # Iterating over documents in batches
-for batch in dataset.iter_docs(batch_size=100):
+for batch in dataset.iter_documents(batch_size=100):
     index.upsert(vectors=batch)
 ```
 
