@@ -24,16 +24,6 @@ class Dataset(object):
         if dataset_id:
             self._load(dataset_id)
 
-    @classmethod
-    def from_file(cls, path: str) -> "Dataset":
-        if not path.endswith('.parquet'):
-            raise ValueError("Path must be a parquet file")
-        else:
-            ds = cls()
-            ds._documents = pl.read_parquet(path)
-            ds._queries = pl.DataFrame()
-            return ds
-
     def _create_path(self, dataset_id: str) -> str:
         path = os.path.join(self._base_path, f"{dataset_id}")
         return path
@@ -50,6 +40,8 @@ class Dataset(object):
         if self._is_datatype_exists(data_type, dataset_id):
             dataset = pq.ParquetDataset(read_path, filesystem=self._fs)
             try:
+                # TODO: change to pandas
+                # dataset = load_dataset("name", engine='polars')
                 df = pl.from_arrow(dataset.read(), schema_overrides=enforced_schema) # TODO: fix schema enforcement on read -- Ram: important for v0.1
                 return df
             except pl.PanicException as pe:
@@ -76,7 +68,7 @@ class Dataset(object):
     def documents(self) -> pl.DataFrame: 
         return self._documents
 
-    def iter_docs(self, batch_size:int=-1) -> Iterator[Union[dict[str, Any], List[dict[str, Any]]]]:
+    def iter_documents(self, batch_size:int=-1) -> Iterator[Union[dict[str, Any], List[dict[str, Any]]]]:
         if batch_size == -1:
             return self._documents.select(["id", "values", "sparse_values", "metadata"]).iter_rows(named=True)
         elif batch_size > 0:
@@ -86,6 +78,8 @@ class Dataset(object):
 
     @property
     def queries(self) -> pl.DataFrame:
+        # TODO: add top_k
+        # index.query(**query)
         return self._queries
     
     def iter_queries(self) -> Iterator[dict[str, Any]]:
