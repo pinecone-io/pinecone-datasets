@@ -7,8 +7,6 @@ import polars as pl
 from google.cloud import storage
 from pydantic import BaseModel, Field
 
-storage_client = storage.Client()
-
 class DenseModelMetadata(BaseModel):
     name: str
     tokenizer: Optional[str]
