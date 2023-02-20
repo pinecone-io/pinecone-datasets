@@ -1,4 +1,4 @@
-from polars.datatypes import Utf8, Int64, Float32, List, Struct, Field, UInt32
+from polars.datatypes import Utf8, Float32, List, Struct, Field, UInt32
 
 class Storage:
     base_path: str = "gs://pinecone-datasets-dev"
