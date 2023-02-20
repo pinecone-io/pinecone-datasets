@@ -5,3 +5,4 @@ internal_testing.ipynb
 dist/
 .mypy_cache/
 scratchpad.ipynb
+.github/**
