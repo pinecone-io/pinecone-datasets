@@ -108,6 +108,9 @@ class Dataset(object):
         else:
             raise KeyError("Dataset does not have key: {}".format(key))
 
+    def __len__(self) -> int:
+        return self._documents.shape[0]
+
     @property
     def documents(self) -> Union[pl.DataFrame, pd.DataFrame]: 
         return self._documents
