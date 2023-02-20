@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pinecone-datasets"
-version = "0.1.5-alpha"
+version = "0.1.6-alpha"
 description = "Pinecone Datasets lets you easily load datasets into your Pinecone index."
 authors = ["Pinecone"]
 maintainers = [

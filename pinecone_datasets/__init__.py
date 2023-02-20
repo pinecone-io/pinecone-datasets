@@ -1,4 +1,4 @@
-__version__ = '0.1.5-alpha'
+__version__ = '0.1.6-alpha'
 
 from .dataset import Dataset
 from .catalog import Catalog
