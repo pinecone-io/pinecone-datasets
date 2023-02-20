@@ -55,5 +55,15 @@ def test_iter_documents_pandas(tmpdir):
     assert ds.documents.shape[0] == 2
 
 
+def is_dicts_equal(d1, d2):
+    return d1.keys() == d2.keys() and all(d1[k] == d2[k] for k in d1)
 
+def download_json_from_https(url):
+    import requests
+    return requests.get(url).json()
 
+def test_catalog():
+    from pinecone_datasets import catalog
+    catalog_as_dict = download_json_from_https("https://storage.googleapis.com/pinecone-datasets-dev/catalog.json")
+    for dataset in catalog.list_datasets():
+        assert dataset in [c["name"] for c in catalog_as_dict]
