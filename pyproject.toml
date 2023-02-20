@@ -1,11 +1,16 @@
 [tool.poetry]
 name = "pinecone-datasets"
-version = "0.1.0"
-description = ""
-authors = ["Roy Miara <miararoy@gmail.com>"]
+version = "0.1.1"
+description = "Pinecone Datasets lets you easily load datasets into your Pinecone index."
+authors = ["Pinecone"]
+maintainers = [
+    "Roy Miara <miararoy@gmail.com>",
+]
+readme = "README.md"
+
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.7"
 polars = "^0.16.4"
 pyarrow = "^11.0.0"
 fsspec = "^2023.1.0"

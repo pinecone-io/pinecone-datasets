@@ -2,3 +2,4 @@
 examples/
 internal_testing.ipynb
 .DS_Store
+dist/
