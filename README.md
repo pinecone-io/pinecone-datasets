@@ -100,6 +100,10 @@ dataset.iter_documents(batch_size=n)
 
 ### upserting to Index
 
+```bash
+pip install pinecone-client
+```
+
 ```python
 import pinecone
 pinecone.init(api_key="API_KEY", environment="us-west1-gcp")
@@ -124,6 +128,3 @@ index = pinecone.GRPCIndex("my-index")
 for batch in dataset.iter_documents(batch_size=100):
     index.upsert(vectors=batch)
 ```
-
-or for high performance
-

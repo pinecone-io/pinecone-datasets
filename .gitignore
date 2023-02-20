@@ -3,3 +3,5 @@ examples/
 internal_testing.ipynb
 .DS_Store
 dist/
+.mypy_cache/
+scratchpad.ipynb

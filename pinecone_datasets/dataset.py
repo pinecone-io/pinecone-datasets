@@ -47,7 +47,7 @@ class Dataset(object):
         else:
             return os.path.exists(os.path.join(self._create_path(dataset_id), data_type))
 
-    def _safe_read_from_path(self, data_type: str, dataset_id: str, enforced_schema: Dict[str, Any]) -> pl.DataFrame:
+    def _safe_read_from_path(self, data_type: str, dataset_id: str, enforced_schema: Dict[str, Any]) -> Union[pl.DataFrame, pd.DataFrame]:
         read_path_str = os.path.join(self._create_path(dataset_id), data_type, "*.parquet")
         read_path = self._fs.glob(read_path_str) if self._fs else glob.glob(read_path_str)
         if self._is_datatype_exists(data_type, dataset_id):
@@ -56,7 +56,7 @@ class Dataset(object):
                 if self._engine == 'pandas':
                     df = dataset.read_pandas().to_pandas()
                 elif self._engine == 'polars':
-                    df = pl.from_arrow(dataset.read(), schema_overrides=enforced_schema) # TODO: fix schema enforcement on read -- Ram: important for v0.1
+                    df = pl.from_arrow(dataset.read(), schema_overrides=enforced_schema)
                 else:
                     raise ValueError("engine must be one of ['pandas', 'polars']")
                 return df
@@ -86,10 +86,10 @@ class Dataset(object):
             raise KeyError("Dataset does not have key: {}".format(key))
 
     @property
-    def documents(self) -> pl.DataFrame: 
+    def documents(self) -> Union[pl.DataFrame, pd.DataFrame]: 
         return self._documents
 
-    def iter_documents(self, batch_size:int=1) -> Iterator[List[dict[str, Any]]]:
+    def iter_documents(self, batch_size:int=1) -> Iterator[List[Dict[str, Any]]]:
         if isinstance(batch_size, int) and batch_size > 0:
             if self._engine == 'pandas':
                 return iter_pandas_dataframe_slices(self._documents[["id", "values", "sparse_values", "metadata"]], batch_size)
@@ -98,16 +98,16 @@ class Dataset(object):
             raise ValueError("batch_size must be greater than 0")
 
     @property
-    def queries(self) -> pl.DataFrame:
+    def queries(self) -> Union[pl.DataFrame, pd.DataFrame]:
         return self._queries
     
-    def iter_queries(self) -> Iterator[dict[str, Any]]:
+    def iter_queries(self) -> Iterator[Dict[str, Any]]:
         if self._engine == 'pandas':
             return iter_pandas_dataframe_single(self._queries[["values", "sparse_values", "filter", "top_k"]])
         else:
            return self._queries.select(["values", "sparse_values", "filter", "top_k"]).iter_rows(named=True)
 
-    def head(self, n: int = 5) -> pl.DataFrame:
+    def head(self, n: int = 5) -> Union[pl.DataFrame, pd.DataFrame]:
         return self.documents.head(n)
         
 

@@ -1,10 +1,9 @@
-from dataclasses import dataclass
 import json
 from typing import List, Optional
 
 import gcsfs
 import polars as pl
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 class DenseModelMetadata(BaseModel):
     name: str
@@ -22,9 +21,9 @@ class DatasetMetadata(BaseModel):
     sparse_model: SparseModelMetdata
 
 class Catalog(BaseModel):
-    datasets: list[DatasetMetadata]
+    datasets: List[DatasetMetadata]
 
-    @classmethod
+    @staticmethod
     def load() -> "Catalog":
         gcs_file_system = gcsfs.GCSFileSystem(token='anon')
         gcs_json_path = "gs://pinecone-datasets-dev/catalog.json"
@@ -32,7 +31,7 @@ class Catalog(BaseModel):
             _catalog = pl.from_dicts(json.load(f))
         return Catalog.parse_obj({"datasets": _catalog.to_dicts()})
 
-    def list_datasets(self) -> list:
+    def list_datasets(self) -> List[str]:
         return [dataset.name for dataset in self.datasets]
 
 
