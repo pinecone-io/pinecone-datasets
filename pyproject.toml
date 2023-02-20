@@ -10,7 +10,7 @@ readme = "README.md"
 
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 polars = "^0.16.4"
 pyarrow = "^11.0.0"
 fsspec = "^2023.1.0"
@@ -25,6 +25,7 @@ from = {format = "poetry", path = "pyproject.toml"}
 to = {format = "setuppy", path = "setup.py"}
 
 [tool.poetry.dev-dependencies]
+mypy = "^1.0.1"
 pytest = "^5.2"
 ipykernel = "^6.21.1"
 pinecone-client = {git = "git@github.com:pinecone-io/pinecone-python-client.git", rev = "add_dict_support", extras=["grpc"]}

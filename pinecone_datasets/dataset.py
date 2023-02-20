@@ -23,7 +23,7 @@ def iter_pandas_dataframe_single(df: pd.DataFrame) -> Generator[Dict[str, Any], 
 
 
 class Dataset(object):
-    def __init__(self, dataset_id: str = None, path: str=None, engine: str = 'pandas') -> None:
+    def __init__(self, dataset_id: str = "", path: str = "", engine: str = 'pandas') -> None:
         self._documents: pl.DataFrame = None
         self._queries: pl.DataFrame = None
         self._config = cfg

@@ -4,7 +4,6 @@ from typing import List, Optional
 
 import gcsfs
 import polars as pl
-from google.cloud import storage
 from pydantic import BaseModel, Field
 
 class DenseModelMetadata(BaseModel):
@@ -25,6 +24,7 @@ class DatasetMetadata(BaseModel):
 class Catalog(BaseModel):
     datasets: list[DatasetMetadata]
 
+    @classmethod
     def load() -> "Catalog":
         gcs_file_system = gcsfs.GCSFileSystem(token='anon')
         gcs_json_path = "gs://pinecone-datasets-dev/catalog.json"
