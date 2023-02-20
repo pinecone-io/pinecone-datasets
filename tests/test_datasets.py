@@ -1,4 +1,4 @@
-from datasets import __version__
+from pinecone_datasets import __version__
 
 
 def test_version():

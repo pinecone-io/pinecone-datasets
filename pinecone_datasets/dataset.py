@@ -9,7 +9,7 @@ import polars as pl
 import pandas as pd
 import pyarrow.parquet as pq
 
-from datasets import cfg
+from pinecone_datasets import cfg
 
 
 def iter_pandas_dataframe_slices(df: pd.DataFrame, batch_size=1) -> Generator[List[Dict[str, Any]], None, None]:
