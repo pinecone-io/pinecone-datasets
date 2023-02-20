@@ -34,17 +34,16 @@ class Dataset(object):
         
 
         Examples:
-            >>> # pip install pinecone-datasets pinecone-client
-            >>> from pinecone_datasets import Dataset
-            >>> dataset = Dataset("dataset_name")
-            >>> for doc in dataset.iter_documents(batch_size=100):
-            >>>     index.upsert(doc)
-            >>> for query in dataset.iter_queries(batch_size):
-            >>>     results = index.search(query)
-            >>>     # do something with the results
-            >>> # or
-            >>> dataset.documents # returns a pandas/polars DataFrame
-            >>> dataset.queries # returns a pandas/polars DataFrame
+            from pinecone_datasets import Dataset
+            dataset = Dataset("dataset_name")
+            for doc in dataset.iter_documents(batch_size=100):
+                index.upsert(doc)
+            for query in dataset.iter_queries(batch_size):
+                results = index.search(query)
+                # do something with the results
+            # or
+            dataset.documents # returns a pandas/polars DataFrame
+            dataset.queries # returns a pandas/polars DataFrame
             
         """
         self._documents: pl.DataFrame = None
@@ -85,8 +84,8 @@ class Dataset(object):
                     raise ValueError("engine must be one of ['pandas', 'polars']")
                 return df
             except pl.PanicException as pe:
-                print("error, file is not matching Pinecone Datasets Schmea: {}".format(pe), file=sys.stderr)
-                raise(pe)
+                msg = f"error, file is not matching Pinecone Datasets Schmea: {pe}"
+                raise RuntimeError(msg)
             except Exception as e:
                 print("error, no exception: {}".format(e), file=sys.stderr)
                 raise(e)
@@ -124,13 +123,13 @@ class Dataset(object):
             Iterator[List[Dict[str, Any]]]: An iterator over the documents in the dataset.
 
         Examples:
-            >>> for batch in dataset.iter_documents(batch_size=100):
-            >>>     index.upsert(batch)
+            for batch in dataset.iter_documents(batch_size=100):
+                index.upsert(batch)
         """
         if isinstance(batch_size, int) and batch_size > 0:
             if self._engine == 'pandas':
-                return iter_pandas_dataframe_slices(self._documents[["id", "values", "sparse_values", "metadata"]], batch_size)
-            return map(lambda x: x.to_dicts(), self._documents.select(["id", "values", "sparse_values", "metadata"]).iter_slices(n_rows=batch_size))
+                return iter_pandas_dataframe_slices(self._documents[self._config.Schema.documents_select_columns], batch_size)
+            return map(lambda x: x.to_dicts(), self._documents.select(self._config.Schema.documents_select_columns).iter_slices(n_rows=batch_size))
         else:
             raise ValueError("batch_size must be greater than 0")
 
@@ -146,14 +145,14 @@ class Dataset(object):
             Iterator[Dict[str, Any]]: An iterator over the queries in the dataset.
 
         Examples:
-            >>> for query in dataset.iter_queries():
-            >>>     results = index.query(**query)
-            >>>     # do something with the results
+            for query in dataset.iter_queries():
+                results = index.query(**query)
+                # do something with the results
         """
         if self._engine == 'pandas':
-            return iter_pandas_dataframe_single(self._queries[["values", "sparse_values", "filter", "top_k"]])
+            return iter_pandas_dataframe_single(self._queries[self._config.Schema.queries_select_columns])
         else:
-           return self._queries.select(["values", "sparse_values", "filter", "top_k"]).iter_rows(named=True)
+           return self._queries.select(self._queries[self._config.Schema.queries_select_columns]).iter_rows(named=True)
 
     def head(self, n: int = 5) -> Union[pl.DataFrame, pd.DataFrame]:
         return self.documents.head(n)

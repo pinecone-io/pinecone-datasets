@@ -3,7 +3,6 @@ from ssl import SSLCertVerificationError
 from typing import List, Optional
 
 import gcsfs
-import polars as pl
 from pydantic import BaseModel
 
 class DenseModelMetadata(BaseModel):
@@ -30,8 +29,8 @@ class Catalog(BaseModel):
         gcs_json_path = "gs://pinecone-datasets-dev/catalog.json"
         try:
             with gcs_file_system.open(gcs_json_path) as f:
-                _catalog = pl.from_dicts(json.load(f))
-            return Catalog.parse_obj({"datasets": _catalog.to_dicts()})
+                _catalog = json.load(f)
+                return Catalog.parse_obj({"datasets": _catalog})
         except SSLCertVerificationError:
             raise ValueError("There is an Issue with loading the public catalog")
 

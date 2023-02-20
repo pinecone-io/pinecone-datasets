@@ -18,9 +18,9 @@ def load_dataset(dataset_id: str, **kwargs) -> Dataset:
         Dataset: A Dataset object
 
     Examples:
-        >>> # pip install pinecone-datasets pinecone-client
-        >>> from pinecone_datasets import load_dataset
-        >>> dataset = load_dataset("dataset_name")
+        # pip install pinecone-datasets pinecone-client
+        from pinecone_datasets import load_dataset
+        dataset = load_dataset("dataset_name")
     """
     return Dataset(dataset_id, **kwargs)
 
