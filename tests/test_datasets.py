@@ -1,36 +1,38 @@
+import pytest
+
 import pandas as pd
 import polars as pl
 from pinecone_datasets import __version__, load_dataset, list_datasets, Dataset
 
+WARN_MESSAGE = "Pinecone Datasets is a new and experimental library. The API is subject to change without notice."
 
 def test_version():
-    assert __version__ == '0.1.6-alpha'
-
+    assert __version__ == '0.2.0-alpha'
 
 def test_load_dataset_pandas():
-    from pinecone_datasets import load_dataset
     ds = load_dataset("cc-news_msmarco-MiniLM-L6-cos-v5")
     assert ds.documents.shape[0] == 100000
     assert ds.documents.shape[1] == 5
     assert isinstance(ds.documents, pd.DataFrame)
 
 def test_load_dataset_polars():
-    from pinecone_datasets import load_dataset
     ds = load_dataset("cc-news_msmarco-MiniLM-L6-cos-v5", engine="polars")
     assert ds.documents.shape[0] == 100000
     assert ds.documents.shape[1] == 5
     assert isinstance(ds.documents, pl.DataFrame)
 
 def test_list_datasets():
-    from pinecone_datasets import list_datasets
     lst = list_datasets()
     assert len(lst) > 0
     assert isinstance(lst, list)
     assert isinstance(lst[0], str)
     assert "cc-news_msmarco-MiniLM-L6-cos-v5" in lst
 
+def test_load_dataset_does_not_exists():
+    ds = load_dataset("does_not_exists")
+    assert ds.documents.empty and ds.queries.empty
+
 def test_iter_documents_pandas(tmpdir):
-    from pinecone_datasets import Dataset
     data = [
         {
             "id": "1",
