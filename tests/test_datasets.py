@@ -6,7 +6,7 @@ from pinecone_datasets import __version__, load_dataset, list_datasets, Dataset
 WARN_MESSAGE = "Pinecone Datasets is a new and experimental library. The API is subject to change without notice."
 
 def test_version():
-    assert __version__ == '0.2.1-alpha'
+    assert __version__ == '0.2.2-alpha'
 
 def test_load_dataset_pandas():
     ds = load_dataset("cc-news_msmarco-MiniLM-L6-cos-v5")
