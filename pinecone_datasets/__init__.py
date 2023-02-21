@@ -1,4 +1,4 @@
-__version__ = "0.2.0-alpha"
+__version__ = "0.2.1-alpha"
 
 import warnings
 
@@ -31,7 +31,10 @@ def load_dataset(dataset_id: str, **kwargs) -> Dataset:
             from pinecone_datasets import load_dataset
             dataset = load_dataset("dataset_name")
     """
-    return Dataset(dataset_id, **kwargs)
+    if dataset_id not in catalog.list_datasets():
+        raise FileNotFoundError(f"Dataset {dataset_id} not found in catalog")
+    else:
+        return Dataset(dataset_id, **kwargs)
 
 
 def list_datasets() -> list:
