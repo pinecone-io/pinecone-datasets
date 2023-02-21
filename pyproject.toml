@@ -24,8 +24,6 @@ pandas = "^1.5.3"
 pytest = "^5.2"
 ipykernel = "^6.21.1"
 pinecone-client = {git = "git@github.com:pinecone-io/pinecone-python-client.git", rev = "add_dict_support", extras=["grpc"]}
-
-[tool.poetry.group.dev.dependencies]
 black = "^23.1.0"
 
 [build-system]
