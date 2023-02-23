@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pinecone-datasets"
-version = "0.1.1"
+version = "0.2.4-alpha"
 description = "Pinecone Datasets lets you easily load datasets into your Pinecone index."
 authors = ["Pinecone"]
 maintainers = [
@@ -20,15 +20,13 @@ pydantic = "^1.10.5"
 protobuf = ">=3.19.3,<3.20.0"
 pandas = "^1.5.3"
 
-[tool.dephell.main]
-from = {format = "poetry", path = "pyproject.toml"}
-to = {format = "setuppy", path = "setup.py"}
-
 [tool.poetry.dev-dependencies]
-mypy = "^1.0.1"
 pytest = "^5.2"
 ipykernel = "^6.21.1"
-pinecone-client = {git = "git@github.com:pinecone-io/pinecone-python-client.git", rev = "add_dict_support", extras=["grpc"]}
+pinecone-client = {version="^2.2", extras=["grpc"]}
+black = "^23.1.0"
+pytest-cov = "^4.0.0"
+
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

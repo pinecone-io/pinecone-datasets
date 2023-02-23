@@ -1,4 +1,4 @@
-from polars.datatypes import Utf8, Int64, Float32, List, Struct, Field
+from polars.datatypes import Utf8, Float32, List, Struct, Field, UInt32
 
 
 class Storage:
@@ -9,11 +9,16 @@ class Schema:
     documents = {
         "id": Utf8,
         "values": List(Float32),
-        "sparse_values": Struct([Field('indices', List(Int64)), Field('values', List(Float32))])
+        "sparse_values": Struct(
+            [Field("indices", List(UInt32)), Field("values", List(Float32))]
+        ),
     }
+    documents_select_columns = ["id", "values", "sparse_values", "metadata"]
     queries = {
-        "id": Utf8,
-        "values": List(Float32),
-        "sparse_values": Struct([Field('indices', List(Int64)), Field('values', List(Float32))]),
-        "top_k": Int64
+        "vector": List(Float32),
+        "sparse_vector": Struct(
+            [Field("indices", List(UInt32)), Field("values", List(Float32))]
+        ),
+        "top_k": UInt32,
     }
+    queries_select_columns = ["vector", "sparse_vector", "filter", "top_k"]
