@@ -7,11 +7,6 @@ from .catalog import Catalog
 from . import cfg
 
 
-warnings.warn(
-    "Pinecone Datasets is a new and experimental library. The API is subject to change without notice.",
-    UserWarning,
-)
-
 catalog = Catalog.load()
 
 

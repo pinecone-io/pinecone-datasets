@@ -115,6 +115,7 @@ class Dataset(object):
                     read_path_str
                 ),
                 UserWarning,
+                stacklevel=0
             )
             if self._engine == "pandas":
                 return pd.DataFrame()
