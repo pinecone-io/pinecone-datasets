@@ -7,7 +7,7 @@ You can use Pinecone Datasets to load our public datasets or with your own datas
 ### Loading Pinecone Public Datasets
 
 ```python
-from datasets import list_datasets, load_dataset
+from pinecone_datasets import list_datasets, load_dataset
 
 list_datasets()
 # ["cc-news_msmarco-MiniLM-L6-cos-v5", ... ]
