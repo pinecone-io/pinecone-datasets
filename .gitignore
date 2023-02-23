@@ -8,3 +8,4 @@ scratchpad.ipynb
 .github/**
 .pycache/
 .pytest_cache/
+.coverage
