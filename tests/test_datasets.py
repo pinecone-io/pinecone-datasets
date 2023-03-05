@@ -1,5 +1,7 @@
 import pandas as pd
 import polars as pl
+from polars.testing import assert_frame_equal as pl_assert_frame_equal
+from pandas.testing import assert_frame_equal as pd_assert_frame_equal
 import pytest
 from pinecone_datasets import __version__, load_dataset, list_datasets, Dataset
 
@@ -20,7 +22,7 @@ def test_load_dataset_pandas():
     assert isinstance(ds.head(), pd.DataFrame)
     assert ds.head().shape[0] == 5
     assert ds.head().shape[1] == 5
-    assert pd.testing.assert_frame_equal(ds.head(), ds.documents.head())
+    assert pd_assert_frame_equal(ds.head(), ds.documents.head())
 
 
 def test_load_dataset_polars():
@@ -31,7 +33,7 @@ def test_load_dataset_polars():
     assert isinstance(ds.head(), pl.DataFrame)
     assert ds.head().shape[0] == 5
     assert ds.head().shape[1] == 5
-    assert pl.testing.assert_frame_equal(ds.head(), ds.documents.head())
+    assert pl_assert_frame_equal(ds.head(), ds.documents.head())
 
 
 def test_list_datasets():
