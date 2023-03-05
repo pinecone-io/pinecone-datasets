@@ -20,7 +20,7 @@ def test_load_dataset_pandas():
     assert isinstance(ds.head(), pd.DataFrame)
     assert ds.head().shape[0] == 5
     assert ds.head().shape[1] == 5
-    assert pd.assert_frame_equal(ds.head(), ds.documents.head())
+    assert pd.testing.assert_frame_equal(ds.head(), ds.documents.head())
 
 
 def test_load_dataset_polars():
@@ -31,7 +31,7 @@ def test_load_dataset_polars():
     assert isinstance(ds.head(), pl.DataFrame)
     assert ds.head().shape[0] == 5
     assert ds.head().shape[1] == 5
-    assert pd.testing.assert_frame_equal(ds.head(), ds.documents.head())
+    assert pl.testing.assert_frame_equal(ds.head(), ds.documents.head())
 
 
 def test_list_datasets():
