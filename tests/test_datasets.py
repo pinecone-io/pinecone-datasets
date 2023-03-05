@@ -74,7 +74,7 @@ def test_iter_documents_pandas(tmpdir):
 
     for i, d in enumerate(ds.iter_documents()):
         assert is_dicts_equal(d[0], data[i])
-    
+
     for d in ds.iter_documents(batch_size=2):
         assert is_dicts_equal(d[0], data[0])
         assert is_dicts_equal(d[1], data[1])
@@ -107,7 +107,7 @@ def test_iter_queries_pandas(tmpdir):
 
     for i, d in enumerate(ds.iter_queries()):
         assert is_dicts_equal(d[0], data[i])
-    
+
     for d in ds.iter_queries(batch_size=2):
         assert is_dicts_equal(d[0], data[0])
         assert is_dicts_equal(d[1], data[1])
