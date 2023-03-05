@@ -125,11 +125,13 @@ def test_iter_queries_pandas(tmpdir):
 def is_dicts_equal(d1, d2):
     return d1.keys() == d2.keys() and recursive_dict_compare(d1, d2)
 
+
 def deep_list_cmp(l1, l2):
     same = True
     for l, r in zip(l1, l2):
         same = same and l == r
     return same
+
 
 def recursive_dict_compare(d1, d2):
     for k, v in d1.items():
@@ -138,6 +140,7 @@ def recursive_dict_compare(d1, d2):
         elif isinstance(v, (list, np.ndarray)):
             return deep_list_cmp(v, d2[k])
         return v == d2[k]
+
 
 def download_json_from_https(url):
     import requests
