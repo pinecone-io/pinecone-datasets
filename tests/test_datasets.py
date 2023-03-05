@@ -17,6 +17,10 @@ def test_load_dataset_pandas():
     assert ds.documents.shape[0] == 522931
     assert ds.documents.shape[1] == 5
     assert isinstance(ds.documents, pd.DataFrame)
+    assert isinstance(ds.head(), pd.DataFrame)
+    assert ds.head().shape[0] == 5
+    assert ds.head().shape[1] == 5
+    assert pd.assert_frame_equal(ds.head(), ds.documents.head())
 
 
 def test_load_dataset_polars():
@@ -24,6 +28,10 @@ def test_load_dataset_polars():
     assert ds.documents.shape[0] == 522931
     assert ds.documents.shape[1] == 5
     assert isinstance(ds.documents, pl.DataFrame)
+    assert isinstance(ds.head(), pl.DataFrame)
+    assert ds.head().shape[0] == 5
+    assert ds.head().shape[1] == 5
+    assert pd.testing.assert_frame_equal(ds.head(), ds.documents.head())
 
 
 def test_list_datasets():
@@ -63,7 +71,48 @@ def test_iter_documents_pandas(tmpdir):
     pd.DataFrame(data).to_parquet(documents_path.join("part-0.parquet"))
 
     ds = Dataset(dataset_name, base_path=str(tmpdir))
+
+    for i, d in enumerate(ds.iter_documents()):
+        assert is_dicts_equal(d[0], data[i])
+    
+    for d in ds.iter_documents(batch_size=2):
+        assert is_dicts_equal(d[0], data[0])
+        assert is_dicts_equal(d[1], data[1])
+
     assert ds.documents.shape[0] == 2
+
+
+def test_iter_queries_pandas(tmpdir):
+    data = [
+        {
+            "vector": [0.1, 0.2, 0.3],
+            "sparse_vector": {"1": 0.1, "2": 0.2, "3": 0.3},
+            "filter": "filter1",
+            "top_k": 1,
+        },
+        {
+            "vector": [0.4, 0.5, 0.6],
+            "sparse_vector": {"4": 0.4, "5": 0.5, "6": 0.6},
+            "filter": "filter2",
+            "top_k": 2,
+        },
+    ]
+
+    dataset_name = "test_dataset"
+    dataset_path = tmpdir.mkdir(dataset_name)
+    queries_path = dataset_path.mkdir("queries")
+    pd.DataFrame(data).to_parquet(queries_path.join("part-0.parquet"))
+
+    ds = Dataset(dataset_name, base_path=str(tmpdir))
+
+    for i, d in enumerate(ds.iter_queries()):
+        assert is_dicts_equal(d[0], data[i])
+    
+    for d in ds.iter_queries(batch_size=2):
+        assert is_dicts_equal(d[0], data[0])
+        assert is_dicts_equal(d[1], data[1])
+
+    assert ds.queries.shape[0] == 2
 
 
 def is_dicts_equal(d1, d2):
