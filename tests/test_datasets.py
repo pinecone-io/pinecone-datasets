@@ -5,20 +5,22 @@ from pinecone_datasets import __version__, load_dataset, list_datasets, Dataset
 
 WARN_MESSAGE = "Pinecone Datasets is a new and experimental library. The API is subject to change without notice."
 
+test_dataset = "quora_all-MiniLM-L6-bm25"
+
 
 def test_version():
     assert __version__ == "0.2.4-alpha"
 
 
 def test_load_dataset_pandas():
-    ds = load_dataset("cc-news_msmarco-MiniLM-L6-cos-v5")
+    ds = load_dataset(test_dataset)
     assert ds.documents.shape[0] == 100000
     assert ds.documents.shape[1] == 5
     assert isinstance(ds.documents, pd.DataFrame)
 
 
 def test_load_dataset_polars():
-    ds = load_dataset("cc-news_msmarco-MiniLM-L6-cos-v5", engine="polars")
+    ds = load_dataset(test_dataset, engine="polars")
     assert ds.documents.shape[0] == 100000
     assert ds.documents.shape[1] == 5
     assert isinstance(ds.documents, pl.DataFrame)
@@ -29,7 +31,7 @@ def test_list_datasets():
     assert len(lst) > 0
     assert isinstance(lst, list)
     assert isinstance(lst[0], str)
-    assert "cc-news_msmarco-MiniLM-L6-cos-v5" in lst
+    assert test_dataset in lst
 
 
 def test_load_dataset_does_not_exists():
