@@ -14,14 +14,14 @@ def test_version():
 
 def test_load_dataset_pandas():
     ds = load_dataset(test_dataset)
-    assert ds.documents.shape[0] == 100000
+    assert ds.documents.shape[0] == 522931
     assert ds.documents.shape[1] == 5
     assert isinstance(ds.documents, pd.DataFrame)
 
 
 def test_load_dataset_polars():
     ds = load_dataset(test_dataset, engine="polars")
-    assert ds.documents.shape[0] == 100000
+    assert ds.documents.shape[0] == 522931
     assert ds.documents.shape[1] == 5
     assert isinstance(ds.documents, pl.DataFrame)
 
