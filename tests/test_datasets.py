@@ -1,5 +1,6 @@
 import pandas as pd
 import polars as pl
+import numpy as np
 from polars.testing import assert_frame_equal as pl_assert_frame_equal
 from pandas.testing import assert_frame_equal as pd_assert_frame_equal
 import pytest
@@ -56,13 +57,13 @@ def test_iter_documents_pandas(tmpdir):
         {
             "id": "1",
             "values": [0.1, 0.2, 0.3],
-            "sparse_values": {"1": 0.1, "2": 0.2, "3": 0.3},
+            "sparse_values": {"inices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
             "metadata": {"title": "title1", "url": "url1"},
         },
         {
             "id": "2",
             "values": [0.4, 0.5, 0.6],
-            "sparse_values": {"4": 0.4, "5": 0.5, "6": 0.6},
+            "sparse_values": {"inices": [4, 5, 6], "values": [0.4, 0.5, 0.6]},
             "metadata": {"title": "title2", "url": "url2"},
         },
     ]
@@ -75,6 +76,9 @@ def test_iter_documents_pandas(tmpdir):
     ds = Dataset(dataset_name, base_path=str(tmpdir))
 
     for i, d in enumerate(ds.iter_documents()):
+        assert isinstance(d, list)
+        assert len(d) == 1
+        assert isinstance(d[0], dict)
         assert is_dicts_equal(d[0], data[i])
         break
 
@@ -90,13 +94,13 @@ def test_iter_queries_pandas(tmpdir):
     data = [
         {
             "vector": [0.1, 0.2, 0.3],
-            "sparse_vector": {"1": 0.1, "2": 0.2, "3": 0.3},
+            "sparse_vector": {"inices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
             "filter": "filter1",
             "top_k": 1,
         },
         {
             "vector": [0.4, 0.5, 0.6],
-            "sparse_vector": {"4": 0.4, "5": 0.5, "6": 0.6},
+            "sparse_vector": {"inices": [4, 5, 6], "values": [0.4, 0.5, 0.6]},
             "filter": "filter2",
             "top_k": 2,
         },
@@ -110,14 +114,30 @@ def test_iter_queries_pandas(tmpdir):
     ds = Dataset(dataset_name, base_path=str(tmpdir))
 
     for i, d in enumerate(ds.iter_queries()):
+        print(d)
+        print(data[i])
+        assert isinstance(d, dict)
         assert is_dicts_equal(d, data[i])
 
     assert ds.queries.shape[0] == 2
 
 
 def is_dicts_equal(d1, d2):
-    return d1.keys() == d2.keys() and all(d1[k] == d2[k] for k in d1)
+    return d1.keys() == d2.keys() and recursive_dict_compare(d1, d2)
 
+def deep_list_cmp(l1, l2):
+    same = True
+    for l, r in zip(l1, l2):
+        same = same and l == r
+    return same
+
+def recursive_dict_compare(d1, d2):
+    for k, v in d1.items():
+        if isinstance(v, dict):
+            return recursive_dict_compare(v, d2[k])
+        elif isinstance(v, (list, np.ndarray)):
+            return deep_list_cmp(v, d2[k])
+        return v == d2[k]
 
 def download_json_from_https(url):
     import requests
