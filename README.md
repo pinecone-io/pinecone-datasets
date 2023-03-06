@@ -10,9 +10,9 @@ You can use Pinecone Datasets to load our public datasets or with your own datas
 from pinecone_datasets import list_datasets, load_dataset
 
 list_datasets()
-# ["cc-news_msmarco-MiniLM-L6-cos-v5", ... ]
+# ["quora_all-MiniLM-L6-bm25", ... ]
 
-dataset = load_dataset("cc-news_msmarco-MiniLM-L6-cos-v5")
+dataset = load_dataset("quora_all-MiniLM-L6-bm25")
 
 dataset.head()
 
