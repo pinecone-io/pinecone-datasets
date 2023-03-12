@@ -37,13 +37,14 @@ class Catalog(BaseModel):
     def load() -> "Catalog":
         gcs_file_system = gcsfs.GCSFileSystem(token="anon")
         gcs_publid_datasets_base_path = "gs://pinecone-datasets-dev"
-        gcs_json_path = f"{gcs_publid_datasets_base_path}/catalog.json"
         collected_datasets = []
-        try: 
-            for f in  gcs_file_system.listdir(gcs_publid_datasets_base_path):
+        try:
+            for f in gcs_file_system.listdir(gcs_publid_datasets_base_path):
                 if f["type"] == "directory":
                     try:
-                        with gcs_file_system.open(f"gs://{f['name']}/metadata.json") as f:
+                        with gcs_file_system.open(
+                            f"gs://{f['name']}/metadata.json"
+                        ) as f:
                             this_dataset = json.load(f)
                             collected_datasets.append(this_dataset)
                     except FileNotFoundError:

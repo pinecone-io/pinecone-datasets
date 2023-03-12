@@ -8,6 +8,7 @@ from pinecone_datasets import __version__, load_dataset, list_datasets, Dataset
 
 WARN_MESSAGE = "Pinecone Datasets is a new and experimental library. The API is subject to change without notice."
 
+test_base_path = "gs://ram-datasets"
 test_dataset = "quora_all-MiniLM-L6-bm25"
 
 
@@ -48,8 +49,8 @@ def test_list_datasets():
 def test_load_dataset_does_not_exists():
     with pytest.raises(FileNotFoundError):
         ds = load_dataset("does_not_exists")
-    ds = Dataset("does_not_exists")
-    assert ds.documents.empty and ds.queries.empty
+    with pytest.raises(FileNotFoundError):
+        ds = Dataset("does_not_exists")
 
 
 def test_iter_documents_pandas(tmpdir):
@@ -152,7 +153,11 @@ def test_catalog():
     from pinecone_datasets import catalog
 
     catalog_as_dict = download_json_from_https(
-        "https://storage.googleapis.com/pinecone-datasets-dev/catalog.json"
+        "https://storage.googleapis.com/pinecone-datasets-dev/quora_all-MiniLM-L6-bm25/metadata.json"
     )
-    for dataset in catalog.list_datasets():
-        assert dataset in [c["name"] for c in catalog_as_dict]
+    found = False
+    for dataset in catalog.list_datasets(as_df=False):
+        if catalog_as_dict["name"] == dataset:
+            found = True
+            break
+    assert found
