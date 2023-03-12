@@ -67,7 +67,9 @@ class Dataset(object):
         elif (
             self._base_path.startswith("s3://") or "s3.amazonaws.com" in self._base_path
         ):
-            self._fs = s3fs.S3FileSystem()
+            raise NotImplementedError("S3 is not yet supported")
+        else:
+            raise ValueError("Invalid base_path, expercted local path or gs://<BUCKET>/<DIR> path")
         if dataset_id:
             self._load(dataset_id)
 
@@ -77,8 +79,16 @@ class Dataset(object):
 
     def _is_datatype_exists(self, data_type: str, dataset_id: str) -> bool:
         if self._fs:
-            # TODO: implement for s3 and gcs
-            return True
+            if isinstance(self._fs, gcsfs.GCSFileSystem):
+                key = os.path.join(self._create_path(dataset_id), data_type).split('//')[-1]
+                found = False
+                for obj in self._fs.ls(self._create_path(dataset_id)):
+                    if obj == key:
+                        found = True
+                        break
+                return found
+            else:
+                raise NotImplementedError(f"{self._fs} is not yet supported, only gcsfs.GCSFileSystem")
         else:
             return os.path.exists(
                 os.path.join(self._create_path(dataset_id), data_type)

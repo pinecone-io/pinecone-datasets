@@ -26,7 +26,7 @@ def load_dataset(dataset_id: str, **kwargs) -> Dataset:
             from pinecone_datasets import load_dataset
             dataset = load_dataset("dataset_name")
     """
-    if dataset_id not in catalog.list_datasets():
+    if dataset_id not in catalog.list_datasets(as_df=False):
         raise FileNotFoundError(f"Dataset {dataset_id} not found in catalog")
     else:
         return Dataset(dataset_id, **kwargs)
