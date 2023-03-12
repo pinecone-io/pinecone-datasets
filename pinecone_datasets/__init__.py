@@ -32,5 +32,5 @@ def load_dataset(dataset_id: str, **kwargs) -> Dataset:
         return Dataset(dataset_id, **kwargs)
 
 
-def list_datasets() -> list:
-    return catalog.list_datasets()
+def list_datasets(as_df=False) -> list:
+    return catalog.list_datasets(as_df=as_df)
