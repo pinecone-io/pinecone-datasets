@@ -59,15 +59,13 @@ def test_iter_documents_pandas(tmpdir):
             "id": "1",
             "values": [0.1, 0.2, 0.3],
             "sparse_values": {"inices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
-            "metadata": {"title": "title1", "url": "url1"},
-            "blob": {"blob": "blob1"},
+            "metadata": {"title": "title1", "url": "url1"}
         },
         {
             "id": "2",
             "values": [0.4, 0.5, 0.6],
             "sparse_values": {"inices": [4, 5, 6], "values": [0.4, 0.5, 0.6]},
-            "metadata": {"title": "title2", "url": "url2"},
-            "blob": {"blob": "blob2"},
+            "metadata": {"title": "title2", "url": "url2"}
         },
     ]
 
