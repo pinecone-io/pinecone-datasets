@@ -29,7 +29,10 @@ def iter_pandas_dataframe_single(
 
 class Dataset(object):
     def __init__(
-        self, dataset_id: str = "", base_path: str = "", engine: str = "pandas",
+        self,
+        dataset_id: str = "",
+        base_path: str = "",
+        engine: str = "pandas",
     ) -> None:
         """
         Dataset class to load and query datasets from the Pinecone Datasets catalog.
