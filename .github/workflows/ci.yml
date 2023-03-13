@@ -28,4 +28,10 @@ jobs:
     - name: Run mypy check
       run: poetry run mypy .
     - name: Run pytest
-      run: poetry run pytest --cov pinecone_datasets
+      run: poetry run pytest --html=report.html --cov pinecone_datasets
+    - name: upload pytest report.html
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: dataset-pytest-report-py${{ matrix.python-version }}
+        path: out
