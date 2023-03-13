@@ -34,4 +34,4 @@ jobs:
       if: always()
       with:
         name: dataset-pytest-report-py${{ matrix.python-version }}
-        path: out
+        path: report.html
