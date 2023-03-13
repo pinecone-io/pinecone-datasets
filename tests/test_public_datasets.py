@@ -19,12 +19,16 @@ def test_version():
 def test_load_dataset_pandas():
     ds = load_dataset(test_dataset)
     assert ds.documents.shape[0] == 522931
+    assert ds.documents.shape[0] == ds._metadata.documents
     assert ds.documents.shape[1] == 5
     assert isinstance(ds.documents, pd.DataFrame)
     assert isinstance(ds.head(), pd.DataFrame)
     assert ds.head().shape[0] == 5
     assert ds.head().shape[1] == 5
     pd_assert_frame_equal(ds.head(), ds.documents.head())
+
+    assert ds._metadata.name == test_dataset
+    assert ds._metadata.queries == 15000
 
 
 def test_load_dataset_polars():

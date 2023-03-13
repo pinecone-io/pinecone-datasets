@@ -22,14 +22,13 @@ def load_dataset(dataset_id: str, **kwargs) -> Dataset:
             Dataset: A Dataset object
 
         Examples:
-            # pip install pinecone-datasets pinecone-client
             from pinecone_datasets import load_dataset
             dataset = load_dataset("dataset_name")
     """
     if dataset_id not in catalog.list_datasets(as_df=False):
         raise FileNotFoundError(f"Dataset {dataset_id} not found in catalog")
     else:
-        return Dataset(dataset_id, **kwargs)
+        return Dataset(dataset_id, should_load_metadata=True, **kwargs)
 
 
 def list_datasets(as_df=False) -> list:

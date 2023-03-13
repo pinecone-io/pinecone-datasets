@@ -66,3 +66,41 @@ index = pinecone.GRPCIndex("my-index")
 for batch in dataset.iter_documents(batch_size=100):
     index.upsert(vectors=batch)
 ```
+
+## For developers
+
+This project is using poetry for dependency managemet. supported python version are 3.8+. To start developing, on project root directory run:
+
+```bash
+poetry install
+```
+
+To run test locally run 
+
+```bash
+poetry run pytest --cov pinecone_datasets
+```
+
+To create a pinecone-public dataset you may need to generate a dataset metadata. For example:
+
+```python
+from pinecone_datasets.catalog import DatasetMetadata
+
+meta = DatasetMetadata(
+    name="test_dataset",
+    created_at="2021-09-01",
+    documents=2,
+    queries=2,
+    source="manual",
+    bucket="LOCAL",
+    task="unittests",
+    dense_model={"name": "bert", "dimension": 3},
+    sparse_model={"name": "bm25"},
+)
+```
+
+to see the complete schema you can run:
+
+```python
+DatasetMetadata.schema()
+```

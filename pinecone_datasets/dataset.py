@@ -1,16 +1,19 @@
 import sys
 import glob
 import os
+import json
 from typing import Any, Generator, Iterator, List, Union, Dict
 import warnings
 
 import gcsfs
+from pydantic import ValidationError
 import s3fs
 import polars as pl
 import pandas as pd
 import pyarrow.parquet as pq
 
 from pinecone_datasets import cfg
+from pinecone_datasets.catalog import DatasetMetadata
 
 
 def iter_pandas_dataframe_slices(
@@ -33,6 +36,7 @@ class Dataset(object):
         dataset_id: str = "",
         base_path: str = "",
         engine: str = "pandas",
+        should_load_metadata: bool = False,
     ) -> None:
         """
         Dataset class to load and query datasets from the Pinecone Datasets catalog.
@@ -58,6 +62,8 @@ class Dataset(object):
         """
         self._documents: pl.DataFrame = None
         self._queries: pl.DataFrame = None
+        self._metadata: DatasetMetadata = None
+        self._is_load_metadata = should_load_metadata
         self._config = cfg
         self._base_path = base_path if base_path else self._config.Storage.base_path
         self._engine = engine
@@ -139,6 +145,37 @@ class Dataset(object):
             else:
                 raise ValueError("engine must be one of ['pandas', 'polars']")
 
+    def _load_metadata(self, dataset_id: str) -> None:
+        if self._fs:
+            with self._fs.open(
+                os.path.join(self._create_path(dataset_id), "metadata.json"), "rb"
+            ) as f:
+                metadata = json.load(f)
+        else:
+            with open(
+                os.path.join(self._create_path(dataset_id), "metadata.json"), "rb"
+            ) as f:
+                metadata = json.load(f)
+        try:
+            out = DatasetMetadata(**metadata)
+            return out
+        except ValidationError as e:
+            raise e
+
+    def _save_metadata(
+        self, dataset_id: str, metadata: DatasetMetadata
+    ) -> None:  # pragma: no cover
+        if self._fs:
+            with self._fs.open(
+                os.path.join(self._create_path(dataset_id), "metadata.json"), "w"
+            ) as f:
+                json.dump(metadata.dict(), f)
+        else:
+            with open(
+                os.path.join(self._create_path(dataset_id), "metadata.json"), "w"
+            ) as f:
+                json.dump(metadata.dict(), f)
+
     def _load(self, dataset_id: str) -> None:
         self._documents = self._safe_read_from_path(
             "documents", dataset_id, self._config.Schema.documents
@@ -146,6 +183,8 @@ class Dataset(object):
         self._queries = self._safe_read_from_path(
             "queries", dataset_id, self._config.Schema.queries
         )
+        if self._is_load_metadata:
+            self._metadata = self._load_metadata(dataset_id)
 
     def __getitem__(self, key: str) -> pl.DataFrame:
         if key in ["documents", "queries"]:
