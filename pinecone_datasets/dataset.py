@@ -45,6 +45,7 @@ class Dataset(object):
             dataset_id (str, optional): The dataset id. Defaults to "".
             base_path (str, optional): The path to the dataset. Defaults to "". by default, datasets will look for datasets at path: {base_path}/{dataset_id}/
             engine (str, optional): The engine to use for loading the dataset. Options are ['polars', 'pandas']. Defaults to 'pandas'.
+            should_load_metadata: (bool, optional): Whether to load the metadata for the dataset. Defaults to False.
 
 
         Examples:
@@ -65,18 +66,24 @@ class Dataset(object):
         self._metadata: DatasetMetadata = None
         self._is_load_metadata = should_load_metadata
         self._config = cfg
-        self._base_path = base_path if base_path else self._config.Storage.base_path
+        self._base_path = (
+            base_path
+            if base_path
+            else os.environ.get(
+                "PINECONE_DATASETS_EDNPOINT", self._config.Storage.endpoint
+            )
+        )
         self._engine = engine
         self._fs = None
         if (
             self._base_path.startswith("gs://")
             or "storage.googleapis.com" in self._base_path
         ):
-            self._fs = gcsfs.GCSFileSystem()
+            self._fs = gcsfs.GCSFileSystem(token="anon")
         elif (
             self._base_path.startswith("s3://") or "s3.amazonaws.com" in self._base_path
         ):
-            raise NotImplementedError("S3 is not yet supported")
+            self._fs = s3fs.S3FileSystem()
         if dataset_id:
             self._load(dataset_id)
 
@@ -93,9 +100,9 @@ class Dataset(object):
                 found = False
                 for obj in self._fs.ls(self._create_path(dataset_id)):
                     if obj == key:
+                        return True
                         found = True
                         break
-                return found
             else:
                 raise NotImplementedError(
                     f"{self._fs} is not yet supported, only gcsfs.GCSFileSystem"

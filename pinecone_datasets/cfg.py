@@ -2,7 +2,7 @@ from polars.datatypes import Utf8, Float32, List, Struct, Field, UInt32
 
 
 class Storage:
-    base_path: str = "gs://pinecone-datasets-dev"
+    endpoint: str = "gs://pinecone-datasets-dev"
 
 
 class Schema:
