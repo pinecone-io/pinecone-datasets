@@ -17,23 +17,28 @@ dataset = load_dataset("quora_all-MiniLM-L6-bm25")
 dataset.head()
 
 # Prints
- ┌─────┬───────────────────────────┬─────────────────────────────────────┬───────────────────┬──────┐
- │ id  ┆ values                    ┆ sparse_values                       ┆ metadata          ┆ blob │
- │ --- ┆ ---                       ┆ ---                                 ┆ ---               ┆ ---  │
- │ str ┆ list[f32]                 ┆ struct[2]                           ┆ struct[3]         ┆      │
- ╞═════╪═══════════════════════════╪═════════════════════════════════════╪═══════════════════╪══════╡
- │ 0   ┆ [0.118014, -0.069717, ... ┆ {[470065541, 52922727, ... 22364... ┆ {2017,12,"other"} ┆ .... │
- │     ┆ 0.0060...                 ┆                                     ┆                   ┆      │
- └─────┴───────────────────────────┴─────────────────────────────────────┴───────────────────┴──────┘
+# ┌─────┬───────────────────────────┬─────────────────────────────────────┬───────────────────┬──────┐
+# │ id  ┆ values                    ┆ sparse_values                       ┆ metadata          ┆ blob │
+# │     ┆                           ┆                                     ┆                   ┆      │
+# │ str ┆ list[f32]                 ┆ struct[2]                           ┆ struct[3]         ┆      │
+# ╞═════╪═══════════════════════════╪═════════════════════════════════════╪═══════════════════╪══════╡
+# │ 0   ┆ [0.118014, -0.069717, ... ┆ {[470065541, 52922727, ... 22364... ┆ {2017,12,"other"} ┆ .... │
+# │     ┆ 0.0060...                 ┆                                     ┆                   ┆      │
+# └─────┴───────────────────────────┴─────────────────────────────────────┴───────────────────┴──────┘
 ```
 
 
-### Iterating over a Dataset documents
+### Iterating over a Dataset documents and queries
+
+Iterating over documents is useful for upserting but also for different updating. Iterating over queries is helpful in benchmarking
 
 ```python
 
 # List Iterator, where every list of size N Dicts with ("id", "metadata", "values", "sparse_values")
 dataset.iter_documents(batch_size=n) 
+
+dataset.iter_queries()
+
 ```
 
 ### upserting to Index
@@ -50,21 +55,15 @@ pinecone.create_index(name="my-index", dimension=384, pod_type='s1')
 
 index = pinecone.Index("my-index")
 
-# Or: Iterating over documents in batches
+# you can iterate over documents in batches
 for batch in dataset.iter_documents(batch_size=100):
     index.upsert(vectors=batch)
-```
 
-#### upserting to an index with GRPC
+# or upsert the dataset as dataframe
+index.upsert_from_dataframe(dataset.drop(columns=["blob"]))
 
-Simply use GRPCIndex and do:
-
-```python
+# using gRPC
 index = pinecone.GRPCIndex("my-index")
-
-# Iterating over documents in batches
-for batch in dataset.iter_documents(batch_size=100):
-    index.upsert(vectors=batch)
 ```
 
 ## For developers
@@ -72,7 +71,7 @@ for batch in dataset.iter_documents(batch_size=100):
 This project is using poetry for dependency managemet. supported python version are 3.8+. To start developing, on project root directory run:
 
 ```bash
-poetry install
+poetry install --with dev
 ```
 
 To run test locally run 
@@ -102,5 +101,43 @@ meta = DatasetMetadata(
 to see the complete schema you can run:
 
 ```python
-DatasetMetadata.schema()
+meta.schema()
 ```
+
+in order to list a dataset you can save dataset metadata (NOTE: write permission to loacaion is needed)
+
+```python
+dataset._save_metadata("non-listed-dataset", meta)
+```
+
+### uploading and listing a dataset. 
+
+pinecone datasets can load dataset from every storage where it has access (using the default access: s3, gcs or local permissions)
+
+ we expect data to be uploaded to the following directory structure:
+
+    ├── base_path                     # path to where all datasets
+    │   ├── dataset_id                # name of dataset
+    │   │   ├── metadata.json         # dataset metadata (optional, only for listed)
+    │   │   ├── documents             # datasets documents
+    │   │   │   ├── doc1.parquet      
+    │   │   │   └── doc2.parquet      
+    │   │   ├── queries               # dataset queries
+    │   │   │   ├── q1.parquet  
+    │   │   │   └── q2.parquet   
+    └── ...
+
+a listed dataset is a dataset that is loaded and listed using `load_dataset` and `list_dataset`
+pinecone datasets will scan storage and will list every dataset with metadata file
+
+`s3://my-bucket/my-dataset/metadata.json`
+
+to access a non listed dataset you can directly load it via:
+
+```python
+from pinecone_datasets import Dataset
+
+dataset = Dataset("non-listed-dataset")
+```
+
+
