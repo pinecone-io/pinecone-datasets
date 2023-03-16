@@ -156,7 +156,9 @@ def download_json_from_https(url):
 
 
 def test_catalog():
-    from pinecone_datasets import catalog
+    from pinecone_datasets.catalog import Catalog
+
+    catalog = Catalog.load()
 
     catalog_as_dict = download_json_from_https(
         "https://storage.googleapis.com/pinecone-datasets-dev/quora_all-MiniLM-L6-bm25/metadata.json"
