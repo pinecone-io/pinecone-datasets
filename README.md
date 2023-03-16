@@ -120,17 +120,15 @@ pinecone datasets can load dataset from every storage where it has access (using
     │   ├── dataset_id                # name of dataset
     │   │   ├── metadata.json         # dataset metadata (optional, only for listed)
     │   │   ├── documents             # datasets documents
-    │   │   │   ├── doc1.parquet      
-    │   │   │   └── doc2.parquet      
+    │   │   │   ├── file1.parquet      
+    │   │   │   └── file2.parquet      
     │   │   ├── queries               # dataset queries
-    │   │   │   ├── q1.parquet  
-    │   │   │   └── q2.parquet   
+    │   │   │   ├── file1.parquet  
+    │   │   │   └── file2.parquet   
     └── ...
 
 a listed dataset is a dataset that is loaded and listed using `load_dataset` and `list_dataset`
-pinecone datasets will scan storage and will list every dataset with metadata file
-
-`s3://my-bucket/my-dataset/metadata.json`
+pinecone datasets will scan storage and will list every dataset with metadata file, for example: `s3://my-bucket/my-dataset/metadata.json`
 
 to access a non listed dataset you can directly load it via:
 
