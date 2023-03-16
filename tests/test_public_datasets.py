@@ -13,7 +13,7 @@ test_dataset = "quora_all-MiniLM-L6-bm25"
 
 
 def test_version():
-    assert __version__ == "0.2.4-alpha"
+    assert __version__ == "0.3.0-alpha"
 
 
 def test_load_dataset_pandas():

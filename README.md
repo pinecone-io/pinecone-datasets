@@ -87,7 +87,7 @@ from pinecone_datasets.catalog import DatasetMetadata
 
 meta = DatasetMetadata(
     name="test_dataset",
-    created_at="2021-09-01",
+    created_at="2023-02-17 14:17:01.481785",
     documents=2,
     queries=2,
     source="manual",
