@@ -45,7 +45,9 @@ class Catalog(BaseModel):
         )
         fs = get_cloud_fs(public_datasets_base_path, **kwargs)
         if not fs:
-            raise ValueError("Public datasets are only supported on cloud storage, with valid s3:// or gs:// paths")
+            raise ValueError(
+                "Public datasets are only supported on cloud storage, with valid s3:// or gs:// paths"
+            )
         collected_datasets = []
         try:
             for f in fs.listdir(public_datasets_base_path):

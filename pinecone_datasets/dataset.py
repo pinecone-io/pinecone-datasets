@@ -86,9 +86,7 @@ class Dataset(object):
 
     def _is_datatype_exists(self, data_type: str, dataset_id: str) -> bool:
         if self._fs:
-            key = os.path.join(self._create_path(dataset_id), data_type).split(
-                "//"
-            )[-1]
+            key = os.path.join(self._create_path(dataset_id), data_type).split("//")[-1]
             for obj in self._fs.ls(self._create_path(dataset_id)):
                 if obj == key:
                     return True
