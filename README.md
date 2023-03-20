@@ -84,6 +84,29 @@ Note that you can also use `s3://` as a prefix to your bucket.
 
 For now, Pinecone Datastes supports only GCS and S3 buckets, and with default authentication as provided by the fsspec implementation, respectively: `gcsfs` and `s3fs`.
 
+### Using other authemtication methods
+
+first, to set a new endpoint, set the environment variable `PINECONE_DATASETS_ENDPOINT` to your bucket.
+
+```bash
+export PINECONE_DATASETS_ENDPOINT="s3://my-bucket"
+```
+
+then, you can use the `key` and `secret` parameters to pass your credentials to the `list_datasets` and `load_dataset` functions.
+
+```python
+st = list_datasets(
+        key=os.environ.get("S3_ACCESS_KEY"),
+        secret=os.environ.get("S3_SECRET"),
+    )
+
+ds = load_dataset(
+        "test_dataset",
+        key=os.environ.get("S3_ACCESS_KEY"),
+        secret=os.environ.get("S3_SECRET"),
+)
+```
+
 ## For developers
 
 This project is using poetry for dependency managemet. supported python version are 3.8+. To start developing, on project root directory run:
