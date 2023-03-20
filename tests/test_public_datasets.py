@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 import polars as pl
 import numpy as np
@@ -20,13 +22,14 @@ def test_load_dataset_pandas():
     lst = list_datasets()
     assert test_dataset in lst
     ds = load_dataset(test_dataset)
-    assert ds.documents.shape[0] == 522931
+    assert ds.documents.shape[0] == 522931 and len(ds) == 522931
     assert ds.documents.shape[0] == ds._metadata.documents
     assert ds.documents.shape[1] == 5
     assert isinstance(ds.documents, pd.DataFrame)
     assert isinstance(ds.head(), pd.DataFrame)
     assert ds.head().shape[0] == 5
     assert ds.head().shape[1] == 5
+    pd_assert_frame_equal(ds["documents"], ds.documents)
     pd_assert_frame_equal(ds.head(), ds.documents.head())
 
     assert ds._metadata.name == test_dataset
@@ -80,7 +83,7 @@ def test_iter_documents_pandas(tmpdir):
     documents_path = dataset_path.mkdir("documents")
     pd.DataFrame(data).to_parquet(documents_path.join("part-0.parquet"))
 
-    ds = Dataset(dataset_name, base_path=str(tmpdir))
+    ds = Dataset(dataset_name, endpoint=str(tmpdir))
 
     for i, d in enumerate(ds.iter_documents()):
         assert isinstance(d, list)
@@ -118,7 +121,7 @@ def test_iter_queries_pandas(tmpdir):
     queries_path = dataset_path.mkdir("queries")
     pd.DataFrame(data).to_parquet(queries_path.join("part-0.parquet"))
 
-    ds = Dataset(dataset_name, base_path=str(tmpdir))
+    ds = Dataset(dataset_name, endpoint=str(tmpdir))
 
     for i, d in enumerate(ds.iter_queries()):
         print(d)

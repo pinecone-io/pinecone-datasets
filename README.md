@@ -66,6 +66,24 @@ index.upsert_from_dataframe(dataset.drop(columns=["blob"]))
 index = pinecone.GRPCIndex("my-index")
 ```
 
+## Advanced Usage
+
+### Working with your own dataset storage
+
+Datasets is using Pinecone's public datasets bucket on GCS, you can use your own bucket by setting the `PINECONE_DATASETS_EDNPOINT` environment variable.
+
+```bash
+export PINECONE_DATASETS_ENDPOINT="gs://my-bucket"
+```
+
+this will change the default endpoint to your bucket, and upon calling `list_datasets` or `load_dataset` it will scan your bucket and list all datasets.
+
+Note that you can also use `s3://` as a prefix to your bucket.
+
+### Authenication to your own bucket
+
+For now, Pinecone Datastes supports only GCS and S3 buckets, and with default authentication as provided by the fsspec implementation, respectively: `gcsfs` and `s3fs`.
+
 ## For developers
 
 This project is using poetry for dependency managemet. supported python version are 3.8+. To start developing, on project root directory run:
@@ -110,7 +128,7 @@ in order to list a dataset you can save dataset metadata (NOTE: write permission
 dataset._save_metadata("non-listed-dataset", meta)
 ```
 
-### uploading and listing a dataset. 
+### Uploading and listing a dataset. 
 
 pinecone datasets can load dataset from every storage where it has access (using the default access: s3, gcs or local permissions)
 
@@ -129,6 +147,8 @@ pinecone datasets can load dataset from every storage where it has access (using
 
 a listed dataset is a dataset that is loaded and listed using `load_dataset` and `list_dataset`
 pinecone datasets will scan storage and will list every dataset with metadata file, for example: `s3://my-bucket/my-dataset/metadata.json`
+
+### Accessing a non-listed dataset
 
 to access a non listed dataset you can directly load it via:
 
