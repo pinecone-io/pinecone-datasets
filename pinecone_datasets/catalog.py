@@ -19,7 +19,7 @@ class DenseModelMetadata(BaseModel):
 
 
 class SparseModelMetdata(BaseModel):
-    name: str
+    name: Optional[str]
     tokenizer: Optional[str]
 
 

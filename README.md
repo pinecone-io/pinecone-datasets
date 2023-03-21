@@ -84,7 +84,7 @@ Note that you can also use `s3://` as a prefix to your bucket.
 
 For now, Pinecone Datastes supports only GCS and S3 buckets, and with default authentication as provided by the fsspec implementation, respectively: `gcsfs` and `s3fs`.
 
-### Using other authemtication methods
+### Using aws key/secret authentication methods
 
 first, to set a new endpoint, set the environment variable `PINECONE_DATASETS_ENDPOINT` to your bucket.
 

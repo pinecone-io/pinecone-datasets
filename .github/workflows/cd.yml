@@ -30,8 +30,13 @@ jobs:
       with:
         title: Release ${{ env.VERSION }}
 
+    - name: Check python versions
+      run: |
+        python --version
+        python3 --version
+        which python3.10
+        python3.10 --version
     - name: Build and publish to pypi
-      uses: JRubics/poetry-publish@v1.16
-      with:
-        repository_username: pinecone
-        repository_password: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        curl -sSL https://install.python-poetry.org | python3.10 -
+        poetry publish -u pinecone -p ${{ secrets.PYPI_PASSWORD }} --build
