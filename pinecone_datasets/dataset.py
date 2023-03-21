@@ -14,6 +14,7 @@ import pyarrow.parquet as pq
 
 from pinecone_datasets import cfg
 from pinecone_datasets.catalog import DatasetMetadata
+from pinecone_datasets.fs import get_cloud_fs
 
 
 def iter_pandas_dataframe_slices(
@@ -34,9 +35,10 @@ class Dataset(object):
     def __init__(
         self,
         dataset_id: str = "",
-        base_path: str = "",
+        endpoint: str = "",
         engine: str = "pandas",
         should_load_metadata: bool = False,
+        **kwargs,
     ) -> None:
         """
         Dataset class to load and query datasets from the Pinecone Datasets catalog.
@@ -66,47 +68,29 @@ class Dataset(object):
         self._metadata: DatasetMetadata = None
         self._is_load_metadata = should_load_metadata
         self._config = cfg
-        self._base_path = (
-            base_path
-            if base_path
+        self._endpoint = (
+            endpoint
+            if endpoint
             else os.environ.get(
                 "PINECONE_DATASETS_EDNPOINT", self._config.Storage.endpoint
             )
         )
         self._engine = engine
-        self._fs = None
-        if (
-            self._base_path.startswith("gs://")
-            or "storage.googleapis.com" in self._base_path
-        ):
-            self._fs = gcsfs.GCSFileSystem(token="anon")
-        elif (
-            self._base_path.startswith("s3://") or "s3.amazonaws.com" in self._base_path
-        ):
-            self._fs = s3fs.S3FileSystem()
+        self._fs = get_cloud_fs(self._endpoint, **kwargs)
         if dataset_id:
             self._load(dataset_id)
 
     def _create_path(self, dataset_id: str) -> str:
-        path = os.path.join(self._base_path, f"{dataset_id}")
+        path = os.path.join(self._endpoint, f"{dataset_id}")
         return path
 
     def _is_datatype_exists(self, data_type: str, dataset_id: str) -> bool:
         if self._fs:
-            if isinstance(self._fs, gcsfs.GCSFileSystem):
-                key = os.path.join(self._create_path(dataset_id), data_type).split(
-                    "//"
-                )[-1]
-                found = False
-                for obj in self._fs.ls(self._create_path(dataset_id)):
-                    if obj == key:
-                        return True
-                        found = True
-                        break
-            else:
-                raise NotImplementedError(
-                    f"{self._fs} is not yet supported, only gcsfs.GCSFileSystem"
-                )
+            key = os.path.join(self._create_path(dataset_id), data_type).split("//")[-1]
+            for obj in self._fs.ls(self._create_path(dataset_id)):
+                if obj == key:
+                    return True
+            return False
         else:
             return os.path.exists(
                 os.path.join(self._create_path(dataset_id), data_type)

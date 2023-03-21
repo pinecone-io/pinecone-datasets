@@ -1,14 +1,16 @@
 import datetime
+import warnings
 import os
 import json
 from ssl import SSLCertVerificationError
 from typing import List, Optional, Union
 import s3fs
 import gcsfs
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 import pandas as pd
 
 from pinecone_datasets import cfg
+from pinecone_datasets.fs import get_cloud_fs
 
 
 class DenseModelMetadata(BaseModel):
@@ -18,7 +20,7 @@ class DenseModelMetadata(BaseModel):
 
 
 class SparseModelMetdata(BaseModel):
-    name: str
+    name: Optional[str]
     tokenizer: Optional[str]
 
 
@@ -38,26 +40,35 @@ class Catalog(BaseModel):
     datasets: List[DatasetMetadata] = []
 
     @staticmethod
-    def load() -> "Catalog":
-        gcs_publid_datasets_base_path = os.environ.get(
+    def load(**kwargs) -> "Catalog":
+        public_datasets_base_path = os.environ.get(
             "PINECONE_DATASETS_EDNPOINT", cfg.Storage.endpoint
         )
-        if gcs_publid_datasets_base_path.startswith("gs://"):
-            fs = gcsfs.GCSFileSystem(token="anon")
-        elif gcs_publid_datasets_base_path.startswith("s3://"):
-            fs = s3fs.S3FileSystem()
-        else:
+        fs = get_cloud_fs(public_datasets_base_path, **kwargs)
+        if not fs:
             raise ValueError(
-                "CATALOG_URL must be a valid GCS or S3 path, e.g. gs://my-datasets or s3://my-datasets"
+                "Public datasets are only supported on cloud storage, with valid s3:// or gs:// paths"
             )
         collected_datasets = []
         try:
-            for f in fs.listdir(gcs_publid_datasets_base_path):
+            for f in fs.listdir(public_datasets_base_path):
                 if f["type"] == "directory":
                     try:
-                        with fs.open(f"gs://{f['name']}/metadata.json") as f:
-                            this_dataset = json.load(f)
-                            collected_datasets.append(this_dataset)
+                        prefix = "gs" if isinstance(fs, gcsfs.GCSFileSystem) else "s3"
+                        with fs.open(f"{prefix}://{f['name']}/metadata.json") as f:
+                            try:
+                                this_dataset = json.load(f)
+                            except json.JSONDecodeError:
+                                warnings.warn(
+                                    f"Not a JSON: Invalid metadata.json for {f['name']}, skipping"
+                                )
+                            try:
+                                this_dataset = DatasetMetadata(**this_dataset)
+                                collected_datasets.append(this_dataset)
+                            except ValidationError:
+                                warnings.warn(
+                                    f"metadata file for dataset: {f['name']} is not valid, skipping"
+                                )
                     except FileNotFoundError:
                         pass
             return Catalog(datasets=collected_datasets)

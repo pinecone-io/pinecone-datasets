@@ -5,7 +5,7 @@ from . import cfg
 catalog = None
 
 
-def list_datasets(as_df=False) -> list:
+def list_datasets(as_df=False, **kwargs) -> list:
     """
     List all datasets in the catalog, optionally as a pandas DataFrame.
     Catalog is set using the `PINECONE_DATASETS_EDNPOINT` environment variable.
@@ -27,7 +27,7 @@ def list_datasets(as_df=False) -> list:
 
     """
     global catalog
-    catalog = Catalog.load()
+    catalog = Catalog.load(**kwargs)
     return catalog.list_datasets(as_df=as_df)
 
 
