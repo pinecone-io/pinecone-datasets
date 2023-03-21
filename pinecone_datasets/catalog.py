@@ -1,11 +1,12 @@
 import datetime
+import warnings
 import os
 import json
 from ssl import SSLCertVerificationError
 from typing import List, Optional, Union
 import s3fs
 import gcsfs
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 import pandas as pd
 
 from pinecone_datasets import cfg
@@ -55,7 +56,19 @@ class Catalog(BaseModel):
                     try:
                         prefix = "gs" if isinstance(fs, gcsfs.GCSFileSystem) else "s3"
                         with fs.open(f"{prefix}://{f['name']}/metadata.json") as f:
-                            this_dataset = json.load(f)
+                            try:
+                                this_dataset = json.load(f)
+                            except json.JSONDecodeError:
+                                warnings.warn(
+                                    f"Not a JSON: Invalid metadata.json for {f['name']}, skipping"
+                                )
+                            try:
+                                this_dataset = DatasetMetadata(**this_dataset)
+                                collected_datasets.append(this_dataset)
+                            except ValidationError:
+                                warnings.warn(
+                                    f"metadata file for dataset: {f['name']} is not valid, skipping"
+                                )
                             collected_datasets.append(this_dataset)
                     except FileNotFoundError:
                         pass
