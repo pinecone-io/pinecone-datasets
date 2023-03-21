@@ -69,7 +69,6 @@ class Catalog(BaseModel):
                                 warnings.warn(
                                     f"metadata file for dataset: {f['name']} is not valid, skipping"
                                 )
-                            collected_datasets.append(this_dataset)
                     except FileNotFoundError:
                         pass
             return Catalog(datasets=collected_datasets)
