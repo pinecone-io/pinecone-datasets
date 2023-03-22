@@ -50,10 +50,10 @@ def load_dataset(dataset_id: str, **kwargs) -> Dataset:
         ```
     """
     if not catalog:
-        raise ValueError(
-            "Catalog not initialized. Please call pinecone_datasets.load_catalog() first."
-        )
-    if dataset_id not in catalog.list_datasets(as_df=False):
+        lst = list_datasets(as_df=False)
+    else:
+        lst = catalog.list_datasets(as_df=False)
+    if dataset_id not in lst:
         raise FileNotFoundError(f"Dataset {dataset_id} not found in catalog")
     else:
         return Dataset(dataset_id, should_load_metadata=True, **kwargs)
