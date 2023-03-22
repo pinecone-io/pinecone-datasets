@@ -50,9 +50,10 @@ def load_dataset(dataset_id: str, **kwargs) -> Dataset:
         ```
     """
     if not catalog:
-        global catalog
-        catalog = Catalog.load(**kwargs)
-    if dataset_id not in catalog.list_datasets(as_df=False):
+        lst = list_datasets(as_df=False)
+    else:
+        lst = catalog.list_datasets(as_df=False)
+    if dataset_id not in lst:
         raise FileNotFoundError(f"Dataset {dataset_id} not found in catalog")
     else:
         return Dataset(dataset_id, should_load_metadata=True, **kwargs)
