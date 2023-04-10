@@ -1,5 +1,11 @@
 # Pinecone Datasets
 
+## install
+
+```bash
+pip install pinecone-datasets
+```
+
 ## Usage
 
 You can use Pinecone Datasets to load our public datasets or with your own dataset.
