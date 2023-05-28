@@ -66,6 +66,7 @@ class Dataset(object):
         self._documents: pl.DataFrame = None
         self._queries: pl.DataFrame = None
         self._metadata: DatasetMetadata = None
+        self._dataset_id = dataset_id
         self._is_load_metadata = should_load_metadata
         self._config = cfg
         self._endpoint = (
@@ -136,15 +137,15 @@ class Dataset(object):
             else:
                 raise ValueError("engine must be one of ['pandas', 'polars']")
 
-    def _load_metadata(self, dataset_id: str) -> None:
+    def _load_metadata(self) -> DatasetMetadata:
         if self._fs:
             with self._fs.open(
-                os.path.join(self._create_path(dataset_id), "metadata.json"), "rb"
+                os.path.join(self._create_path(self._dataset_id), "metadata.json"), "rb"
             ) as f:
                 metadata = json.load(f)
         else:
             with open(
-                os.path.join(self._create_path(dataset_id), "metadata.json"), "rb"
+                os.path.join(self._create_path(self._dataset_id), "metadata.json"), "rb"
             ) as f:
                 metadata = json.load(f)
         try:
@@ -154,16 +155,16 @@ class Dataset(object):
             raise e
 
     def _save_metadata(
-        self, dataset_id: str, metadata: DatasetMetadata
+        self, metadata: DatasetMetadata
     ) -> None:  # pragma: no cover
         if self._fs:
             with self._fs.open(
-                os.path.join(self._create_path(dataset_id), "metadata.json"), "w"
+                os.path.join(self._create_path(self._dataset_id), "metadata.json"), "w"
             ) as f:
                 json.dump(metadata.dict(), f)
         else:
             with open(
-                os.path.join(self._create_path(dataset_id), "metadata.json"), "w"
+                os.path.join(self._create_path(self._dataset_id), "metadata.json"), "w"
             ) as f:
                 json.dump(metadata.dict(), f)
 
@@ -175,7 +176,7 @@ class Dataset(object):
             "queries", dataset_id, self._config.Schema.queries
         )
         if self._is_load_metadata:
-            self._metadata = self._load_metadata(dataset_id)
+            self._metadata = self._load_metadata()
 
     def __getitem__(self, key: str) -> pl.DataFrame:
         if key in ["documents", "queries"]:

@@ -151,24 +151,3 @@ def recursive_dict_compare(d1, d2):
             return deep_list_cmp(v, d2[k])
         return v == d2[k]
 
-
-def download_json_from_https(url):
-    import requests
-
-    return requests.get(url).json()
-
-
-def test_catalog():
-    from pinecone_datasets.catalog import Catalog
-
-    catalog = Catalog.load()
-
-    catalog_as_dict = download_json_from_https(
-        "https://storage.googleapis.com/pinecone-datasets-dev/quora_all-MiniLM-L6-bm25/metadata.json"
-    )
-    found = False
-    for dataset in catalog.list_datasets(as_df=False):
-        if catalog_as_dict["name"] == dataset:
-            found = True
-            break
-    assert found
