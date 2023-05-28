@@ -43,6 +43,7 @@ class DatasetMetadata(BaseModel):
     tags: Optional[List[str]]
     args: Optional[dict[str, Any]]
 
+
 class Catalog(BaseModel):
     datasets: List[DatasetMetadata] = []
 

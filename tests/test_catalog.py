@@ -12,7 +12,6 @@ def download_json_from_https(url):
 
 
 def test_catalog():
-
     catalog = Catalog.load()
 
     catalog_as_dict = download_json_from_https(
@@ -25,7 +24,7 @@ def test_catalog():
             found = True
             break
     assert found
-    
+
 
 def test_metadta_fields_minimal():
     try:
@@ -37,10 +36,11 @@ def test_metadta_fields_minimal():
             dense_model=DenseModelMetadata(
                 name="ada2",
                 dimension=2,
-            )
+            ),
         )
     except NameError:
         pytest.fail("Validation error")
+
 
 def test_validation_error_mandatory_field():
     with pytest.raises(ValidationError):
@@ -50,8 +50,9 @@ def test_validation_error_mandatory_field():
             dense_model=DenseModelMetadata(
                 name="ada2",
                 dimensions=2,
-            )
+            ),
         )
+
 
 def test_validation_error_optional_field():
     with pytest.raises(ValidationError):
@@ -59,12 +60,6 @@ def test_validation_error_optional_field():
             name="test",
             documents=1,
             queries=1,
-            dense_model=DenseModelMetadata(
-                name="ada2",
-                dimension=2
-            ),
-            tags="test"
+            dense_model=DenseModelMetadata(name="ada2", dimension=2),
+            tags="test",
         )
-
-        
-

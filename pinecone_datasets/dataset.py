@@ -154,9 +154,7 @@ class Dataset(object):
         except ValidationError as e:
             raise e
 
-    def _save_metadata(
-        self, metadata: DatasetMetadata
-    ) -> None:  # pragma: no cover
+    def _save_metadata(self, metadata: DatasetMetadata) -> None:  # pragma: no cover
         if self._fs:
             with self._fs.open(
                 os.path.join(self._create_path(self._dataset_id), "metadata.json"), "w"

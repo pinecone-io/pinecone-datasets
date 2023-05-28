@@ -150,4 +150,3 @@ def recursive_dict_compare(d1, d2):
         elif isinstance(v, (list, np.ndarray)):
             return deep_list_cmp(v, d2[k])
         return v == d2[k]
-
