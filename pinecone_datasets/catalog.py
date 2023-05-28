@@ -3,7 +3,7 @@ import warnings
 import os
 import json
 from ssl import SSLCertVerificationError
-from typing import List, Optional, Union, Any
+from typing import List, Optional, Union, Any, Dict
 import s3fs
 import gcsfs
 from pydantic import BaseModel, ValidationError, Field
@@ -41,7 +41,7 @@ class DatasetMetadata(BaseModel):
     sparse_model: Optional[SparseModelMetdata]
     description: Optional[str]
     tags: Optional[List[str]]
-    args: Optional[dict[str, Any]]
+    args: Optional[Dict[str, Any]]
 
 
 class Catalog(BaseModel):
