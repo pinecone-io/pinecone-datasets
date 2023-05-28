@@ -56,4 +56,4 @@ def load_dataset(dataset_id: str, **kwargs) -> Dataset:
     if dataset_id not in lst:
         raise FileNotFoundError(f"Dataset {dataset_id} not found in catalog")
     else:
-        return Dataset(dataset_id, should_load_metadata=True, **kwargs)
+        return Dataset.from_dataset_id(dataset_id, **kwargs)
