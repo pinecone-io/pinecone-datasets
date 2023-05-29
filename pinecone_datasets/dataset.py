@@ -37,9 +37,9 @@ class Dataset(object):
     @classmethod
     def from_path(cls, dataset_path, **kwargs):
         """
-        Create a Dataset object from a path to a dataset.
+        Create a Dataset object from local or cloud storage
         Args:
-            dataset_path (str): a path to a sothrage location containing a dataset
+            dataset_path (str): a path to a local or cloud storage path containing a valid dataset.
 
         Keyword Args:
             engine (str): the engine to use for loading the dataset. Options are ['polars', 'pandas']. Defaults to 'pandas'.
@@ -53,12 +53,11 @@ class Dataset(object):
     @classmethod
     def from_dataset_id(cls, dataset_id, endpoint: str = "", **kwargs):
         """
-        Load a dataset from the Pinecone Datasets catalog, or from your own endpoint.
+        Load a dataset from Pinecone's Datasets catalog, or from your own endpoint.
 
         Args:
-            dataset_id (str): the id of the dataset to load with the catalog
-            endpoint (str): the endpoint to use for loading the dataset. This is the catalog's base path.
-                            Defaults to Pinecone's pre-build datasets catalog.
+            dataset_id (str): the id of the dataset to load within a catalog
+            endpoint (str): the catalog's base path. Defaults to Pinecone's pre-built datasets catalog.
 
         Keyword Args:
             engine (str): the engine to use for loading the dataset. Options are ['polars', 'pandas']. Defaults to 'pandas'.
@@ -81,6 +80,7 @@ class Dataset(object):
     ) -> None:
         """
         Dataset class to load and query datasets from the Pinecone Datasets catalog.
+        See `from_path` and `from_dataset_id` for examples on how to load a dataset.
 
         Examples:
             ```python
