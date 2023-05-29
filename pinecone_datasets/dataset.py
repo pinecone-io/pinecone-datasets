@@ -34,26 +34,61 @@ def iter_pandas_dataframe_single(
 
 
 class Dataset(object):
+    @classmethod
+    def from_path(cls, dataset_path, **kwargs):
+        """
+        Create a Dataset object from a path to a dataset.
+        Args:
+            dataset_path (str): a path to a sothrage location containing a dataset
+
+        Keyword Args:
+            engine (str): the engine to use for loading the dataset. Options are ['polars', 'pandas']. Defaults to 'pandas'.
+
+        Returns:
+            Dataset: a Dataset object
+        """
+        endpoint = urlparse(dataset_path)._replace(path="").geturl()
+        return cls(dataset_path=dataset_path, endpoint=endpoint, **kwargs)
+
+    @classmethod
+    def from_dataset_id(cls, dataset_id, endpoint: str = "", **kwargs):
+        """
+        Load a dataset from the Pinecone Datasets catalog, or from your own endpoint.
+
+        Args:
+            dataset_id (str): the id of the dataset to load with the catalog
+            endpoint (str): the endpoint to use for loading the dataset. This is the catalog's base path.
+                            Defaults to Pinecone's pre-build datasets catalog.
+
+        Keyword Args:
+            engine (str): the engine to use for loading the dataset. Options are ['polars', 'pandas']. Defaults to 'pandas'.
+
+        Returns:
+            Dataset: a Dataset object
+        """
+        endpoint = endpoint if endpoint else os.environ.get(
+                "PINECONE_DATASETS_EDNPOINT", cfg.Storage.endpoint
+        )
+        dataset_path = os.path.join(endpoint, f"{dataset_id}")
+        return cls(dataset_path=dataset_path, endpoint = endpoint, **kwargs)
+
     def __init__(
         self,
-        dataset_id: str = "",
-        dataset_path: str = "",
-        endpoint: str = "",
+        dataset_path: str,
+        endpoint: str,
         engine: str = "pandas",
         **kwargs,
     ) -> None:
         """
         Dataset class to load and query datasets from the Pinecone Datasets catalog.
 
-        Args:
-            dataset_id (str, optional): The dataset id. Defaults to "".
-            base_path (str, optional): The path to the dataset. Defaults to "". by default, datasets will look for datasets at path: {base_path}/{dataset_id}/
-            engine (str, optional): The engine to use for loading the dataset. Options are ['polars', 'pandas']. Defaults to 'pandas'.
-
-
         Examples:
+            ```python
             from pinecone_datasets import Dataset
-            dataset = Dataset("dataset_name")
+            dataset = Dataset.from_dataset_id("dataset_name")
+            # or
+            dataset = Dataset.from_path("gs://my-bucket/my-dataset")
+
             for doc in dataset.iter_documents(batch_size=100):
                 index.upsert(doc)
             for query in dataset.iter_queries(batch_size):
@@ -62,36 +97,14 @@ class Dataset(object):
             # or
             dataset.documents # returns a pandas/polars DataFrame
             dataset.queries # returns a pandas/polars DataFrame
+            ```
 
         """
-        if dataset_id and dataset_path:
-            raise ValueError(
-                "dataset_id and dataset_path cannot be provided at the same time"
-            )
-
         self._config = cfg
-
-        if endpoint:
-            self._endpoint = endpoint
-        elif dataset_path:
-            self._endpoint = urlparse(dataset_path)._replace(path="").geturl()
-        else:
-            self._endpoint = os.environ.get(
-                "PINECONE_DATASETS_EDNPOINT", self._config.Storage.endpoint
-            )
-
+        self._endpoint = endpoint
         self._engine = engine
         self._fs = get_cloud_fs(self._endpoint, **kwargs)
-        if dataset_id:
-            self._dataset_path = self._create_path(dataset_id)
-        elif dataset_path:
-            self._dataset_path = dataset_path
-        else:
-            raise ValueError("Either dataset_id or dataset_path must be provided")
-
-    def _create_path(self, dataset_id: str) -> str:
-        path = os.path.join(self._endpoint, f"{dataset_id}")
-        return path
+        self._dataset_path = dataset_path
 
     def _is_datatype_exists(self, data_type: str) -> bool:
         if self._fs:
@@ -253,11 +266,3 @@ class Dataset(object):
 
     def head(self, n: int = 5) -> Union[pl.DataFrame, pd.DataFrame]:
         return self.documents.head(n)
-
-    @classmethod
-    def from_path(cls, dataset_path, **kwargs):
-        return cls(dataset_path=dataset_path, **kwargs)
-
-    @classmethod
-    def from_dataset_id(cls, dataset_id, **kwargs):
-        return cls(dataset_id=dataset_id, **kwargs)
