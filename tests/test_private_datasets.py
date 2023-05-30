@@ -31,3 +31,14 @@ def test_load_private_dataset():
         ds.documents.columns, ["id", "values", "sparse_values", "metadata"]
     )
     del os.environ["DATASETS_CATALOG_BASEPATH"]
+
+
+def test_dataset_from_path():
+    dataset_path = "gs://ram-datasets/test_dataset"
+    ds = Dataset.from_path(dataset_path)
+    assert isinstance(ds, Dataset)
+    assert ds.queries.shape[0] == 2
+    assert ds.documents.shape[0] == 2
+    assert deep_list_cmp(
+        ds.documents.columns, ["id", "values", "sparse_values", "metadata"]
+    )
