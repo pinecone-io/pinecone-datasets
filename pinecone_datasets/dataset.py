@@ -2,8 +2,10 @@ import sys
 import glob
 import os
 import json
+from functools import cached_property
 from typing import Any, Generator, Iterator, List, Union, Dict
 import warnings
+from urllib.parse import urlparse
 
 import gcsfs
 from pydantic import ValidationError
@@ -32,27 +34,62 @@ def iter_pandas_dataframe_single(
 
 
 class Dataset(object):
+    @classmethod
+    def from_path(cls, dataset_path, **kwargs):
+        """
+        Create a Dataset object from local or cloud storage
+        Args:
+            dataset_path (str): a path to a local or cloud storage path containing a valid dataset.
+
+        Keyword Args:
+            engine (str): the engine to use for loading the dataset. Options are ['polars', 'pandas']. Defaults to 'pandas'.
+
+        Returns:
+            Dataset: a Dataset object
+        """
+        return cls(dataset_path=dataset_path, **kwargs)
+
+    @classmethod
+    def from_catalog(cls, dataset_id, catalog_base_path: str = "", **kwargs):
+        """
+        Load a dataset from Pinecone's Datasets catalog, or from your own endpoint.
+
+        Args:
+            dataset_id (str): the id of the dataset to load within a catalog
+            catalog_base_path (str): the catalog's base path. Defaults to DATASETS_CATALOG_BASEPATH environment variable.
+                                     If neither are set, will use Pinecone's public catalog.
+
+        Keyword Args:
+            engine (str): the engine to use for loading the dataset. Options are ['polars', 'pandas']. Defaults to 'pandas'.
+
+        Returns:
+            Dataset: a Dataset object
+        """
+        catalog_base_path = (
+            catalog_base_path
+            if catalog_base_path
+            else os.environ.get("DATASETS_CATALOG_BASEPATH", cfg.Storage.endpoint)
+        )
+        dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
+        return cls(dataset_path=dataset_path, **kwargs)
+
     def __init__(
         self,
-        dataset_id: str = "",
-        endpoint: str = "",
+        dataset_path: str,
         engine: str = "pandas",
-        should_load_metadata: bool = False,
         **kwargs,
     ) -> None:
         """
         Dataset class to load and query datasets from the Pinecone Datasets catalog.
-
-        Args:
-            dataset_id (str, optional): The dataset id. Defaults to "".
-            base_path (str, optional): The path to the dataset. Defaults to "". by default, datasets will look for datasets at path: {base_path}/{dataset_id}/
-            engine (str, optional): The engine to use for loading the dataset. Options are ['polars', 'pandas']. Defaults to 'pandas'.
-            should_load_metadata: (bool, optional): Whether to load the metadata for the dataset. Defaults to False.
-
+        See `from_path` and `from_dataset_id` for examples on how to load a dataset.
 
         Examples:
+            ```python
             from pinecone_datasets import Dataset
-            dataset = Dataset("dataset_name")
+            dataset = Dataset.from_dataset_id("dataset_name")
+            # or
+            dataset = Dataset.from_path("gs://my-bucket/my-dataset")
+
             for doc in dataset.iter_documents(batch_size=100):
                 index.upsert(doc)
             for query in dataset.iter_queries(batch_size):
@@ -61,52 +98,34 @@ class Dataset(object):
             # or
             dataset.documents # returns a pandas/polars DataFrame
             dataset.queries # returns a pandas/polars DataFrame
+            ```
 
         """
-        self._documents: pl.DataFrame = None
-        self._queries: pl.DataFrame = None
-        self._metadata: DatasetMetadata = None
-        self._dataset_id = dataset_id
-        self._is_load_metadata = should_load_metadata
         self._config = cfg
-        self._endpoint = (
-            endpoint
-            if endpoint
-            else os.environ.get(
-                "PINECONE_DATASETS_EDNPOINT", self._config.Storage.endpoint
-            )
-        )
         self._engine = engine
-        self._fs = get_cloud_fs(self._endpoint, **kwargs)
-        if dataset_id:
-            self._load(dataset_id)
+        endpoint = urlparse(dataset_path)._replace(path="").geturl()
+        self._fs = get_cloud_fs(endpoint, **kwargs)
+        self._dataset_path = dataset_path
 
-    def _create_path(self, dataset_id: str) -> str:
-        path = os.path.join(self._endpoint, f"{dataset_id}")
-        return path
-
-    def _is_datatype_exists(self, data_type: str, dataset_id: str) -> bool:
-        if self._fs:
-            key = os.path.join(self._create_path(dataset_id), data_type).split("//")[-1]
-            for obj in self._fs.ls(self._create_path(dataset_id)):
-                if obj == key:
-                    return True
-            return False
-        else:
-            return os.path.exists(
-                os.path.join(self._create_path(dataset_id), data_type)
+        if not self._is_datatype_exists(""):
+            raise FileNotFoundError(
+                "Dataset does not exist. Please check the path or dataset_id"
             )
+
+    def _is_datatype_exists(self, data_type: str) -> bool:
+        if self._fs:
+            return self._fs.exists(os.path.join(self._dataset_path, data_type))
+        else:
+            return os.path.exists(os.path.join(self._dataset_path, data_type))
 
     def _safe_read_from_path(
-        self, data_type: str, dataset_id: str, enforced_schema: Dict[str, Any]
+        self, data_type: str, enforced_schema: Dict[str, Any]
     ) -> Union[pl.DataFrame, pd.DataFrame]:
-        read_path_str = os.path.join(
-            self._create_path(dataset_id), data_type, "*.parquet"
-        )
+        read_path_str = os.path.join(self._dataset_path, data_type, "*.parquet")
         read_path = (
             self._fs.glob(read_path_str) if self._fs else glob.glob(read_path_str)
         )
-        if self._is_datatype_exists(data_type, dataset_id):
+        if self._is_datatype_exists(data_type):
             dataset = pq.ParquetDataset(read_path, filesystem=self._fs)
             try:
                 if self._engine == "pandas":
@@ -140,13 +159,11 @@ class Dataset(object):
     def _load_metadata(self) -> DatasetMetadata:
         if self._fs:
             with self._fs.open(
-                os.path.join(self._create_path(self._dataset_id), "metadata.json"), "rb"
+                os.path.join(self._dataset_path, "metadata.json"), "rb"
             ) as f:
                 metadata = json.load(f)
         else:
-            with open(
-                os.path.join(self._create_path(self._dataset_id), "metadata.json"), "rb"
-            ) as f:
+            with open(os.path.join(self._dataset_path, "metadata.json"), "rb") as f:
                 metadata = json.load(f)
         try:
             out = DatasetMetadata(**metadata)
@@ -157,24 +174,12 @@ class Dataset(object):
     def _save_metadata(self, metadata: DatasetMetadata) -> None:  # pragma: no cover
         if self._fs:
             with self._fs.open(
-                os.path.join(self._create_path(self._dataset_id), "metadata.json"), "w"
+                os.path.join(self._dataset_path, "metadata.json"), "w"
             ) as f:
                 json.dump(metadata.dict(), f)
         else:
-            with open(
-                os.path.join(self._create_path(self._dataset_id), "metadata.json"), "w"
-            ) as f:
+            with open(os.path.join(self._dataset_path, "metadata.json"), "w") as f:
                 json.dump(metadata.dict(), f)
-
-    def _load(self, dataset_id: str) -> None:
-        self._documents = self._safe_read_from_path(
-            "documents", dataset_id, self._config.Schema.documents
-        )
-        self._queries = self._safe_read_from_path(
-            "queries", dataset_id, self._config.Schema.queries
-        )
-        if self._is_load_metadata:
-            self._metadata = self._load_metadata()
 
     def __getitem__(self, key: str) -> pl.DataFrame:
         if key in ["documents", "queries"]:
@@ -183,11 +188,11 @@ class Dataset(object):
             raise KeyError("Dataset does not have key: {}".format(key))
 
     def __len__(self) -> int:
-        return self._documents.shape[0]
+        return self.documents.shape[0]
 
-    @property
+    @cached_property
     def documents(self) -> Union[pl.DataFrame, pd.DataFrame]:
-        return self._documents
+        return self._safe_read_from_path("documents", self._config.Schema.documents)
 
     def iter_documents(self, batch_size: int = 1) -> Iterator[List[Dict[str, Any]]]:
         """
@@ -206,21 +211,21 @@ class Dataset(object):
         if isinstance(batch_size, int) and batch_size > 0:
             if self._engine == "pandas":
                 return iter_pandas_dataframe_slices(
-                    self._documents[self._config.Schema.documents_select_columns],
+                    self.documents[self._config.Schema.documents_select_columns],
                     batch_size,
                 )
             return map(
                 lambda x: x.to_dicts(),
-                self._documents.select(
+                self.documents.select(
                     self._config.Schema.documents_select_columns
                 ).iter_slices(n_rows=batch_size),
             )
         else:
             raise ValueError("batch_size must be greater than 0")
 
-    @property
+    @cached_property
     def queries(self) -> Union[pl.DataFrame, pd.DataFrame]:
-        return self._queries
+        return self._safe_read_from_path("queries", self._config.Schema.documents)
 
     def iter_queries(self) -> Iterator[Dict[str, Any]]:
         """
@@ -236,12 +241,16 @@ class Dataset(object):
         """
         if self._engine == "pandas":
             return iter_pandas_dataframe_single(
-                self._queries[self._config.Schema.queries_select_columns]
+                self.queries[self._config.Schema.queries_select_columns]
             )
         else:
-            return self._queries.select(
-                self._queries[self._config.Schema.queries_select_columns]
+            return self.queries.select(
+                self.queries[self._config.Schema.queries_select_columns]
             ).iter_rows(named=True)
+
+    @cached_property
+    def metadata(self) -> Union[pl.DataFrame, pd.DataFrame]:
+        return self._load_metadata()
 
     def head(self, n: int = 5) -> Union[pl.DataFrame, pd.DataFrame]:
         return self.documents.head(n)

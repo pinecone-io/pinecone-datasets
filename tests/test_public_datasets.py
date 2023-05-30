@@ -23,7 +23,7 @@ def test_load_dataset_pandas():
     assert test_dataset in lst
     ds = load_dataset(test_dataset)
     assert ds.documents.shape[0] == 522931 and len(ds) == 522931
-    assert ds.documents.shape[0] == ds._metadata.documents
+    assert ds.documents.shape[0] == ds.metadata.documents
     assert ds.documents.shape[1] == 5
     assert isinstance(ds.documents, pd.DataFrame)
     assert isinstance(ds.head(), pd.DataFrame)
@@ -32,12 +32,12 @@ def test_load_dataset_pandas():
     pd_assert_frame_equal(ds["documents"], ds.documents)
     pd_assert_frame_equal(ds.head(), ds.documents.head())
 
-    assert ds._metadata.name == test_dataset
-    assert ds._metadata.queries == 15000
+    assert ds.metadata.name == test_dataset
+    assert ds.metadata.queries == 15000
 
 
 def test_load_dataset_polars():
-    ds = Dataset(test_dataset, engine="polars")
+    ds = Dataset.from_catalog(test_dataset, engine="polars")
     assert ds.documents.shape[0] == 522931
     assert ds.documents.shape[1] == 5
     assert isinstance(ds.documents, pl.DataFrame)
@@ -59,7 +59,7 @@ def test_load_dataset_does_not_exists():
     with pytest.raises(FileNotFoundError):
         ds = load_dataset("does_not_exists")
     with pytest.raises(FileNotFoundError):
-        ds = Dataset("does_not_exists")
+        ds = Dataset.from_catalog("does_not_exists")
 
 
 def test_iter_documents_pandas(tmpdir):
@@ -83,7 +83,7 @@ def test_iter_documents_pandas(tmpdir):
     documents_path = dataset_path.mkdir("documents")
     pd.DataFrame(data).to_parquet(documents_path.join("part-0.parquet"))
 
-    ds = Dataset(dataset_name, endpoint=str(tmpdir))
+    ds = Dataset.from_catalog(dataset_name, catalog_base_path=str(tmpdir))
 
     for i, d in enumerate(ds.iter_documents()):
         assert isinstance(d, list)
@@ -121,7 +121,7 @@ def test_iter_queries_pandas(tmpdir):
     queries_path = dataset_path.mkdir("queries")
     pd.DataFrame(data).to_parquet(queries_path.join("part-0.parquet"))
 
-    ds = Dataset(dataset_name, endpoint=str(tmpdir))
+    ds = Dataset.from_catalog(dataset_name, catalog_base_path=str(tmpdir))
 
     for i, d in enumerate(ds.iter_queries()):
         print(d)
