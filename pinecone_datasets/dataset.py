@@ -69,7 +69,7 @@ class Dataset(object):
                 "DATASETS_CATALOG_BASEPATH", cfg.Storage.endpoint
         )
         dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
-        return cls(dataset_path=dataset_path, endpoint = catalog_base_path, **kwargs)
+        return cls(dataset_path=dataset_path, **kwargs)
 
     def __init__(
         self,

@@ -34,8 +34,8 @@ def test_load_private_dataset():
 
 
 def test_dataset_from_path():
-    dataset_path = "gs://ram-datasets/test_dataset"
-    ds = Dataset.from_path(dataset_path)
+    dataset_path = "s3://ram-datasets/test_dataset"
+    ds = Dataset.from_path(dataset_path, endpoint_url="https://storage.googleapis.com")
     assert isinstance(ds, Dataset)
     assert ds.queries.shape[0] == 2
     assert ds.documents.shape[0] == 2

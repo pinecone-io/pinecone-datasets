@@ -23,7 +23,7 @@ def test_load_dataset_pandas():
     assert test_dataset in lst
     ds = load_dataset(test_dataset)
     assert ds.documents.shape[0] == 522931 and len(ds) == 522931
-    assert ds.documents.shape[0] == ds._metadata.documents
+    assert ds.documents.shape[0] == ds.metadata.documents
     assert ds.documents.shape[1] == 5
     assert isinstance(ds.documents, pd.DataFrame)
     assert isinstance(ds.head(), pd.DataFrame)
@@ -32,8 +32,8 @@ def test_load_dataset_pandas():
     pd_assert_frame_equal(ds["documents"], ds.documents)
     pd_assert_frame_equal(ds.head(), ds.documents.head())
 
-    assert ds._metadata.name == test_dataset
-    assert ds._metadata.queries == 15000
+    assert ds.metadata.name == test_dataset
+    assert ds.metadata.queries == 15000
 
 
 def test_load_dataset_polars():
@@ -60,6 +60,7 @@ def test_load_dataset_does_not_exists():
         ds = load_dataset("does_not_exists")
     with pytest.raises(FileNotFoundError):
         ds = Dataset.from_catalog("does_not_exists")
+
 
 
 def test_iter_documents_pandas(tmpdir):
