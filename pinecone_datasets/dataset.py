@@ -157,7 +157,7 @@ class Dataset(object):
             else:
                 raise ValueError("engine must be one of ['pandas', 'polars']")
 
-    def _load_metadata(self) -> None:
+    def _load_metadata(self) -> DatasetMetadata:
         if self._fs:
             with self._fs.open(
                 os.path.join(self._dataset_path, "metadata.json"), "rb"
@@ -174,9 +174,7 @@ class Dataset(object):
         except ValidationError as e:
             raise e
 
-    def _save_metadata(
-        self, dataset_id: str, metadata: DatasetMetadata
-    ) -> None:  # pragma: no cover
+    def _save_metadata(self, metadata: DatasetMetadata) -> None:  # pragma: no cover
         if self._fs:
             with self._fs.open(
                 os.path.join(self._dataset_path, "metadata.json"), "w"

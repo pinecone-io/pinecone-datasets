@@ -154,7 +154,8 @@ meta.schema()
 in order to list a dataset you can save dataset metadata (NOTE: write permission to loacaion is needed)
 
 ```python
-dataset._save_metadata("non-listed-dataset", meta)
+dataset = Dataset("non-listed-dataset")
+dataset._save_metadata(meta)
 ```
 
 ### Uploading and listing a dataset. 
