@@ -105,16 +105,12 @@ class Dataset(object):
         self._fs = get_cloud_fs(endpoint, **kwargs)
         self._dataset_path = dataset_path
 
-        if not self._fs.exists(self._dataset_path):
+        if not self._is_datatype_exists(""):
             raise FileNotFoundError("Dataset does not exist. Please check the path or dataset_id")
 
     def _is_datatype_exists(self, data_type: str) -> bool:
         if self._fs:
-            key = os.path.join(self._dataset_path, data_type).split("//")[-1]
-            for obj in self._fs.ls(self._dataset_path):
-                if obj == key:
-                    return True
-            return False
+            return self._fs.exists(os.path.join(self._dataset_path, data_type))
         else:
             return os.path.exists(
                 os.path.join(self._dataset_path, data_type)
