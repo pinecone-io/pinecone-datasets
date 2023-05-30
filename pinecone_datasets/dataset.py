@@ -47,17 +47,16 @@ class Dataset(object):
         Returns:
             Dataset: a Dataset object
         """
-        endpoint = urlparse(dataset_path)._replace(path="").geturl()
-        return cls(dataset_path=dataset_path, endpoint=endpoint, **kwargs)
+        return cls(dataset_path=dataset_path, **kwargs)
 
     @classmethod
-    def from_dataset_id(cls, dataset_id, endpoint: str = "", **kwargs):
+    def from_catalog(cls, dataset_id, catalog_base_path: str = "", **kwargs):
         """
         Load a dataset from Pinecone's Datasets catalog, or from your own endpoint.
 
         Args:
             dataset_id (str): the id of the dataset to load within a catalog
-            endpoint (str): the catalog's base path. Defaults to Pinecone's pre-built datasets catalog.
+            catalog_base_path (str): the catalog's base path. Defaults to Pinecone's pre-built datasets catalog.
 
         Keyword Args:
             engine (str): the engine to use for loading the dataset. Options are ['polars', 'pandas']. Defaults to 'pandas'.
@@ -68,13 +67,12 @@ class Dataset(object):
         catalog_base_path = catalog_base_path if catalog_base_path else os.environ.get(
                 "DATASETS_CATALOG_BASEPATH", cfg.Storage.endpoint
         )
-        dataset_path = os.path.join(endpoint, f"{dataset_id}")
-        return cls(dataset_path=dataset_path, endpoint = endpoint, **kwargs)
+        dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
+        return cls(dataset_path=dataset_path, endpoint = catalog_base_path, **kwargs)
 
     def __init__(
         self,
         dataset_path: str,
-        endpoint: str,
         engine: str = "pandas",
         **kwargs,
     ) -> None:
@@ -101,9 +99,9 @@ class Dataset(object):
 
         """
         self._config = cfg
-        self._endpoint = endpoint
         self._engine = engine
-        self._fs = get_cloud_fs(self._endpoint, **kwargs)
+        endpoint = urlparse(dataset_path)._replace(path="").geturl()
+        self._fs = get_cloud_fs(endpoint, **kwargs)
         self._dataset_path = dataset_path
 
     def _is_datatype_exists(self, data_type: str) -> bool:
