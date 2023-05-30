@@ -1,3 +1,4 @@
+import os
 import s3fs
 import gcsfs
 
