@@ -62,7 +62,6 @@ def test_load_dataset_does_not_exists():
         ds = Dataset.from_catalog("does_not_exists")
 
 
-
 def test_iter_documents_pandas(tmpdir):
     data = [
         {
