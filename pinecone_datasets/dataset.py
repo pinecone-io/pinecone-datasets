@@ -56,7 +56,8 @@ class Dataset(object):
 
         Args:
             dataset_id (str): the id of the dataset to load within a catalog
-            catalog_base_path (str): the catalog's base path. Defaults to Pinecone's pre-built datasets catalog.
+            catalog_base_path (str): the catalog's base path. Defaults to DATASETS_CATALOG_BASEPATH environment variable.
+                                     If neither are set, will use Pinecone's public catalog.
 
         Keyword Args:
             engine (str): the engine to use for loading the dataset. Options are ['polars', 'pandas']. Defaults to 'pandas'.
