@@ -84,7 +84,7 @@ def test_iter_documents_pandas(tmpdir):
     documents_path = dataset_path.mkdir("documents")
     pd.DataFrame(data).to_parquet(documents_path.join("part-0.parquet"))
 
-    ds = Dataset.from_catalog(dataset_name, endpoint=str(tmpdir))
+    ds = Dataset.from_catalog(dataset_name, catalog_base_path=str(tmpdir))
 
     for i, d in enumerate(ds.iter_documents()):
         assert isinstance(d, list)
