@@ -76,7 +76,7 @@ index = pinecone.GRPCIndex("my-index")
 
 ### Working with your own dataset storage
 
-Datasets is using Pinecone's public datasets bucket on GCS, you can use your own bucket by setting the `PINECONE_DATASETS_EDNPOINT` environment variable.
+Datasets is using Pinecone's public datasets bucket on GCS, you can use your own bucket by setting the `DATASETS_CATALOG_BASEPATH` environment variable.
 
 ```bash
 export PINECONE_DATASETS_ENDPOINT="gs://my-bucket"

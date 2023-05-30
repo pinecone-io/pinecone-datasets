@@ -65,8 +65,8 @@ class Dataset(object):
         Returns:
             Dataset: a Dataset object
         """
-        endpoint = endpoint if endpoint else os.environ.get(
-                "PINECONE_DATASETS_EDNPOINT", cfg.Storage.endpoint
+        catalog_base_path = catalog_base_path if catalog_base_path else os.environ.get(
+                "DATASETS_CATALOG_BASEPATH", cfg.Storage.endpoint
         )
         dataset_path = os.path.join(endpoint, f"{dataset_id}")
         return cls(dataset_path=dataset_path, endpoint = endpoint, **kwargs)

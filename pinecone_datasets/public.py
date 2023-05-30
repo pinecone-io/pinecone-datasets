@@ -8,7 +8,7 @@ catalog = None
 def list_datasets(as_df=False, **kwargs) -> list:
     """
     List all datasets in the catalog, optionally as a pandas DataFrame.
-    Catalog is set using the `PINECONE_DATASETS_EDNPOINT` environment variable.
+    Catalog is set using the `DATASETS_CATALOG_BASEPATH` environment variable.
 
     Args:
         as_df (bool, optional): Whether to return the list as a pandas DataFrame. Defaults to False.
@@ -56,4 +56,4 @@ def load_dataset(dataset_id: str, **kwargs) -> Dataset:
     if dataset_id not in lst:
         raise FileNotFoundError(f"Dataset {dataset_id} not found in catalog")
     else:
-        return Dataset.from_dataset_id(dataset_id, **kwargs)
+        return Dataset.from_catalog(dataset_id, **kwargs)

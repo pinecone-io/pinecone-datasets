@@ -42,7 +42,7 @@ class Catalog(BaseModel):
     @staticmethod
     def load(**kwargs) -> "Catalog":
         public_datasets_base_path = os.environ.get(
-            "PINECONE_DATASETS_EDNPOINT", cfg.Storage.endpoint
+            "DATASETS_CATALOG_BASEPATH", cfg.Storage.endpoint
         )
         fs = get_cloud_fs(public_datasets_base_path, **kwargs)
         if not fs:
