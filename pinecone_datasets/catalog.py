@@ -8,6 +8,7 @@ import s3fs
 import gcsfs
 from pydantic import BaseModel, ValidationError, Field
 import pandas as pd
+from fsspec.implementations.local import LocalFileSystem
 
 from pinecone_datasets import cfg
 from pinecone_datasets.fs import get_cloud_fs
@@ -53,7 +54,7 @@ class Catalog(BaseModel):
             "DATASETS_CATALOG_BASEPATH", cfg.Storage.endpoint
         )
         fs = get_cloud_fs(public_datasets_base_path, **kwargs)
-        if not fs:
+        if isinstance(fs, LocalFileSystem):
             raise ValueError(
                 "Public datasets are only supported on cloud storage, with valid s3:// or gs:// paths"
             )

@@ -70,7 +70,7 @@ class Dataset(object):
             else os.environ.get("DATASETS_CATALOG_BASEPATH", cfg.Storage.endpoint)
         )
         dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
-        return cls(dataset_path=dataset_path, **kwargs)
+        return cls.from_path(dataset_path, **kwargs)
 
     def __init__(
         self,
@@ -113,9 +113,20 @@ class Dataset(object):
         return self._fs.exists(os.path.join(self._dataset_path, data_type))
 
     def _load(self, data_type: str) -> ray.data.Dataset:
+        """
+        Loads a dataset from the given path as a lazy ray dataset object.
+
+        Args:
+            data_type (str): The type of data to load. Options are ['documents', 'queries']
+
+        Returns:
+            ray.data.Dataset: A ray dataset object
+        """
         read_path = os.path.join(self._dataset_path, data_type + "/")
         if self._is_datatype_exists(data_type):
-            dataset = ray.data.read_parquet(paths=self._fs.glob(read_path), filesystem=self._fs)
+            dataset = ray.data.read_parquet(
+                paths=self._fs.glob(read_path), filesystem=self._fs
+            )
             return dataset
         else:
             warnings.warn(
@@ -128,13 +139,26 @@ class Dataset(object):
             return ray.data.from_pandas(pd.DataFrame())
 
     def _load_pandas(self, data_type: str) -> pd.DataFrame:
+        """
+        Loads a dataset from the given path as a pandas dataframe.
+
+        Args:
+            data_type (str): The type of data to load. Options are ['documents', 'queries']
+
+        Returns:
+            pd.DataFrame: A pandas dataframe
+
+        Raises:
+            ValueError: If the dataset is too large to fit in memory
+        """
         dataset = self._load(data_type)
         try:
-            df = dataset.to_pandas(limit=10 ** 7)
+            #TODO: hard coded limit for now
+            df = dataset.to_pandas(limit=10**7)
             return df
         except ValueError as ve:
             # TODO: add a better error message
-            raise(ve)
+            raise (ve)
         except Exception as e:
             print("error, no exception: {}".format(e), file=sys.stderr)
             raise (e)
