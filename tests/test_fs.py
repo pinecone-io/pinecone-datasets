@@ -8,7 +8,7 @@ from pinecone_datasets.fs import get_cloud_fs
 def test_get_cloud_fs_nullability():
     assert get_cloud_fs("s3://pinecone-datasets") is not None
     assert get_cloud_fs("gs://pinecone-datasets") is not None
-    assert get_cloud_fs("pinecone-datasets") is None
+    assert get_cloud_fs("pinecone-datasets") is not None
 
 
 def test_get_cloud_fs_s3():
