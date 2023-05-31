@@ -153,7 +153,7 @@ class Dataset(object):
         """
         dataset = self._load(data_type)
         try:
-            #TODO: hard coded limit for now
+            # TODO: hard coded limit for now
             df = dataset.to_pandas(limit=10**7)
             return df
         except ValueError as ve:
