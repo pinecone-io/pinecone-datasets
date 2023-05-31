@@ -98,20 +98,9 @@ first, to set a new endpoint, set the environment variable `PINECONE_DATASETS_EN
 export PINECONE_DATASETS_ENDPOINT="s3://my-bucket"
 ```
 
-then, you can use the `key` and `secret` parameters to pass your credentials to the `list_datasets` and `load_dataset` functions.
-
-```python
-st = list_datasets(
-        key=os.environ.get("S3_ACCESS_KEY"),
-        secret=os.environ.get("S3_SECRET"),
-    )
-
-ds = load_dataset(
-        "test_dataset",
-        key=os.environ.get("S3_ACCESS_KEY"),
-        secret=os.environ.get("S3_SECRET"),
-)
-```
+then, you need to set your AWS/GCS environment variables:
+for AWS, use `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables.
+for GCS run `gcloud auth application-default login` and `gcloud auth application-default print-access-token` and set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to the path of the credentials file.
 
 ## For developers
 
