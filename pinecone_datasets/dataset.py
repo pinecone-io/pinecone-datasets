@@ -104,19 +104,16 @@ class Dataset(object):
         self._fs = get_cloud_fs(endpoint, **kwargs)
         self._dataset_path = dataset_path
 
-        if not self._is_datatype_exists(""):
+        if not self._fs.exists(self._dataset_path):
             raise FileNotFoundError(
                 "Dataset does not exist. Please check the path or dataset_id"
             )
 
     def _is_datatype_exists(self, data_type: str) -> bool:
-        if self._fs:
-            return self._fs.exists(os.path.join(self._dataset_path, data_type))
-        else:
-            return os.path.exists(os.path.join(self._dataset_path, data_type))
+        return self._fs.exists(os.path.join(self._dataset_path, data_type))
 
     def _load(self, data_type: str) -> ray.data.Dataset:
-        read_path = os.path.join(self._dataset_path, data_type)
+        read_path = os.path.join(self._dataset_path, data_type + "/")
         if self._is_datatype_exists(data_type):
             dataset = ray.data.read_parquet(paths=self._fs.glob(read_path), filesystem=self._fs)
             return dataset
@@ -143,14 +140,10 @@ class Dataset(object):
             raise (e)
 
     def _load_metadata(self) -> DatasetMetadata:
-        if self._fs:
-            with self._fs.open(
-                os.path.join(self._dataset_path, "metadata.json"), "rb"
-            ) as f:
-                metadata = json.load(f)
-        else:
-            with open(os.path.join(self._dataset_path, "metadata.json"), "rb") as f:
-                metadata = json.load(f)
+        with self._fs.open(
+            os.path.join(self._dataset_path, "metadata.json"), "rb"
+        ) as f:
+            metadata = json.load(f)
         try:
             out = DatasetMetadata(**metadata)
             return out
@@ -158,14 +151,8 @@ class Dataset(object):
             raise e
 
     def _save_metadata(self, metadata: DatasetMetadata) -> None:  # pragma: no cover
-        if self._fs:
-            with self._fs.open(
-                os.path.join(self._dataset_path, "metadata.json"), "w"
-            ) as f:
-                json.dump(metadata.dict(), f)
-        else:
-            with open(os.path.join(self._dataset_path, "metadata.json"), "w") as f:
-                json.dump(metadata.dict(), f)
+        with self._fs.open(os.path.join(self._dataset_path, "metadata.json"), "w") as f:
+            json.dump(metadata.dict(), f)
 
     def __getitem__(self, key: str):
         if key in ["documents", "queries"]:

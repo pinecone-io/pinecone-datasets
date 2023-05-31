@@ -2,6 +2,7 @@ from typing import Union
 
 import gcsfs
 import s3fs
+from fsspec.implementations.local import LocalFileSystem
 
 from pinecone_datasets import cfg
 
@@ -23,5 +24,5 @@ def get_cloud_fs(path, **kwargs) -> Union[gcsfs.GCSFileSystem, s3fs.S3FileSystem
     elif path.startswith("s3://") or "s3.amazonaws.com" in path:
         fs = s3fs.S3FileSystem(anon=is_anon, **kwargs)
     else:
-        fs = None
+        fs = LocalFileSystem()
     return fs
