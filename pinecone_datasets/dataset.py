@@ -10,9 +10,8 @@ from urllib.parse import urlparse
 import gcsfs
 from pydantic import ValidationError
 import s3fs
-import polars as pl
+import ray
 import pandas as pd
-import pyarrow.parquet as pq
 
 from pinecone_datasets import cfg
 from pinecone_datasets.catalog import DatasetMetadata
@@ -76,7 +75,6 @@ class Dataset(object):
     def __init__(
         self,
         dataset_path: str,
-        engine: str = "pandas",
         **kwargs,
     ) -> None:
         """
@@ -102,7 +100,6 @@ class Dataset(object):
 
         """
         self._config = cfg
-        self._engine = engine
         endpoint = urlparse(dataset_path)._replace(path="").geturl()
         self._fs = get_cloud_fs(endpoint, **kwargs)
         self._dataset_path = dataset_path
@@ -118,29 +115,11 @@ class Dataset(object):
         else:
             return os.path.exists(os.path.join(self._dataset_path, data_type))
 
-    def _safe_read_from_path(
-        self, data_type: str, enforced_schema: Dict[str, Any]
-    ) -> Union[pl.DataFrame, pd.DataFrame]:
-        read_path_str = os.path.join(self._dataset_path, data_type, "*.parquet")
-        read_path = (
-            self._fs.glob(read_path_str) if self._fs else glob.glob(read_path_str)
-        )
+    def _load(self, data_type: str) -> ray.data.Dataset:
+        read_path = os.path.join(self._dataset_path, data_type)
         if self._is_datatype_exists(data_type):
-            dataset = pq.ParquetDataset(read_path, filesystem=self._fs)
-            try:
-                if self._engine == "pandas":
-                    df = dataset.read_pandas().to_pandas()
-                elif self._engine == "polars":
-                    df = pl.from_arrow(dataset.read(), schema_overrides=enforced_schema)
-                else:
-                    raise ValueError("engine must be one of ['pandas', 'polars']")
-                return df
-            except pl.PanicException as pe:
-                msg = f"error, file is not matching Pinecone Datasets Schmea: {pe}"
-                raise RuntimeError(msg)
-            except Exception as e:
-                print("error, no exception: {}".format(e), file=sys.stderr)
-                raise (e)
+            dataset = ray.data.read_parquet(paths=self._fs.glob(read_path), filesystem=self._fs)
+            return dataset
         else:
             warnings.warn(
                 "WARNING: No data found at: {}. Returning empty DF".format(
@@ -149,12 +128,19 @@ class Dataset(object):
                 UserWarning,
                 stacklevel=0,
             )
-            if self._engine == "pandas":
-                return pd.DataFrame()
-            elif self._engine == "polars":
-                return pl.DataFrame()
-            else:
-                raise ValueError("engine must be one of ['pandas', 'polars']")
+            return ray.data.from_pandas(pd.DataFrame())
+
+    def _load_pandas(self, data_type: str) -> pd.DataFrame:
+        dataset = self._load(data_type)
+        try:
+            df = dataset.to_pandas(limit=10 ** 7)
+            return df
+        except ValueError as ve:
+            # TODO: add a better error message
+            raise(ve)
+        except Exception as e:
+            print("error, no exception: {}".format(e), file=sys.stderr)
+            raise (e)
 
     def _load_metadata(self) -> DatasetMetadata:
         if self._fs:
@@ -181,7 +167,7 @@ class Dataset(object):
             with open(os.path.join(self._dataset_path, "metadata.json"), "w") as f:
                 json.dump(metadata.dict(), f)
 
-    def __getitem__(self, key: str) -> pl.DataFrame:
+    def __getitem__(self, key: str):
         if key in ["documents", "queries"]:
             return getattr(self, key)
         else:
@@ -191,8 +177,8 @@ class Dataset(object):
         return self.documents.shape[0]
 
     @cached_property
-    def documents(self) -> Union[pl.DataFrame, pd.DataFrame]:
-        return self._safe_read_from_path("documents", self._config.Schema.documents)
+    def documents(self) -> pd.DataFrame:
+        return self._load_pandas("documents")
 
     def iter_documents(self, batch_size: int = 1) -> Iterator[List[Dict[str, Any]]]:
         """
@@ -209,23 +195,16 @@ class Dataset(object):
                 index.upsert(batch)
         """
         if isinstance(batch_size, int) and batch_size > 0:
-            if self._engine == "pandas":
-                return iter_pandas_dataframe_slices(
-                    self.documents[self._config.Schema.documents_select_columns],
-                    batch_size,
-                )
-            return map(
-                lambda x: x.to_dicts(),
-                self.documents.select(
-                    self._config.Schema.documents_select_columns
-                ).iter_slices(n_rows=batch_size),
+            return iter_pandas_dataframe_slices(
+                self.documents[self._config.Schema.documents_select_columns],
+                batch_size,
             )
         else:
             raise ValueError("batch_size must be greater than 0")
 
     @cached_property
-    def queries(self) -> Union[pl.DataFrame, pd.DataFrame]:
-        return self._safe_read_from_path("queries", self._config.Schema.documents)
+    def queries(self) -> pd.DataFrame:
+        return self._load_pandas("queries")
 
     def iter_queries(self) -> Iterator[Dict[str, Any]]:
         """
@@ -239,18 +218,14 @@ class Dataset(object):
                 results = index.query(**query)
                 # do something with the results
         """
-        if self._engine == "pandas":
-            return iter_pandas_dataframe_single(
-                self.queries[self._config.Schema.queries_select_columns]
-            )
-        else:
-            return self.queries.select(
-                self.queries[self._config.Schema.queries_select_columns]
-            ).iter_rows(named=True)
+
+        return iter_pandas_dataframe_single(
+            self.queries[self._config.Schema.queries_select_columns]
+        )
 
     @cached_property
-    def metadata(self) -> Union[pl.DataFrame, pd.DataFrame]:
+    def metadata(self) -> pd.DataFrame:
         return self._load_metadata()
 
-    def head(self, n: int = 5) -> Union[pl.DataFrame, pd.DataFrame]:
+    def head(self, n: int = 5) -> pd.DataFrame:
         return self.documents.head(n)

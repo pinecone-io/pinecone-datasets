@@ -1,9 +1,7 @@
 import os
 
-import pandas as pd
-import polars as pl
 import numpy as np
-from polars.testing import assert_frame_equal as pl_assert_frame_equal
+import pandas as pd
 from pandas.testing import assert_frame_equal as pd_assert_frame_equal
 import pytest
 from pinecone_datasets import __version__, load_dataset, list_datasets, Dataset
@@ -22,9 +20,10 @@ def test_load_dataset_pandas():
     lst = list_datasets()
     assert test_dataset in lst
     ds = load_dataset(test_dataset)
-    assert ds.documents.shape[0] == 522931 and len(ds) == 522931
-    assert ds.documents.shape[0] == ds.metadata.documents
-    assert ds.documents.shape[1] == 5
+    docs = ds.documents
+    assert docs.shape[0] == 522931
+    assert docs.shape[1] == 5
+    assert docs.shape[0] == ds.metadata.documents
     assert isinstance(ds.documents, pd.DataFrame)
     assert isinstance(ds.head(), pd.DataFrame)
     assert ds.head().shape[0] == 5
@@ -34,17 +33,6 @@ def test_load_dataset_pandas():
 
     assert ds.metadata.name == test_dataset
     assert ds.metadata.queries == 15000
-
-
-def test_load_dataset_polars():
-    ds = Dataset.from_catalog(test_dataset, engine="polars")
-    assert ds.documents.shape[0] == 522931
-    assert ds.documents.shape[1] == 5
-    assert isinstance(ds.documents, pl.DataFrame)
-    assert isinstance(ds.head(), pl.DataFrame)
-    assert ds.head().shape[0] == 5
-    assert ds.head().shape[1] == 5
-    pl_assert_frame_equal(ds.head(), ds.documents.head())
 
 
 def test_list_datasets():

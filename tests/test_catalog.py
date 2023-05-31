@@ -1,6 +1,8 @@
 import requests
 import pytest
 
+import pandas as pd
+
 from pinecone_datasets.catalog import Catalog
 from pinecone_datasets.catalog import DatasetMetadata, DenseModelMetadata
 
