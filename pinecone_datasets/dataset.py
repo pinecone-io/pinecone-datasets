@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 import gcsfs
 from pydantic import ValidationError
 import s3fs
-import polars as pl
+# import polars as pl
 import pandas as pd
 import pyarrow.parquet as pq
 
@@ -234,7 +234,24 @@ class Dataset(object):
     def head(self, n: int = 5) -> Union[pl.DataFrame, pd.DataFrame]:
         return self.documents.head(n)
 
+    
+    def save_to_path(self, dataset_path: str):
+        """
+        Saves the dataset to a local or cloud storage path.
+        """
+        # save documents
+        documents_path = os.path.join(dataset_path, "documents")
+        self.documents.to_parquet(documents_path, engine="pyarrow", index=False)
 
+        # save queries
+        queries_path = os.path.join(dataset_path, "queries")
+        self.queries.to_parquet(queries_path, engine="pyarrow", index=False)
+
+        # save metadata
+        with self._fs.open(path.join(dataset_path, "metadata.json"), "w") as f:
+            json.dump(self.metadata.dict(), f)
+
+    
     def save_to_catalog(self, dataset_id: str):
         """
         Saves the dataset to the public catalog.
@@ -248,22 +265,6 @@ class Dataset(object):
             else os.environ.get("DATASETS_CATALOG_BASEPATH", cfg.Storage.endpoint)
         )
         dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
+        self.save_to_path(dataset_path)
+        
 
-        # save documents
-        documents_path = os.path.join(dataset_path, "documents")
-        self.documents.to_parquet(documents_path, engine="pyarrow", index=False)
-
-        # save queries
-        queries_path = os.path.join(dataset_path, "queries")
-        self.queries.to_parquet(queries_path, engine="pyarrow", index=False)
-
-        # save metadata
-        metadata = self.metadata
-
-
-
-    def save_to_path(self, dataset_path: str):
-        """
-        Saves the dataset to a local or cloud storage path.
-        """
-        raise NotImplementedError
