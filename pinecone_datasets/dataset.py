@@ -126,15 +126,13 @@ class Dataset(object):
     def _is_datatype_exists(self, data_type: str) -> bool:
         return self._fs.exists(os.path.join(self._dataset_path, data_type))
 
-    def _safe_read_from_path(self, data_type: str) -> Union[pl.DataFrame, pd.DataFrame]:
+    def _safe_read_from_path(self, data_type: str) -> pd.DataFrame:
         read_path_str = os.path.join(self._dataset_path, data_type, "*.parquet")
         read_path = self._fs.glob(read_path_str)
         if self._is_datatype_exists(data_type):
             dataset = pq.ParquetDataset(read_path, filesystem=self._fs)
             dataset_schema_names = dataset.schema.names
             for column in getattr(self._config.Schema.Names, data_type):
-                print(getattr(self._config.Schema.Names, data_type))
-                print(dataset_schema_names)
                 if column not in dataset_schema_names:
                     raise ValueError(
                         f"error, file is not matching Pinecone Datasets Schmea: {column} not found"
@@ -172,7 +170,7 @@ class Dataset(object):
         with self._fs.open(os.path.join(self._dataset_path, "metadata.json"), "w") as f:
             json.dump(metadata.dict(), f)
 
-    def __getitem__(self, key: str) -> pl.DataFrame:
+    def __getitem__(self, key: str):
         if key in ["documents", "queries"]:
             return getattr(self, key)
         else:
@@ -182,7 +180,7 @@ class Dataset(object):
         return self.documents.shape[0]
 
     @cached_property
-    def documents(self) -> Union[pl.DataFrame, pd.DataFrame]:
+    def documents(self) -> pd.DataFrame:
         return self._safe_read_from_path("documents")
 
     def iter_documents(self, batch_size: int = 1) -> Iterator[List[Dict[str, Any]]]:
@@ -208,7 +206,7 @@ class Dataset(object):
             raise ValueError("batch_size must be greater than 0")
 
     @cached_property
-    def queries(self) -> Union[pl.DataFrame, pd.DataFrame]:
+    def queries(self) -> pd.DataFrame:
         return self._safe_read_from_path("queries")
 
     def iter_queries(self) -> Iterator[Dict[str, Any]]:
@@ -228,10 +226,10 @@ class Dataset(object):
         )
 
     @cached_property
-    def metadata(self) -> Union[pl.DataFrame, pd.DataFrame]:
+    def metadata(self) -> pd.DataFrame:
         return self._load_metadata()
 
-    def head(self, n: int = 5) -> Union[pl.DataFrame, pd.DataFrame]:
+    def head(self, n: int = 5) -> pd.DataFrame:
         return self.documents.head(n)
 
     
@@ -240,15 +238,18 @@ class Dataset(object):
         Saves the dataset to a local or cloud storage path.
         """
         # save documents
+        fs = get_cloud_fs(dataset_path)
         documents_path = os.path.join(dataset_path, "documents")
-        self.documents.to_parquet(documents_path, engine="pyarrow", index=False)
+        fs.makedirs(documents_path, exist_ok=True)
+        self.documents.to_parquet(os.path.join(documents_path, "part-0.parquet"), engine="pyarrow", index=False, filesystem=fs)
 
         # save queries
         queries_path = os.path.join(dataset_path, "queries")
-        self.queries.to_parquet(queries_path, engine="pyarrow", index=False)
+        fs.makedirs(documents_path, exist_ok=True)
+        self.queries.to_parquet(os.path.join(queries_path, "part-0.parquet"), engine="pyarrow", index=False, filesystem=fs)
 
         # save metadata
-        with self._fs.open(path.join(dataset_path, "metadata.json"), "w") as f:
+        with fs.open(path.join(dataset_path, "metadata.json"), "w") as f:
             json.dump(self.metadata.dict(), f)
 
     
