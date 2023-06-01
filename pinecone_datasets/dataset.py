@@ -59,9 +59,6 @@ class Dataset(object):
             catalog_base_path (str): the catalog's base path. Defaults to DATASETS_CATALOG_BASEPATH environment variable.
                                      If neither are set, will use Pinecone's public catalog.
 
-        Keyword Args:
-            engine (str): the engine to use for loading the dataset. Options are ['polars', 'pandas']. Defaults to 'pandas'.
-
         Returns:
             Dataset: a Dataset object
         """
@@ -73,10 +70,25 @@ class Dataset(object):
         dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
         return cls(dataset_path=dataset_path, **kwargs)
 
+    @classmethod
+    def from_pandas(cls, documents: pd.DataFrame, queries: pd.DataFrame, **kwargs):
+        """
+        Create a Dataset object from a pandas DataFrame
+
+        Args:
+            documents (pd.DataFrame): a pandas DataFrame containing the documents
+            queries (pd.DataFrame): a pandas DataFrame containing the queries
+
+        Returns:
+            Dataset: a Dataset object
+        """
+        clazz = cls
+        clazz.documents = documents
+        clazz.queries = queries
+
     def __init__(
         self,
         dataset_path: str,
-        engine: str = "pandas",
         **kwargs,
     ) -> None:
         """
@@ -102,7 +114,6 @@ class Dataset(object):
 
         """
         self._config = cfg
-        self._engine = engine
         endpoint = urlparse(dataset_path)._replace(path="").geturl()
         self._fs = get_cloud_fs(endpoint, **kwargs)
         self._dataset_path = dataset_path
@@ -115,24 +126,23 @@ class Dataset(object):
     def _is_datatype_exists(self, data_type: str) -> bool:
         return self._fs.exists(os.path.join(self._dataset_path, data_type))
 
-    def _safe_read_from_path(
-        self, data_type: str, enforced_schema: Dict[str, Any]
-    ) -> Union[pl.DataFrame, pd.DataFrame]:
+    def _safe_read_from_path(self, data_type: str) -> Union[pl.DataFrame, pd.DataFrame]:
         read_path_str = os.path.join(self._dataset_path, data_type, "*.parquet")
         read_path = self._fs.glob(read_path_str)
         if self._is_datatype_exists(data_type):
             dataset = pq.ParquetDataset(read_path, filesystem=self._fs)
+            dataset_schema_names = dataset.schema.names
+            for column in getattr(self._config.Schema.Names, data_type):
+                print(getattr(self._config.Schema.Names, data_type))
+                print(dataset_schema_names)
+                if column not in dataset_schema_names:
+                    raise ValueError(
+                        f"error, file is not matching Pinecone Datasets Schmea: {column} not found"
+                    )
             try:
-                if self._engine == "pandas":
-                    df = dataset.read_pandas().to_pandas()
-                elif self._engine == "polars":
-                    df = pl.from_arrow(dataset.read(), schema_overrides=enforced_schema)
-                else:
-                    raise ValueError("engine must be one of ['pandas', 'polars']")
+                df = dataset.read_pandas().to_pandas()
                 return df
-            except pl.PanicException as pe:
-                msg = f"error, file is not matching Pinecone Datasets Schmea: {pe}"
-                raise RuntimeError(msg)
+            # TODO: add more specific error handling, explain what is wrong
             except Exception as e:
                 print("error, no exception: {}".format(e), file=sys.stderr)
                 raise (e)
@@ -144,12 +154,7 @@ class Dataset(object):
                 UserWarning,
                 stacklevel=0,
             )
-            if self._engine == "pandas":
-                return pd.DataFrame()
-            elif self._engine == "polars":
-                return pl.DataFrame()
-            else:
-                raise ValueError("engine must be one of ['pandas', 'polars']")
+            return pd.DataFrame(columns=getattr(self._config.Schema.Names, data_type))
 
     def _load_metadata(self) -> DatasetMetadata:
         with self._fs.open(
@@ -159,6 +164,7 @@ class Dataset(object):
         try:
             out = DatasetMetadata(**metadata)
             return out
+        # TODO: add more specific error handling, explain what is wrong
         except ValidationError as e:
             raise e
 
@@ -177,7 +183,7 @@ class Dataset(object):
 
     @cached_property
     def documents(self) -> Union[pl.DataFrame, pd.DataFrame]:
-        return self._safe_read_from_path("documents", self._config.Schema.documents)
+        return self._safe_read_from_path("documents")
 
     def iter_documents(self, batch_size: int = 1) -> Iterator[List[Dict[str, Any]]]:
         """
@@ -194,23 +200,16 @@ class Dataset(object):
                 index.upsert(batch)
         """
         if isinstance(batch_size, int) and batch_size > 0:
-            if self._engine == "pandas":
-                return iter_pandas_dataframe_slices(
-                    self.documents[self._config.Schema.documents_select_columns],
-                    batch_size,
-                )
-            return map(
-                lambda x: x.to_dicts(),
-                self.documents.select(
-                    self._config.Schema.documents_select_columns
-                ).iter_slices(n_rows=batch_size),
+            return iter_pandas_dataframe_slices(
+                self.documents[self._config.Schema.documents_select_columns],
+                batch_size,
             )
         else:
             raise ValueError("batch_size must be greater than 0")
 
     @cached_property
     def queries(self) -> Union[pl.DataFrame, pd.DataFrame]:
-        return self._safe_read_from_path("queries", self._config.Schema.documents)
+        return self._safe_read_from_path("queries")
 
     def iter_queries(self) -> Iterator[Dict[str, Any]]:
         """
@@ -224,14 +223,9 @@ class Dataset(object):
                 results = index.query(**query)
                 # do something with the results
         """
-        if self._engine == "pandas":
-            return iter_pandas_dataframe_single(
-                self.queries[self._config.Schema.queries_select_columns]
-            )
-        else:
-            return self.queries.select(
-                self.queries[self._config.Schema.queries_select_columns]
-            ).iter_rows(named=True)
+        return iter_pandas_dataframe_single(
+            self.queries[self._config.Schema.queries_select_columns]
+        )
 
     @cached_property
     def metadata(self) -> Union[pl.DataFrame, pd.DataFrame]:
@@ -239,3 +233,37 @@ class Dataset(object):
 
     def head(self, n: int = 5) -> Union[pl.DataFrame, pd.DataFrame]:
         return self.documents.head(n)
+
+
+    def save_to_catalog(self, dataset_id: str):
+        """
+        Saves the dataset to the public catalog.
+        """
+
+        # TODO: duplicated code
+
+        catalog_base_path = (
+            catalog_base_path
+            if catalog_base_path
+            else os.environ.get("DATASETS_CATALOG_BASEPATH", cfg.Storage.endpoint)
+        )
+        dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
+
+        # save documents
+        documents_path = os.path.join(dataset_path, "documents")
+        self.documents.to_parquet(documents_path, engine="pyarrow", index=False)
+
+        # save queries
+        queries_path = os.path.join(dataset_path, "queries")
+        self.queries.to_parquet(queries_path, engine="pyarrow", index=False)
+
+        # save metadata
+        metadata = self.metadata
+
+
+
+    def save_to_path(self, dataset_path: str):
+        """
+        Saves the dataset to a local or cloud storage path.
+        """
+        raise NotImplementedError

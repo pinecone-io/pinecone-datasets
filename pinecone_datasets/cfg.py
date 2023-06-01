@@ -6,6 +6,11 @@ class Storage:
 
 
 class Schema:
+
+    class Names:
+        documents = ["id", "values", "sparse_values", "metadata", "blob"]
+        queries = ["vector", "sparse_vector", "filter", "top_k", "blob"]
+
     documents = {
         "id": Utf8,
         "values": List(Float32),
@@ -14,6 +19,8 @@ class Schema:
         ),
     }
     documents_select_columns = ["id", "values", "sparse_values", "metadata"]
+
+
     queries = {
         "vector": List(Float32),
         "sparse_vector": Struct(
