@@ -127,6 +127,21 @@ dataset = Dataset.from_pandas(df)
 Please check the documentation for more information on the expected dataframe schema. There's also a column mapping variable that can be used to map the dataframe columns to the expected schema.
 
 
+## Usage - Accessing data
+
+Pinecone Datasets is build on top of pandas. This means that you can use all the pandas API to access the data. In addition, we provide some helper functions to access the data in a more convenient way. 
+
+### Accessing documents and queries dataframes
+
+accessing the documents and queries dataframes is done using the `documents` and `queries` properties. These properties are lazy and will only load the data when accessed. 
+
+```python
+document_df: pd.DataFrame = dataset.documents
+
+query_df: pd.DataFrame = dataset.queries
+```
+
+
 ## Usage - Iterating
 
 One of the main use cases for Pinecone Datasets is iterating over a dataset. This is useful for upserting a dataset to an index, or for benchmarking. It is also useful for iterating over large datasets - as of today, datasets are not yet lazy, however we are working on it.
@@ -162,51 +177,8 @@ for batch in dataset.iter_documents(batch_size=100):
 
 # or upsert the dataset as dataframe
 index.upsert_from_dataframe(dataset.drop(columns=["blob"]))
-
-# using gRPC
-index = pinecone.GRPCIndex("my-index")
 ```
 
-## Advanced Usage
-
-### Working with your own dataset storage
-
-Datasets is using Pinecone's public datasets bucket on GCS, you can use your own bucket by setting the `DATASETS_CATALOG_BASEPATH` environment variable.
-
-```bash
-export PINECONE_DATASETS_ENDPOINT="gs://my-bucket"
-```
-
-this will change the default endpoint to your bucket, and upon calling `list_datasets` or `load_dataset` it will scan your bucket and list all datasets.
-
-Note that you can also use `s3://` as a prefix to your bucket.
-
-### Authenication to your own bucket
-
-For now, Pinecone Datastes supports only GCS and S3 buckets, and with default authentication as provided by the fsspec implementation, respectively: `gcsfs` and `s3fs`.
-
-### Using aws key/secret authentication methods
-
-first, to set a new endpoint, set the environment variable `PINECONE_DATASETS_ENDPOINT` to your bucket.
-
-```bash
-export PINECONE_DATASETS_ENDPOINT="s3://my-bucket"
-```
-
-then, you can use the `key` and `secret` parameters to pass your credentials to the `list_datasets` and `load_dataset` functions.
-
-```python
-st = list_datasets(
-        key=os.environ.get("S3_ACCESS_KEY"),
-        secret=os.environ.get("S3_SECRET"),
-    )
-
-ds = load_dataset(
-        "test_dataset",
-        key=os.environ.get("S3_ACCESS_KEY"),
-        secret=os.environ.get("S3_SECRET"),
-)
-```
 
 ## For developers
 
