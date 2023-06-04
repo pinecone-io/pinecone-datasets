@@ -6,9 +6,7 @@ from tests.test_public_datasets import deep_list_cmp
 
 def test_list_private_datasets():
     os.environ["DATASETS_CATALOG_BASEPATH"] = "s3://ram-datasets"
-    lst = list_datasets(
-        endpoint_url="https://storage.googleapis.com"
-    )
+    lst = list_datasets(endpoint_url="https://storage.googleapis.com")
     print(lst)
     del os.environ["DATASETS_CATALOG_BASEPATH"]
     assert "test_dataset" in lst
@@ -16,10 +14,7 @@ def test_list_private_datasets():
 
 def test_load_private_dataset():
     os.environ["DATASETS_CATALOG_BASEPATH"] = "s3://ram-datasets"
-    ds = load_dataset(
-        "test_dataset",
-        endpoint_url="https://storage.googleapis.com"
-    )
+    ds = load_dataset("test_dataset", endpoint_url="https://storage.googleapis.com")
     assert isinstance(ds, Dataset)
     assert ds.queries.shape[0] == 2
     assert ds.documents.shape[0] == 2
@@ -31,10 +26,7 @@ def test_load_private_dataset():
 
 def test_dataset_from_path():
     dataset_path = "s3://ram-datasets/test_dataset"
-    ds = Dataset.from_path(
-        dataset_path,
-        endpoint_url="https://storage.googleapis.com"
-    )
+    ds = Dataset.from_path(dataset_path, endpoint_url="https://storage.googleapis.com")
     assert isinstance(ds, Dataset)
     assert ds.queries.shape[0] == 2
     assert ds.documents.shape[0] == 2

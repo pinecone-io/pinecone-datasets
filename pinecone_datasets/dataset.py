@@ -3,20 +3,21 @@ import glob
 import os
 import json
 from functools import cached_property
-from typing import Any, Generator, Iterator, List, Union, Dict
+from typing import Any, Generator, Iterator, List, Union, Dict, Optional, Tuple
 import warnings
 from urllib.parse import urlparse
 
 import gcsfs
 from pydantic import ValidationError
 import s3fs
+
 # import polars as pl
 import pandas as pd
 import pyarrow.parquet as pq
 
 from pinecone_datasets import cfg
 from pinecone_datasets.catalog import DatasetMetadata
-from pinecone_datasets.fs import get_cloud_fs
+from pinecone_datasets.fs import get_cloud_fs, LocalFileSystem
 
 
 def iter_pandas_dataframe_slices(
@@ -71,20 +72,68 @@ class Dataset(object):
         return cls(dataset_path=dataset_path, **kwargs)
 
     @classmethod
-    def from_pandas(cls, documents: pd.DataFrame, queries: pd.DataFrame, **kwargs):
+    def from_pandas(
+        cls,
+        documents: pd.DataFrame,
+        metadata: DatasetMetadata,
+        documents_column_mapping: Optional[Dict] = None,
+        queries: Optional[pd.DataFrame] = None,
+        queries_column_mapping: Optional[Dict] = None,
+        **kwargs,
+    ) -> "Dataset":
         """
         Create a Dataset object from a pandas DataFrame
 
         Args:
             documents (pd.DataFrame): a pandas DataFrame containing the documents
+            documents_column_mapping (Dict): a dictionary mapping the columns of the documents DataFrame to the Pinecone Datasets Schema
             queries (pd.DataFrame): a pandas DataFrame containing the queries
+            queries_column_mapping (Dict): a dictionary mapping the columns of the queries DataFrame to the Pinecone Datasets Schema
+
+        Keyword Args:
+            kwargs (Dict): additional arguments to pass to the fsspec constructor
 
         Returns:
             Dataset: a Dataset object
         """
-        clazz = cls
-        clazz.documents = documents
-        clazz.queries = queries
+        clazz = Dataset(dataset_path=os.getcwd(), **kwargs)
+        clazz.documents = cls._read_pandas_dataframe(
+            documents, documents_column_mapping, cfg.Schema.Names.documents
+        )
+        clazz.queries = cls._read_pandas_dataframe(
+            queries, queries_column_mapping, cfg.Schema.Names.queries
+        )
+        clazz.metadata = metadata
+        return clazz
+
+    @staticmethod
+    def _read_pandas_dataframe(
+        df: pd.DataFrame, column_mapping: Dict[str, str], schema: List[Tuple[str, bool]]
+    ) -> pd.DataFrame:
+        """
+        Reads a pandas DataFrame and validates it against a schema.
+
+        Args:
+            df (pd.DataFrame): the pandas DataFrame to read
+            column_mapping (Dict[str, str]): a dictionary mapping the columns of the DataFrame to the Pinecone Datasets Schema (col_name, pinecone_name)
+            schema (List[Tuple[str, bool]]): the schema to validate against (column_name, is_nullable)
+
+        Returns:
+            pd.DataFrame: the validated, renamed DataFrame
+        """
+        if df is None or df.empty:
+            return pd.DataFrame(columns=[column_name for column_name, _ in schema])
+        else:
+            if column_mapping is not None:
+                df.rename(columns=column_mapping, inplace=True)
+            for column_name, is_nullable in schema:
+                if column_name not in df.columns and not is_nullable:
+                    raise ValueError(
+                        f"error, file is not matching Pinecone Datasets Schmea: {column_name} not found"
+                    )
+                elif column_name not in df.columns and is_nullable:
+                    df[column_name] = None
+            return df[[column_name for column_name, _ in schema]]
 
     def __init__(
         self,
@@ -132,13 +181,24 @@ class Dataset(object):
         if self._is_datatype_exists(data_type):
             dataset = pq.ParquetDataset(read_path, filesystem=self._fs)
             dataset_schema_names = dataset.schema.names
-            for column in getattr(self._config.Schema.Names, data_type):
-                if column not in dataset_schema_names:
+            columns_to_null = []
+            columns_not_null = []
+            for column_name, is_nullable in getattr(
+                self._config.Schema.Names, data_type
+            ):
+                if column_name not in dataset_schema_names and not is_nullable:
                     raise ValueError(
-                        f"error, file is not matching Pinecone Datasets Schmea: {column} not found"
+                        f"error, file is not matching Pinecone Datasets Schmea: {column_name} not found"
                     )
+                elif column_name not in dataset_schema_names and is_nullable:
+                    columns_to_null.append(column_name)
+                else:
+                    columns_not_null.append(column_name)
             try:
-                df = dataset.read_pandas().to_pandas()
+                # TODO: use of the columns_not_null and columns_to_null is only a workaround for proper schema validation and versioning
+                df = dataset.read_pandas(columns=columns_not_null).to_pandas()
+                for column_name in columns_to_null:
+                    df[column_name] = None
                 return df
             # TODO: add more specific error handling, explain what is wrong
             except Exception as e:
@@ -232,7 +292,6 @@ class Dataset(object):
     def head(self, n: int = 5) -> pd.DataFrame:
         return self.documents.head(n)
 
-    
     def save_to_path(self, dataset_path: str):
         """
         Saves the dataset to a local or cloud storage path.
@@ -241,18 +300,31 @@ class Dataset(object):
         fs = get_cloud_fs(dataset_path)
         documents_path = os.path.join(dataset_path, "documents")
         fs.makedirs(documents_path, exist_ok=True)
-        self.documents.to_parquet(os.path.join(documents_path, "part-0.parquet"), engine="pyarrow", index=False, filesystem=fs)
+        assert fs.exists(documents_path)
+        self.documents.to_parquet(
+            os.path.join(documents_path, "part-0.parquet"),
+            engine="pyarrow",
+            index=False,
+            filesystem=fs,
+        )
 
         # save queries
-        queries_path = os.path.join(dataset_path, "queries")
-        fs.makedirs(documents_path, exist_ok=True)
-        self.queries.to_parquet(os.path.join(queries_path, "part-0.parquet"), engine="pyarrow", index=False, filesystem=fs)
+        if not self.queries.empty:
+            queries_path = os.path.join(dataset_path, "queries")
+            fs.makedirs(queries_path, exist_ok=True)
+            self.queries.to_parquet(
+                os.path.join(queries_path, "part-0.parquet"),
+                engine="pyarrow",
+                index=False,
+                filesystem=fs,
+            )
+        else:
+            warnings.warn("Queries are empty, not saving queries")
 
         # save metadata
-        with fs.open(path.join(dataset_path, "metadata.json"), "w") as f:
+        with fs.open(os.path.join(dataset_path, "metadata.json"), "w") as f:
             json.dump(self.metadata.dict(), f)
 
-    
     def save_to_catalog(self, dataset_id: str):
         """
         Saves the dataset to the public catalog.
@@ -267,5 +339,3 @@ class Dataset(object):
         )
         dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
         self.save_to_path(dataset_path)
-        
-

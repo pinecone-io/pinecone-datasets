@@ -6,10 +6,21 @@ class Storage:
 
 
 class Schema:
-
     class Names:
-        documents = ["id", "values", "sparse_values", "metadata", "blob"]
-        queries = ["vector", "sparse_vector", "filter", "top_k", "blob"]
+        documents = [
+            ("id", False),
+            ("values", False),
+            ("sparse_values", True),
+            ("metadata", True),
+            ("blob", True),
+        ]
+        queries = [
+            ("vector", False),
+            ("sparse_vector", True),
+            ("filter", True),
+            ("top_k", False),
+            ("blob", True),
+        ]
 
     # documents = {
     #     "id": Utf8,
@@ -19,7 +30,6 @@ class Schema:
     #     ),
     # }
     documents_select_columns = ["id", "values", "sparse_values", "metadata"]
-
 
     # queries = {
     #     "vector": List(Float32),

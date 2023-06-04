@@ -1,8 +1,10 @@
 import os
 
 import pandas as pd
+
 # import polars as pl
 import numpy as np
+
 # from polars.testing import assert_frame_equal as pl_assert_frame_equal
 from pandas.testing import assert_frame_equal as pd_assert_frame_equal
 import pytest
@@ -69,14 +71,14 @@ def test_iter_documents_pandas(tmpdir):
             "values": [0.1, 0.2, 0.3],
             "sparse_values": {"inices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
             "metadata": {"title": "title1", "url": "url1"},
-            "blob": None
+            "blob": None,
         },
         {
             "id": "2",
             "values": [0.4, 0.5, 0.6],
             "sparse_values": {"inices": [4, 5, 6], "values": [0.4, 0.5, 0.6]},
             "metadata": {"title": "title2", "url": "url2"},
-            "blob": None
+            "blob": None,
         },
     ]
     itere_data = [
@@ -122,14 +124,14 @@ def test_iter_queries_pandas(tmpdir):
             "sparse_vector": {"inices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
             "filter": "filter1",
             "top_k": 1,
-            "blob": None
+            "blob": None,
         },
         {
             "vector": [0.4, 0.5, 0.6],
             "sparse_vector": {"inices": [4, 5, 6], "values": [0.4, 0.5, 0.6]},
             "filter": "filter2",
             "top_k": 2,
-            "blob": None
+            "blob": None,
         },
     ]
 
