@@ -56,9 +56,16 @@ def test_io_cloud_storage():
             dimension=2,
         ),
     )
-    ds = Dataset.from_pandas(documents=d, queries=q, metadata=metadata, endpoint_url="https://storage.googleapis.com")
+    ds = Dataset.from_pandas(
+        documents=d,
+        queries=q,
+        metadata=metadata,
+        endpoint_url="https://storage.googleapis.com",
+    )
     ds.save_to_path(str(dataset_path))
-    loaded_ds = Dataset.from_path(str(dataset_path), endpoint_url="https://storage.googleapis.com")
+    loaded_ds = Dataset.from_path(
+        str(dataset_path), endpoint_url="https://storage.googleapis.com"
+    )
     assert loaded_ds.metadata == metadata
     pd_assert_frame_equal(loaded_ds.documents, ds.documents)
     pd_assert_frame_equal(loaded_ds.queries, ds.queries)
