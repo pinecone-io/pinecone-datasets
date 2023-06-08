@@ -300,7 +300,6 @@ class Dataset(object):
         fs = get_cloud_fs(dataset_path)
         documents_path = os.path.join(dataset_path, "documents")
         fs.makedirs(documents_path, exist_ok=True)
-        assert fs.exists(documents_path)
         self.documents.to_parquet(
             os.path.join(documents_path, "part-0.parquet"),
             engine="pyarrow",
