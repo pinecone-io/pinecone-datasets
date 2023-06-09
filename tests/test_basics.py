@@ -1,7 +1,7 @@
 import sys
 from pinecone_datasets import __version__
 
-if sys.version_info > (3, 10):
+if sys.version_info > (3, 11):
     import tomllib as toml
 else:
     import toml
