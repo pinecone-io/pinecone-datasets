@@ -65,4 +65,4 @@ def test_io_cloud_storage():
     pd_assert_frame_equal(loaded_ds.documents, ds.documents)
     pd_assert_frame_equal(loaded_ds.queries, ds.queries)
 
-    ds._fs.rm(dataset_path, recursive=True)
+    loaded_ds._fs.rm(dataset_path, recursive=True)
