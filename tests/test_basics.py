@@ -9,4 +9,5 @@ else:
 
 def test_version():
     assert __version__ == "0.5.0-rc.1"
-    assert toml.load("pyproject.toml")["tool"]["poetry"]["version"] == __version__
+    with open("pyproject.toml") as f:
+        assert toml.load(f)["tool"]["poetry"]["version"] == __version__
