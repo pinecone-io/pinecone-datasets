@@ -59,10 +59,9 @@ def test_io_cloud_storage():
     ds = Dataset.from_pandas(
         documents=d,
         queries=q,
-        metadata=metadata,
-        endpoint_url="https://storage.googleapis.com",
+        metadata=metadata
     )
-    ds.save_to_path(str(dataset_path))
+    ds.save_to_path(str(dataset_path), endpoint_url="https://storage.googleapis.com")
     loaded_ds = Dataset.from_path(
         str(dataset_path), endpoint_url="https://storage.googleapis.com"
     )

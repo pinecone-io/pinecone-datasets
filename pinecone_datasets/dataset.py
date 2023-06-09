@@ -292,12 +292,13 @@ class Dataset(object):
     def head(self, n: int = 5) -> pd.DataFrame:
         return self.documents.head(n)
 
-    def save_to_path(self, dataset_path: str):
+    def save_to_path(self, dataset_path: str, **kwargs):
         """
         Saves the dataset to a local or cloud storage path.
         """
+        fs = get_cloud_fs(dataset_path, **kwargs)
+
         # save documents
-        fs = get_cloud_fs(dataset_path)
         documents_path = os.path.join(dataset_path, "documents")
         fs.makedirs(documents_path, exist_ok=True)
         self.documents.to_parquet(
@@ -306,7 +307,6 @@ class Dataset(object):
             index=False,
             filesystem=fs,
         )
-
         # save queries
         if not self.queries.empty:
             queries_path = os.path.join(dataset_path, "queries")

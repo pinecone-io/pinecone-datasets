@@ -7,7 +7,7 @@ from fsspec.implementations.local import LocalFileSystem
 from pinecone_datasets import cfg
 
 
-def get_cloud_fs(path, **kwargs) -> Union[gcsfs.GCSFileSystem, s3fs.S3FileSystem]:
+def get_cloud_fs(path, **kwargs) -> Union[gcsfs.GCSFileSystem, s3fs.S3FileSystem, LocalFileSystem]:
     """
     returns a filesystem object for the given path, if it is a cloud storage path (gs:// or s3://)
 
