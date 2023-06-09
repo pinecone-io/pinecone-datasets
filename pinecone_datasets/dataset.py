@@ -324,7 +324,7 @@ class Dataset(object):
         with fs.open(os.path.join(dataset_path, "metadata.json"), "w") as f:
             json.dump(self.metadata.dict(), f)
 
-    def save_to_catalog(self, dataset_id: str):
+    def save_to_catalog(self, dataset_id: str, catalog_base_path: str = ""):
         """
         Saves the dataset to the public catalog.
         """
