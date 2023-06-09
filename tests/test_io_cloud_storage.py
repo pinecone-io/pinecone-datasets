@@ -89,9 +89,9 @@ def test_io_cloud_storage_catalog():
         endpoint_url="https://storage.googleapis.com",
     )
     loaded_ds = Dataset.from_catalog(
-        dataset_id = dataset_id,
-        catalog_base_path=catalog_base_path, 
-        endpoint_url="https://storage.googleapis.com"
+        dataset_id=dataset_id,
+        catalog_base_path=catalog_base_path,
+        endpoint_url="https://storage.googleapis.com",
     )
     assert loaded_ds.metadata == metadata
     pd_assert_frame_equal(loaded_ds.documents, ds.documents)
