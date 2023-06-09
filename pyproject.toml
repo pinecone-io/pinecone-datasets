@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pinecone-datasets"
-version = "0.3.2-alpha"
+version = "0.5.0-rc.1"
 description = "Pinecone Datasets lets you easily load datasets into your Pinecone index."
 authors = ["Pinecone"]
 maintainers = [
@@ -34,7 +34,7 @@ mypy = "^1.0.1"
 pytest = "^7.2.2"
 pytest-html = "^3.2.0"
 pdoc = "^13.0.0"
-
+toml = "^0.10.2"
 
 [build-system]
 requires = ["poetry-core"]

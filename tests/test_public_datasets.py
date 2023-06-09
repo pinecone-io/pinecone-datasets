@@ -16,10 +16,6 @@ test_base_path = "gs://ram-datasets"
 test_dataset = "quora_all-MiniLM-L6-bm25"
 
 
-def test_version():
-    assert __version__ == "0.3.2-alpha"
-
-
 def test_load_dataset_pandas():
     lst = list_datasets()
     assert test_dataset in lst
