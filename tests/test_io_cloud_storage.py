@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pandas as pd
 from pandas.testing import assert_frame_equal as pd_assert_frame_equal
 
@@ -43,9 +45,9 @@ q = pd.DataFrame(
 )
 
 
-def test_io_cloud_storage():
+def test_io_cloud_storage_path():
     dataset_name = "test_io_dataset"
-    dataset_path = f"s3://ram-datasets/{dataset_name}/"
+    dataset_path = f"s3://ram-datasets/unittests/{dataset_name}/{datetime.now().strftime('%Y%m%d%H%M%S')}"
     metadata = DatasetMetadata(
         name=dataset_name,
         created_at="2021-01-01 00:00:00.000000",
@@ -65,4 +67,32 @@ def test_io_cloud_storage():
     pd_assert_frame_equal(loaded_ds.documents, ds.documents)
     pd_assert_frame_equal(loaded_ds.queries, ds.queries)
 
-    loaded_ds._fs.rm(dataset_path, recursive=True)
+
+def test_io_cloud_storage_catalog():
+    dataset_name = "test_io_dataset"
+    dataset_id = dataset_name + "_" + datetime.now().strftime("%Y%m%d%H%M%S")
+    catalog_base_path = f"s3://ram-datasets/unittests/catalog/"
+    metadata = DatasetMetadata(
+        name=dataset_name,
+        created_at="2021-01-01 00:00:00.000000",
+        documents=2,
+        queries=2,
+        dense_model=DenseModelMetadata(
+            name="ada2",
+            dimension=2,
+        ),
+    )
+    ds = Dataset.from_pandas(documents=d, queries=q, metadata=metadata)
+    ds.save_to_catalog(
+        catalog_base_path=catalog_base_path,
+        dataset_id=dataset_id,
+        endpoint_url="https://storage.googleapis.com",
+    )
+    loaded_ds = Dataset.from_catalog(
+        dataset_id = dataset_id,
+        catalog_base_path=catalog_base_path, 
+        endpoint_url="https://storage.googleapis.com"
+    )
+    assert loaded_ds.metadata == metadata
+    pd_assert_frame_equal(loaded_ds.documents, ds.documents)
+    pd_assert_frame_equal(loaded_ds.queries, ds.queries)
