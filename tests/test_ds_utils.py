@@ -2,7 +2,10 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 
 from pinecone_datasets import Dataset, DatasetMetadata, DenseModelMetadata
-from pinecone_datasets.ds_utils import transfer_keys_vectorized, import_documents_keys_from_blob_to_metadata
+from pinecone_datasets.ds_utils import (
+    transfer_keys_vectorized,
+    import_documents_keys_from_blob_to_metadata,
+)
 from pinecone_datasets.testing import assert_datasets_equal
 
 
@@ -55,7 +58,6 @@ q = pd.DataFrame(
 )
 
 
-
 def test_single_key():
     result = transfer_keys_vectorized(df, "col1", "col2", ["key1"])
     expected = pd.DataFrame(
@@ -82,7 +84,9 @@ def test_multiple_keys():
 
 
 def test_nonexistent_key():
-    assert_frame_equal(df, transfer_keys_vectorized(df, "col1", "col2", ["nonexistent"]))
+    assert_frame_equal(
+        df, transfer_keys_vectorized(df, "col1", "col2", ["nonexistent"])
+    )
 
 
 def test_datastes():

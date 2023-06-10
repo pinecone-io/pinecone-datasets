@@ -347,9 +347,7 @@ class Dataset(object):
         dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
         self.to_path(dataset_path, **kwargs)
 
-    async def _async_upsert(
-        self, index: Index, batch_size: int, concurrency: int
-    ):
+    async def _async_upsert(self, index: Index, batch_size: int, concurrency: int):
         sem = asyncio.Semaphore(concurrency)
 
         async def send_batch(batch):
