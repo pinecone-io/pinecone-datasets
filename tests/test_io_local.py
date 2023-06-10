@@ -57,7 +57,7 @@ def test_io(tmpdir):
         ),
     )
     ds = Dataset.from_pandas(documents=d, queries=q, metadata=metadata)
-    ds.save_to_path(str(dataset_path))
+    ds.to_path(str(dataset_path))
     loaded_ds = Dataset.from_path(str(dataset_path))
     assert loaded_ds.metadata == metadata
     pd_assert_frame_equal(loaded_ds.documents, ds.documents)

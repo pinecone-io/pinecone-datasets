@@ -292,7 +292,7 @@ class Dataset(object):
     def head(self, n: int = 5) -> pd.DataFrame:
         return self.documents.head(n)
 
-    def save_to_path(self, dataset_path: str, **kwargs):
+    def to_path(self, dataset_path: str, **kwargs):
         """
         Saves the dataset to a local or cloud storage path.
         """
@@ -324,7 +324,7 @@ class Dataset(object):
         with fs.open(os.path.join(dataset_path, "metadata.json"), "w") as f:
             json.dump(self.metadata.dict(), f)
 
-    def save_to_catalog(self, dataset_id: str, catalog_base_path: str = "", **kwargs):
+    def to_catalog(self, dataset_id: str, catalog_base_path: str = "", **kwargs):
         """
         Saves the dataset to the public catalog.
         """
@@ -337,4 +337,4 @@ class Dataset(object):
             else os.environ.get("DATASETS_CATALOG_BASEPATH", cfg.Storage.endpoint)
         )
         dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
-        self.save_to_path(dataset_path, **kwargs)
+        self.to_path(dataset_path, **kwargs)
