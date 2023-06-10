@@ -2,6 +2,7 @@ import sys
 import glob
 import os
 import json
+import asyncio
 from functools import cached_property
 from typing import Any, Generator, Iterator, List, Union, Dict, Optional, Tuple
 import warnings
@@ -11,9 +12,10 @@ import gcsfs
 from pydantic import ValidationError
 import s3fs
 
-# import polars as pl
 import pandas as pd
 import pyarrow.parquet as pq
+
+from pinecone import Client
 
 from pinecone_datasets import cfg
 from pinecone_datasets.catalog import DatasetMetadata
@@ -324,7 +326,13 @@ class Dataset(object):
         with fs.open(os.path.join(dataset_path, "metadata.json"), "w") as f:
             json.dump(self.metadata.dict(), f)
 
-    def to_catalog(self, dataset_id: str, catalog_base_path: str = "", **kwargs):
+    def to_catalog(
+        self,
+        dataset_id: str,
+        catalog_base_path: str = "",
+        import_metadata_from_blob_mapping: dict = {},
+        **kwargs,
+    ):
         """
         Saves the dataset to the public catalog.
         """
@@ -338,3 +346,106 @@ class Dataset(object):
         )
         dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
         self.to_path(dataset_path, **kwargs)
+
+
+    async def _async_upsert(
+        self,
+        index: pinecone.Index, 
+        batch_size: int, 
+        concurrency: int
+    ):
+        sem = asyncio.Semaphore(concurrency)
+
+        async def send_batch(batch):
+            async with sem:
+                return await index.upsert(vectors=batch, async_req=True)
+        
+        await asyncio.gather(*[send_batch(chunk) for chunk in self.iter_documents(batch_size=batch_size)])
+
+
+    def to_index(
+        self,
+        index_name: str,
+        bath_size: int = 100,
+        concurrency: int = 10,
+        should_create: bool = False,
+        **kwargs,
+    ):
+        """
+        Saves the dataset to a Pinecone index.
+
+        this function will look for two environment variables:
+        - PINECONE_API_KEY
+        - PINECONE_ENVIRONMENT / PINECONE_REGION
+
+        Then, it will init a Pinecone Client and will perform an upsert to the index.
+        The upsert will be using async batches to increase performance.
+
+        Args:
+            index_name (str): the name of the index to upsert to
+            bath_size (int, optional): the batch size to use for the upsert. Defaults to 100.
+            should_create (bool, optional): whether to create the index if it does not exist. Defaults to True.
+
+        Keyword Args:
+            kwargs (Dict): additional arguments to pass to the Pinecone Client constructor when creating the index.
+                if should_create is False, these arguments will be ignored.
+                if should_create is True, and the index already exists, ValueError is thrown.
+                if should_create is True, dimension has to be passed to kwargs.
+                see
+        """
+
+        # make sure the region is set
+        if (
+            "PINECONE_ENVIRONMENT" not in os.environ
+            and "PINECONE_REGION" not in os.environ
+        ):
+            raise ValueError(
+                "PINECONE_ENVIRONMENT or PINECONE_REGION environment variable must be set"
+            )
+        elif "PINECONE_ENVIRONMENT" in os.environ:
+            region = os.environ["PINECONE_ENVIRONMENT"]
+        elif "PINECONE_REGION" in os.environ:
+            region = os.environ["PINECONE_REGION"]
+
+        # make sure the api key is set
+        if "PINECONE_API_KEY" not in os.environ:
+            raise ValueError("PINECONE_API_KEY environment variable must be set")
+
+        # create client
+        pinecone = Client(api_key=os.environ["PINECONE_API_KEY"], region=region)
+
+        pinecone_index_list = pinecone.list_indexes()
+
+        if should_create:
+            # make sure the index does not exist
+            if index_name in pinecone_index_list:
+                raise ValueError(
+                    f"index {index_name} already exists. Please delete it or use should_create=False"
+                )
+
+            # make sure all required arguments are passed
+            if not all(
+                [
+                    "dimension" in kwargs
+                ]
+            ):
+                raise ValueError(
+                    "when creating a new index, dimension, metric and pod_type must be passed"
+                )
+
+            # create index
+            pinecone.create_index(
+                name=index_name, dimension=kwargs["dimension"], **kwargs
+            )
+        else:
+            if index_name not in pinecone_index_list:
+                raise ValueError(
+                    f"index {index_name} does not exist. Please create it or use should_create=True"
+                )
+        
+        index = pinecone.Index(index_name)
+
+        # upsert
+        asyncio.run(self._async_upsert(index=index, batch_size=bath_size, concurrency=concurrency))
+
+
