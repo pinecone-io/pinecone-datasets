@@ -157,27 +157,36 @@ dataset.iter_queries()
 
 ```
 
-### upserting to Index
+### The 'blob' column
 
-```bash
-pip install pinecone-client
-```
+Pinecone dataset ship with a blob column which is inteneded to be used for storing additional data that is not part of the dataset schema. however, it is sometime useful to store additional data in the dataset, for example, a document text. We added a utility function to move data from the blob column to the metadata column. This is useful for example when upserting a dataset to an index and want to use the metadata to store text data.
 
 ```python
-import pinecone
-pinecone.init(api_key="API_KEY", environment="us-west1-gcp")
+from pinecone_datasets import import_documents_keys_from_blob_to_metadata
 
-pinecone.create_index(name="my-index", dimension=384, pod_type='s1')
-
-index = pinecone.Index("my-index")
-
-# you can iterate over documents in batches
-for batch in dataset.iter_documents(batch_size=100):
-    index.upsert(vectors=batch)
-
-# or upsert the dataset as dataframe
-index.upsert_from_dataframe(dataset.drop(columns=["blob"]))
+new_dataset = import_documents_keys_from_blob_to_metadata(dataset, keys=["text"])
 ```
+
+
+### upserting to Index
+
+When upserting a Dataset to an Index, only the document data will be upserted to the index. The queries data will be ignored. 
+
+```python
+ds = load_dataset("dataset_name")
+
+# If index exists
+ds.to_index("index_name")
+
+# If index does not exist use create_index=True, this will create the index with the default pinecone settings and dimension from the dataset metadata.
+ds.to_index("index_name", create_index=True)
+
+```
+
+the `to_index` function also accepts additional parameters
+
+* `batch_size` and `concurrency` - for controlling the upserting process
+* `kwargs` - for passing additional parameters to the index creation process
 
 
 ## For developers

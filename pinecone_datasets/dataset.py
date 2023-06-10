@@ -288,7 +288,7 @@ class Dataset(object):
         )
 
     @cached_property
-    def metadata(self) -> pd.DataFrame:
+    def metadata(self) -> DatasetMetadata:
         return self._load_metadata()
 
     def head(self, n: int = 5) -> pd.DataFrame:
@@ -363,7 +363,7 @@ class Dataset(object):
         index_name: str,
         bath_size: int = 100,
         concurrency: int = 10,
-        should_create: bool = False,
+        create_index: bool = False,
         **kwargs,
     ):
         """
@@ -385,7 +385,7 @@ class Dataset(object):
             kwargs (Dict): additional arguments to pass to the Pinecone Client constructor when creating the index.
                 if should_create is False, these arguments will be ignored.
                 if should_create is True, and the index already exists, ValueError is thrown.
-                if should_create is True, dimension has to be passed to kwargs.
+                if should_create is True, dimension will be taken from the documents metadata.
                 see
         """
 
@@ -411,22 +411,16 @@ class Dataset(object):
 
         pinecone_index_list = pinecone.list_indexes()
 
-        if should_create:
+        if create_index:
             # make sure the index does not exist
             if index_name in pinecone_index_list:
                 raise ValueError(
                     f"index {index_name} already exists. Please delete it or use should_create=False"
                 )
 
-            # make sure all required arguments are passed
-            if not all(["dimension" in kwargs]):
-                raise ValueError(
-                    "when creating a new index, dimension, metric and pod_type must be passed"
-                )
-
             # create index
             pinecone.create_index(
-                name=index_name, dimension=kwargs["dimension"], **kwargs
+                name=index_name, dimension=self.metadata.dense_model.dimension, **kwargs
             )
         else:
             if index_name not in pinecone_index_list:
