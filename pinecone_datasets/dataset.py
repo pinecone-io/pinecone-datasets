@@ -15,7 +15,7 @@ import s3fs
 import pandas as pd
 import pyarrow.parquet as pq
 
-from pinecone import Client
+from pinecone import Client, Index
 
 from pinecone_datasets import cfg
 from pinecone_datasets.catalog import DatasetMetadata
@@ -347,21 +347,18 @@ class Dataset(object):
         dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
         self.to_path(dataset_path, **kwargs)
 
-
     async def _async_upsert(
-        self,
-        index: pinecone.Index, 
-        batch_size: int, 
-        concurrency: int
+        self, index: Index, batch_size: int, concurrency: int
     ):
         sem = asyncio.Semaphore(concurrency)
 
         async def send_batch(batch):
             async with sem:
                 return await index.upsert(vectors=batch, async_req=True)
-        
-        await asyncio.gather(*[send_batch(chunk) for chunk in self.iter_documents(batch_size=batch_size)])
 
+        await asyncio.gather(
+            *[send_batch(chunk) for chunk in self.iter_documents(batch_size=batch_size)]
+        )
 
     def to_index(
         self,
@@ -424,11 +421,7 @@ class Dataset(object):
                 )
 
             # make sure all required arguments are passed
-            if not all(
-                [
-                    "dimension" in kwargs
-                ]
-            ):
+            if not all(["dimension" in kwargs]):
                 raise ValueError(
                     "when creating a new index, dimension, metric and pod_type must be passed"
                 )
@@ -442,10 +435,12 @@ class Dataset(object):
                 raise ValueError(
                     f"index {index_name} does not exist. Please create it or use should_create=True"
                 )
-        
+
         index = pinecone.Index(index_name)
 
         # upsert
-        asyncio.run(self._async_upsert(index=index, batch_size=bath_size, concurrency=concurrency))
-
-
+        asyncio.run(
+            self._async_upsert(
+                index=index, batch_size=bath_size, concurrency=concurrency
+            )
+        )

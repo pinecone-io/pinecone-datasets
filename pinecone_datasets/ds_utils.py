@@ -33,7 +33,7 @@ def transfer_keys_vectorized(df, from_column, to_column, keys):
     return df_new
 
 
-def dataset_import_keys_from_blob_to_metadata(ds: Dataset, keys: List[str]) -> Dataset:
+def import_documents_keys_from_blob_to_metadata(ds: Dataset, keys: List[str]) -> Dataset:
     """
     Transfers keys from the `blob` column to the `metadata` column in the documents DataFrame.
 
@@ -53,4 +53,4 @@ def dataset_import_keys_from_blob_to_metadata(ds: Dataset, keys: List[str]) -> D
     metadata = ds.metadata
     metadata.queries = 0
 
-    return Dataset.from_pandas(docs_new, metadata = ds.metadata)
+    return Dataset.from_pandas(documents=docs_new, queries=ds.queries, metadata=ds.metadata)
