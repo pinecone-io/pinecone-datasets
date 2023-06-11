@@ -431,8 +431,11 @@ class Dataset(object):
         index = pinecone.Index(index_name)
 
         # upsert
-        asyncio.run(
-            self._async_upsert(
-                index=index, batch_size=bath_size, concurrency=concurrency
+        try:
+            asyncio.run(
+                self._async_upsert(
+                    index=index, batch_size=bath_size, concurrency=concurrency
+                )
             )
-        )
+        except RuntimeError:
+            self._async_upsert(index=index, batch_size=bath_size, concurrency=concurrency)
