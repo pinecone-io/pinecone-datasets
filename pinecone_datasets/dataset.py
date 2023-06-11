@@ -361,7 +361,7 @@ class Dataset(object):
     def to_index(
         self,
         index_name: str,
-        bath_size: int = 100,
+        batch_size: int = 100,
         concurrency: int = 10,
         create_index: bool = False,
         **kwargs,
@@ -378,7 +378,7 @@ class Dataset(object):
 
         Args:
             index_name (str): the name of the index to upsert to
-            bath_size (int, optional): the batch size to use for the upsert. Defaults to 100.
+            batch_size (int, optional): the batch size to use for the upsert. Defaults to 100.
             should_create (bool, optional): whether to create the index if it does not exist. Defaults to True.
 
         Keyword Args:
