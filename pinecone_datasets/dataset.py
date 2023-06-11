@@ -434,10 +434,13 @@ class Dataset(object):
         try:
             asyncio.run(
                 self._async_upsert(
-                    index=index, batch_size=bath_size, concurrency=concurrency
+                    index=index, batch_size=batch_size, concurrency=concurrency
                 )
+            )
+            warnings.warn(
+                "asyncio.run call failed, will differ to use _async_upsert directly, this may happen when running in Jupyter Notebook"
             )
         except RuntimeError:
             self._async_upsert(
-                index=index, batch_size=bath_size, concurrency=concurrency
+                index=index, batch_size=batch_size, concurrency=concurrency
             )

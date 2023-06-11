@@ -2,7 +2,7 @@
 .. include:: ../README.md
 """
 
-__version__ = "0.5.0-rc.4"
+__version__ = "0.5.0-rc.2"
 
 from .dataset import Dataset
 from .public import list_datasets, load_dataset
