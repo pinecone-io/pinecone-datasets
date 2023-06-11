@@ -438,4 +438,6 @@ class Dataset(object):
                 )
             )
         except RuntimeError:
-            self._async_upsert(index=index, batch_size=bath_size, concurrency=concurrency)
+            self._async_upsert(
+                index=index, batch_size=bath_size, concurrency=concurrency
+            )
