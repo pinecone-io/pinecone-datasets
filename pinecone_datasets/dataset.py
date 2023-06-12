@@ -110,7 +110,9 @@ class Dataset(object):
 
     @staticmethod
     def _read_pandas_dataframe(
-        df: pd.DataFrame, column_mapping: Dict[str, str], schema: List[Tuple[str, bool]]
+        df: pd.DataFrame,
+        column_mapping: Dict[str, str],
+        schema: List[Tuple[str, bool, Any]],
     ) -> pd.DataFrame:
         """
         Reads a pandas DataFrame and validates it against a schema.
@@ -128,14 +130,14 @@ class Dataset(object):
         else:
             if column_mapping is not None:
                 df.rename(columns=column_mapping, inplace=True)
-            for column_name, is_nullable in schema:
+            for column_name, is_nullable, null_value in schema:
                 if column_name not in df.columns and not is_nullable:
                     raise ValueError(
                         f"error, file is not matching Pinecone Datasets Schmea: {column_name} not found"
                     )
                 elif column_name not in df.columns and is_nullable:
-                    df[column_name] = None
-            return df[[column_name for column_name, _ in schema]]
+                    df[column_name] = null_value
+            return df[[column_name for column_name, _, _ in schema]]
 
     def __init__(
         self,
@@ -168,6 +170,7 @@ class Dataset(object):
         endpoint = urlparse(dataset_path)._replace(path="").geturl()
         self._fs = get_cloud_fs(endpoint, **kwargs)
         self._dataset_path = dataset_path
+        self._pinecone_client = None
 
         if not self._fs.exists(self._dataset_path):
             raise FileNotFoundError(
@@ -185,7 +188,7 @@ class Dataset(object):
             dataset_schema_names = dataset.schema.names
             columns_to_null = []
             columns_not_null = []
-            for column_name, is_nullable in getattr(
+            for column_name, is_nullable, null_value in getattr(
                 self._config.Schema.Names, data_type
             ):
                 if column_name not in dataset_schema_names and not is_nullable:
@@ -193,14 +196,14 @@ class Dataset(object):
                         f"error, file is not matching Pinecone Datasets Schmea: {column_name} not found"
                     )
                 elif column_name not in dataset_schema_names and is_nullable:
-                    columns_to_null.append(column_name)
+                    columns_to_null.append((column_name, null_value))
                 else:
                     columns_not_null.append(column_name)
             try:
                 # TODO: use of the columns_not_null and columns_to_null is only a workaround for proper schema validation and versioning
                 df = dataset.read_pandas(columns=columns_not_null).to_pandas()
-                for column_name in columns_to_null:
-                    df[column_name] = None
+                for column_name, null_value in columns_to_null:
+                    df[column_name] = null_value
                 return df
             # TODO: add more specific error handling, explain what is wrong
             except Exception as e:
@@ -261,7 +264,9 @@ class Dataset(object):
         """
         if isinstance(batch_size, int) and batch_size > 0:
             return iter_pandas_dataframe_slices(
-                self.documents[self._config.Schema.documents_select_columns],
+                self.documents[self._config.Schema.documents_select_columns].dropna(
+                    axis=1, how="all"
+                ),
                 batch_size,
             )
         else:
@@ -347,7 +352,9 @@ class Dataset(object):
         dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
         self.to_path(dataset_path, **kwargs)
 
-    async def _async_upsert(self, index: Index, batch_size: int, concurrency: int):
+    async def _async_upsert(self, index_name: str, batch_size: int, concurrency: int):
+        index = self._pinecone_client.get_index(index_name=index_name)
+
         sem = asyncio.Semaphore(concurrency)
 
         async def send_batch(batch):
@@ -358,12 +365,62 @@ class Dataset(object):
             *[send_batch(chunk) for chunk in self.iter_documents(batch_size=batch_size)]
         )
 
-    def to_index(
+    def _create_index(
+        self,
+        index_name: str,
+        api_key: Optional[str] = None,
+        environment: Optional[str] = None,
+        timeout=120,
+        **kwargs,
+    ) -> Index:
+        dimension = self.metadata.dense_model.dimension
+        api_key = api_key if api_key else os.environ.get("PINECONE_API_KEY", None)
+        environment = (
+            environment if environment else os.environ.get("PINECONE_ENVIRONMENT", None)
+        )
+
+        if not (api_key and environment):
+            raise ValueError(
+                "Please set PINECONE_API_KEY and PINECONE_ENVIRONMENT environment variables, \
+                or pass them as arguments to the function"
+            )
+        # create client
+        self._pinecone_client = Client(api_key=api_key, region=environment)
+
+        pinecone_index_list = self._pinecone_client.list_indexes()
+
+        if index_name in pinecone_index_list:
+            # raise ValueError(
+            #     f"index {index_name} already exists. Please delete it or use should_create=False"
+            # )
+
+            pass
+        else:
+            # create index
+            self._pinecone_client.create_index(
+                name=index_name, dimension=self.metadata.dense_model.dimension, **kwargs
+            )
+
+        # wait for index to be ready
+        while (
+            timeout > 0
+            and self._pinecone_client.describe_index(name=index_name).status != "Ready"
+        ):
+            print("waiting for index to be ready...")
+            time.sleep(3)
+            timeout -= 3
+
+        if timeout <= 0:
+            return False
+        return True
+
+    def to_pinecone_index(
         self,
         index_name: str,
         batch_size: int = 100,
         concurrency: int = 10,
-        create_index: bool = False,
+        api_key: Optional[str] = None,
+        environment: Optional[str] = None,
         **kwargs,
     ):
         """
@@ -371,7 +428,7 @@ class Dataset(object):
 
         this function will look for two environment variables:
         - PINECONE_API_KEY
-        - PINECONE_ENVIRONMENT / PINECONE_REGION
+        - PINECONE_ENVIRONMENT
 
         Then, it will init a Pinecone Client and will perform an upsert to the index.
         The upsert will be using async batches to increase performance.
@@ -379,68 +436,29 @@ class Dataset(object):
         Args:
             index_name (str): the name of the index to upsert to
             batch_size (int, optional): the batch size to use for the upsert. Defaults to 100.
-            should_create (bool, optional): whether to create the index if it does not exist. Defaults to True.
+            concurrency (int, optional): the concurrency to use for the upsert. Defaults to 10.
 
         Keyword Args:
             kwargs (Dict): additional arguments to pass to the Pinecone Client constructor when creating the index.
-                if should_create is False, these arguments will be ignored.
-                if should_create is True, and the index already exists, ValueError is thrown.
-                if should_create is True, dimension will be taken from the documents metadata.
-                see
         """
 
-        # make sure the region is set
-        if (
-            "PINECONE_ENVIRONMENT" not in os.environ
-            and "PINECONE_REGION" not in os.environ
-        ):
-            raise ValueError(
-                "PINECONE_ENVIRONMENT or PINECONE_REGION environment variable must be set"
-            )
-        elif "PINECONE_ENVIRONMENT" in os.environ:
-            region = os.environ["PINECONE_ENVIRONMENT"]
-        elif "PINECONE_REGION" in os.environ:
-            region = os.environ["PINECONE_REGION"]
-
-        # make sure the api key is set
-        if "PINECONE_API_KEY" not in os.environ:
-            raise ValueError("PINECONE_API_KEY environment variable must be set")
-
-        # create client
-        pinecone = Client(api_key=os.environ["PINECONE_API_KEY"], region=region)
-
-        pinecone_index_list = pinecone.list_indexes()
-
-        if create_index:
-            # make sure the index does not exist
-            if index_name in pinecone_index_list:
-                raise ValueError(
-                    f"index {index_name} already exists. Please delete it or use should_create=False"
-                )
-
-            # create index
-            pinecone.create_index(
-                name=index_name, dimension=self.metadata.dense_model.dimension, **kwargs
-            )
-        else:
-            if index_name not in pinecone_index_list:
-                raise ValueError(
-                    f"index {index_name} does not exist. Please create it or use should_create=True"
-                )
-
-        index = pinecone.Index(index_name)
+        if not self._create_index(index_name, **kwargs):
+            raise RuntimeError("index creation failed")
 
         # upsert
         try:
             asyncio.run(
                 self._async_upsert(
-                    index=index, batch_size=batch_size, concurrency=concurrency
+                    index_name=index_name,
+                    batch_size=batch_size,
+                    concurrency=concurrency,
                 )
             )
+        # TODO: better exception catching
+        except RuntimeError:
             warnings.warn(
                 "asyncio.run call failed, will differ to use _async_upsert directly, this may happen when running in Jupyter Notebook"
             )
-        except RuntimeError:
-            self._async_upsert(
-                index=index, batch_size=batch_size, concurrency=concurrency
+            return self._async_upsert(
+                index_name=index_name, batch_size=batch_size, concurrency=concurrency
             )

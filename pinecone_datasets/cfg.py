@@ -8,18 +8,18 @@ class Storage:
 class Schema:
     class Names:
         documents = [
-            ("id", False),
-            ("values", False),
-            ("sparse_values", True),
-            ("metadata", True),
-            ("blob", True),
+            ("id", False, None),
+            ("values", False, None),
+            ("sparse_values", True, None),
+            ("metadata", True, None),
+            ("blob", True, None),
         ]
         queries = [
-            ("vector", False),
-            ("sparse_vector", True),
-            ("filter", True),
-            ("top_k", False),
-            ("blob", True),
+            ("vector", False, None),
+            ("sparse_vector", True, None),
+            ("filter", True, None),
+            ("top_k", False, 5),
+            ("blob", True, None),
         ]
 
     # documents = {
