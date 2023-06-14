@@ -24,6 +24,7 @@ from pinecone_datasets import cfg
 from pinecone_datasets.catalog import DatasetMetadata
 from pinecone_datasets.fs import get_cloud_fs, LocalFileSystem
 
+
 @dataclass
 class UpsertResponse:
     upserted_count: int
@@ -361,7 +362,7 @@ class Dataset(object):
 
     async def _async_upsert(self, index_name: str, batch_size: int, concurrency: int):
         index = self._pinecone_client.get_index(index_name=index_name)
-        
+
         sem = asyncio.Semaphore(concurrency)
 
         pinecone_failed_batches: Dict[Int, Any] = {}
@@ -381,7 +382,8 @@ class Dataset(object):
                     raise e
 
         tasks = [
-            send_batch(chunk, i) for i, chunk in enumerate(self.iter_documents(batch_size=batch_size))
+            send_batch(chunk, i)
+            for i, chunk in enumerate(self.iter_documents(batch_size=batch_size))
         ]
         failed_tasks_pinecone = []
 
@@ -390,8 +392,7 @@ class Dataset(object):
         for task in asyncio.as_completed(tasks):
             res = await task
             total_upserted_count += res.upserted_count
-            pbar.update(res.upserted_count) 
-            
+            pbar.update(res.upserted_count)
 
         failed_tasks = [
             send_batch(chunk, i) for i, chunk in pinecone_failed_batches.items()
@@ -403,7 +404,6 @@ class Dataset(object):
             pbar.update(res.upserted_count)
 
         return {"upserted_count": total_upserted_count}
-            
 
     def _create_index(
         self,
@@ -486,9 +486,9 @@ class Dataset(object):
         loop = asyncio.get_event_loop()
         if loop.is_running():
             raise RuntimeError(
-                "You are running inside a Jupyter Notebook or another Asyncio context. "+
-                "Plesae use the function to_pinecone_index_async instead. "+
-                "example: `await dataset.to_pinecone_index_async(index_name)`"
+                "You are running inside a Jupyter Notebook or another Asyncio context. "
+                + "Plesae use the function to_pinecone_index_async instead. "
+                + "example: `await dataset.to_pinecone_index_async(index_name)`"
             )
 
         if not self._create_index(index_name, **kwargs):
