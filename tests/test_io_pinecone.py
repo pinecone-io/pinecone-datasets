@@ -8,6 +8,8 @@ from tests.test_public_datasets import deep_list_cmp
 def test_large_dataset_upsert_to_pinecone():
     tested_dataset = "quora_all-MiniLM-L6-bm25"
     index_name = f"quora-index-{os.environ['PY_VERSION']}"
+
+    print(f"Testing dataset {tested_dataset} with index {index_name}")
     ds = load_dataset(tested_dataset)
 
     client = Client()
