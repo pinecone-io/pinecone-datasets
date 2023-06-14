@@ -6,6 +6,7 @@ import time
 import json
 import asyncio
 import warnings
+import pytest
 from urllib.parse import urlparse
 from dataclasses import dataclass
 from functools import cached_property
@@ -429,10 +430,9 @@ class Dataset(object):
         pinecone_index_list = self._pinecone_client.list_indexes()
 
         if index_name in pinecone_index_list:
-            # raise ValueError(
-            #     f"index {index_name} already exists"
-            # )
-            pass
+            raise ValueError(
+                f"index {index_name} already exists, Pinecone Datasets can only be upserted to a new indexe"
+            )
         else:
             # create index
             print("creating index")
@@ -501,6 +501,7 @@ class Dataset(object):
         )
         return asyncio.run(cor)
 
+    @pytest.mark.skip(reason="this functionaility should be tested in notebook environment")
     async def to_pinecone_index_async(
         self,
         index_name: str,
