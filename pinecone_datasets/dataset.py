@@ -1,25 +1,32 @@
 import sys
 import glob
 import os
+import itertools
+import time
 import json
 import asyncio
-from functools import cached_property
-from typing import Any, Generator, Iterator, List, Union, Dict, Optional, Tuple
 import warnings
 from urllib.parse import urlparse
+from dataclasses import dataclass
+from functools import cached_property
+from typing import Any, Generator, Iterator, List, Union, Dict, Optional, Tuple
 
 import gcsfs
-from pydantic import ValidationError
 import s3fs
-
+from pydantic import ValidationError
 import pandas as pd
 import pyarrow.parquet as pq
+from tqdm.auto import tqdm
 
-from pinecone import Client, Index
+from pinecone import Client, Index, PineconeOpError
 
 from pinecone_datasets import cfg
 from pinecone_datasets.catalog import DatasetMetadata
 from pinecone_datasets.fs import get_cloud_fs, LocalFileSystem
+
+@dataclass
+class UpsertResponse:
+    upserted_count: int
 
 
 def iter_pandas_dataframe_slices(
@@ -354,23 +361,55 @@ class Dataset(object):
 
     async def _async_upsert(self, index_name: str, batch_size: int, concurrency: int):
         index = self._pinecone_client.get_index(index_name=index_name)
-
+        
         sem = asyncio.Semaphore(concurrency)
 
-        async def send_batch(batch):
-            async with sem:
-                return await index.upsert(vectors=batch, async_req=True)
+        pinecone_failed_batches: Dict[Int, Any] = {}
 
-        await asyncio.gather(
-            *[send_batch(chunk) for chunk in self.iter_documents(batch_size=batch_size)]
-        )
+        async def send_batch(batch, i):
+            async with sem:
+                try:
+                    return await index.upsert(vectors=batch, async_req=True)
+                except PineconeOpError as pe:
+                    if i in pinecone_failed_batches:
+                        raise PineconeOpError("Uploading batch failed twice")
+                    else:
+                        pinecone_failed_batches[i] = batch
+                        print(f"failed batches: {pinecone_failed_batches.keys()}")
+                        return UpsertResponse(upserted_count=0)
+                except Exception as e:
+                    raise e
+
+        tasks = [
+            send_batch(chunk, i) for i, chunk in enumerate(self.iter_documents(batch_size=batch_size))
+        ]
+        failed_tasks_pinecone = []
+
+        pbar = tqdm(total=len(self.documents), desc="Upserting Vectors")
+        total_upserted_count = 0
+        for task in asyncio.as_completed(tasks):
+            res = await task
+            total_upserted_count += res.upserted_count
+            pbar.update(res.upserted_count) 
+            
+
+        failed_tasks = [
+            send_batch(chunk, i) for i, chunk in pinecone_failed_batches.items()
+        ]
+
+        for task in asyncio.as_completed(failed_tasks):
+            res = await task
+            total_upserted_count += res.upserted_count
+            pbar.update(res.upserted_count)
+
+        return {"upserted_count": total_upserted_count}
+            
 
     def _create_index(
         self,
         index_name: str,
         api_key: Optional[str] = None,
         environment: Optional[str] = None,
-        timeout=120,
         **kwargs,
     ) -> Index:
         dimension = self.metadata.dense_model.dimension
@@ -391,28 +430,21 @@ class Dataset(object):
 
         if index_name in pinecone_index_list:
             # raise ValueError(
-            #     f"index {index_name} already exists. Please delete it or use should_create=False"
+            #     f"index {index_name} already exists"
             # )
-
             pass
         else:
             # create index
+            print("creating index")
             self._pinecone_client.create_index(
                 name=index_name, dimension=self.metadata.dense_model.dimension, **kwargs
             )
+            print("index created")
 
-        # wait for index to be ready
-        while (
-            timeout > 0
-            and self._pinecone_client.describe_index(name=index_name).status != "Ready"
-        ):
-            print("waiting for index to be ready...")
-            time.sleep(3)
-            timeout -= 3
-
-        if timeout <= 0:
-            return False
-        return True
+        current_status = self._pinecone_client.describe_index(name=index_name).status
+        if current_status == "Ready":
+            return True
+        return False
 
     def to_pinecone_index(
         self,
@@ -440,25 +472,85 @@ class Dataset(object):
 
         Keyword Args:
             kwargs (Dict): additional arguments to pass to the Pinecone Client constructor when creating the index.
+
+
+        Returns:
+            UpsertResponse: an object containing the upserted_count
+
+        Examples:
+            ```python
+            result = dataset.to_pinecone_index(index_name="my_index")
+            ```
         """
+
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            raise RuntimeError(
+                "You are running inside a Jupyter Notebook or another Asyncio context. "+
+                "Plesae use the function to_pinecone_index_async instead. "+
+                "example: `await dataset.to_pinecone_index_async(index_name)`"
+            )
 
         if not self._create_index(index_name, **kwargs):
             raise RuntimeError("index creation failed")
 
-        # upsert
-        try:
-            asyncio.run(
-                self._async_upsert(
-                    index_name=index_name,
-                    batch_size=batch_size,
-                    concurrency=concurrency,
-                )
+        cor = self._async_upsert(
+            index_name=index_name,
+            batch_size=batch_size,
+            concurrency=concurrency,
+        )
+        return asyncio.run(cor)
+
+    async def to_pinecone_index_async(
+        self,
+        index_name: str,
+        batch_size: int = 100,
+        concurrency: int = 10,
+        api_key: Optional[str] = None,
+        environment: Optional[str] = None,
+        **kwargs,
+    ):
+        """
+        Saves the dataset to a Pinecone index.
+
+        this function will look for two environment variables:
+        - PINECONE_API_KEY
+        - PINECONE_ENVIRONMENT
+
+        Then, it will init a Pinecone Client and will perform an upsert to the index.
+        The upsert will be using async batches to increase performance.
+
+        Args:
+            index_name (str): the name of the index to upsert to
+            batch_size (int, optional): the batch size to use for the upsert. Defaults to 100.
+            concurrency (int, optional): the concurrency to use for the upsert. Defaults to 10.
+
+        Keyword Args:
+            kwargs (Dict): additional arguments to pass to the Pinecone Client constructor when creating the index.
+
+        Returns:
+            UpsertResponse: an object containing the upserted_count
+
+        Examples:
+            ```python
+            result = await dataset.to_pinecone_index_async(index_name="my_index")
+            ```
+        """
+        loop = asyncio.get_event_loop()
+        if not loop.is_running():
+            raise RuntimeError(
+                "You are running inside a Jupyter Notebook or another Asyncio context. \
+                Plesae use the function to_pinecone_index instead. \
+                example: `dataset.to_pinecone_index(index_name)`"
             )
-        # TODO: better exception catching
-        except RuntimeError:
-            warnings.warn(
-                "asyncio.run call failed, will differ to use _async_upsert directly, this may happen when running in Jupyter Notebook"
-            )
-            return self._async_upsert(
-                index_name=index_name, batch_size=batch_size, concurrency=concurrency
-            )
+
+        if not self._create_index(index_name, **kwargs):
+            raise RuntimeError("index creation failed")
+
+        res = await self._async_upsert(
+            index_name=index_name,
+            batch_size=batch_size,
+            concurrency=concurrency,
+        )
+
+        return res
