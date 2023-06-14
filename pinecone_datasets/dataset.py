@@ -501,7 +501,9 @@ class Dataset(object):
         )
         return asyncio.run(cor)
 
-    @pytest.mark.skip(reason="this functionaility should be tested in notebook environment")
+    @pytest.mark.skip(
+        reason="this functionaility should be tested in notebook environment"
+    )
     async def to_pinecone_index_async(
         self,
         index_name: str,
