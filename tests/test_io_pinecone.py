@@ -14,8 +14,12 @@ def test_large_dataset_upsert_to_pinecone():
     assert ds.documents.shape[0] == 522931
 
     if index_name in client.list_indexes():
+        print(f"Deleting index {index_name}")
         client.delete_index(index_name)
 
+    while index_name in client.list_indexes():
+        print(f"Waiting for index {index_name} to be deleted")
+        time.sleep(5)
     ds.to_pinecone_index(index_name="quora-index", batch_size=300, concurrency=10)
 
     index = client.get_index(index_name)
