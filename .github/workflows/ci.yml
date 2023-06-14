@@ -29,6 +29,7 @@ jobs:
       run: poetry run mypy .
     - name: Run pytest
       env:
+        PY_VERSION: ${{ matrix.python-version }}
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}

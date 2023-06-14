@@ -1,3 +1,5 @@
+import os
+
 from pinecone import Client
 from pinecone_datasets import list_datasets, load_dataset
 
@@ -6,7 +8,7 @@ from tests.test_public_datasets import deep_list_cmp
 
 def test_large_dataset_upsert_to_pinecone():
     tested_dataset = "quora_all-MiniLM-L6-bm25"
-    index_name = "quora-index"
+    index_name = f"quora-index-{os.environ[ֿ'PY_VERSION']}"
     ds = load_dataset(tested_dataset)
 
     client = Client()
@@ -20,8 +22,8 @@ def test_large_dataset_upsert_to_pinecone():
     while index_name in client.list_indexes():
         print(f"Waiting for index {index_name} to be deleted")
         time.sleep(5)
-    ds.to_pinecone_index(index_name="quora-index", batch_size=300, concurrency=10)
-
+    
+    ds.to_pinecone_index(index_name=index_name, batch_size=300, concurrency=10)
     index = client.get_index(index_name)
 
     assert index_name in client.list_indexes()
@@ -32,3 +34,5 @@ def test_large_dataset_upsert_to_pinecone():
     assert deep_list_cmp(
         index.fetch(ids=["1"])["1"].values, ds.documents.loc[0].values[1].tolist()
     )
+
+    client.delete_index(index_name)
