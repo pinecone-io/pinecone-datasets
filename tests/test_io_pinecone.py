@@ -7,7 +7,7 @@ from tests.test_public_datasets import deep_list_cmp
 
 def test_large_dataset_upsert_to_pinecone():
     tested_dataset = "quora_all-MiniLM-L6-bm25"
-    index_name = f"quora-index-{os.environ['PY_VERSION']}"
+    index_name = f"quora-index-{os.environ['PY_VERSION'].replace('.', '-')}"
 
     print(f"Testing dataset {tested_dataset} with index {index_name}")
     ds = load_dataset(tested_dataset)
@@ -20,9 +20,9 @@ def test_large_dataset_upsert_to_pinecone():
         print(f"Deleting index {index_name}")
         client.delete_index(index_name)
 
-    while index_name in client.list_indexes():
-        print(f"Waiting for index {index_name} to be deleted")
-        time.sleep(5)
+        while index_name in client.list_indexes():
+            print(f"Waiting for index {index_name} to be deleted")
+            time.sleep(5)
     try:
         ds.to_pinecone_index(index_name=index_name, batch_size=300, concurrency=10)
         index = client.get_index(index_name)
@@ -38,4 +38,6 @@ def test_large_dataset_upsert_to_pinecone():
     except Exception as e:
         raise e
     finally:
-        client.delete_index(index_name)
+        if index_name in client.list_indexes():
+            print(f"Deleting index {index_name}")
+            client.delete_index(index_name)
