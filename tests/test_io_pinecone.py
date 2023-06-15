@@ -28,7 +28,7 @@ def test_large_dataset_upsert_to_pinecone():
         index = client.get_index(index_name)
 
         assert index_name in client.list_indexes()
-        assert client.describe_index(index_name).index_name == index_name
+        assert client.describe_index(index_name).name == index_name
         assert client.describe_index(index_name).dimension == 384
         assert index.describe_index_stats().total_vector_count == 522931
 
