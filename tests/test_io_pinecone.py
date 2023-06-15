@@ -1,4 +1,6 @@
 import os
+import time
+
 from pinecone import Client
 from pinecone_datasets import list_datasets, load_dataset
 
@@ -30,6 +32,9 @@ def test_large_dataset_upsert_to_pinecone():
         assert index_name in client.list_indexes()
         assert client.describe_index(index_name).name == index_name
         assert client.describe_index(index_name).dimension == 384
+
+        # Wait for index to be ready
+        time.sleep(60)
         assert index.describe_index_stats().total_vector_count == 522931
 
         assert deep_list_cmp(
