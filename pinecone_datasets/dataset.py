@@ -6,7 +6,6 @@ import time
 import json
 import asyncio
 import warnings
-import pytest
 from urllib.parse import urlparse
 from dataclasses import dataclass
 from functools import cached_property
@@ -501,9 +500,7 @@ class Dataset(object):
         )
         return asyncio.run(cor)
 
-    @pytest.mark.skip(
-        reason="this functionaility should be tested in notebook environment"
-    )
+
     async def to_pinecone_index_async(
         self,
         index_name: str,
