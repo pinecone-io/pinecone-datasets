@@ -500,7 +500,6 @@ class Dataset(object):
         )
         return asyncio.run(cor)
 
-
     async def to_pinecone_index_async(
         self,
         index_name: str,
