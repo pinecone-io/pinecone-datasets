@@ -8,7 +8,6 @@ import asyncio
 import warnings
 from urllib.parse import urlparse
 from dataclasses import dataclass
-from functools import cached_property
 from importlib.metadata import version
 
 import gcsfs
@@ -190,6 +189,9 @@ class Dataset(object):
         self._fs = get_cloud_fs(endpoint, **kwargs)
         self._dataset_path = dataset_path
         self._pinecone_client = None
+        self._documents = None
+        self._queries = None
+        self._metadata = None
 
         if not self._fs.exists(self._dataset_path):
             raise FileNotFoundError(
@@ -263,9 +265,11 @@ class Dataset(object):
     def __len__(self) -> int:
         return self.documents.shape[0]
 
-    @cached_property
+    @property
     def documents(self) -> pd.DataFrame:
-        return self._safe_read_from_path("documents")
+        if self._documents is None:
+            self._documents = self._safe_read_from_path("documents")
+        return self._documents
 
     def iter_documents(self, batch_size: int = 1) -> Iterator[List[Dict[str, Any]]]:
         """
@@ -291,9 +295,11 @@ class Dataset(object):
         else:
             raise ValueError("batch_size must be greater than 0")
 
-    @cached_property
+    @property
     def queries(self) -> pd.DataFrame:
-        return self._safe_read_from_path("queries")
+        if self._queries is None:
+            self._queries = self._safe_read_from_path("queries")
+        return self._queries
 
     def iter_queries(self) -> Iterator[Dict[str, Any]]:
         """
@@ -311,9 +317,11 @@ class Dataset(object):
             self.queries[self._config.Schema.queries_select_columns]
         )
 
-    @cached_property
+    @property
     def metadata(self) -> DatasetMetadata:
-        return self._load_metadata()
+        if not self._metadata:
+            self._metadata = self._load_metadata()
+        return self._metadata
 
     def head(self, n: int = 5) -> pd.DataFrame:
         return self.documents.head(n)
