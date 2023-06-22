@@ -22,7 +22,7 @@ jobs:
       with:
         version: 1.3.2
     - name: install dependencies
-      run: poetry install --with dev
+      run: poetry install --with dev --all-extras
     - name: Run Black Check
       run: poetry run black --check .
     - name: Run mypy check
