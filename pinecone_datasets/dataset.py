@@ -117,13 +117,13 @@ class Dataset(object):
             Dataset: a Dataset object
         """
         clazz = Dataset(dataset_path=os.getcwd(), **kwargs)
-        clazz.documents = cls._read_pandas_dataframe(
+        clazz._documents = cls._read_pandas_dataframe(
             documents, documents_column_mapping, cfg.Schema.Names.documents
         )
-        clazz.queries = cls._read_pandas_dataframe(
+        clazz._queries = cls._read_pandas_dataframe(
             queries, queries_column_mapping, cfg.Schema.Names.queries
         )
-        clazz.metadata = metadata
+        clazz._metadata = metadata
         return clazz
 
     @staticmethod
