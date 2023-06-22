@@ -8,3 +8,4 @@ scratchpad.ipynb
 .pycache/
 .pytest_cache/
 .coverage
+poetry.lock
