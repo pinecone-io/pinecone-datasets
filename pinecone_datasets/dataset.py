@@ -9,20 +9,31 @@ import warnings
 from urllib.parse import urlparse
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Generator, Iterator, List, Union, Dict, Optional, Tuple
+from importlib.metadata import version
 
 import gcsfs
 import s3fs
-from pydantic import ValidationError
 import pandas as pd
-import pyarrow.parquet as pq
 from tqdm.auto import tqdm
-
-from pinecone import Client, Index, PineconeOpError
+import pyarrow.parquet as pq
+from pydantic import ValidationError
+from typing import Any, Generator, Iterator, List, Union, Dict, Optional, Tuple
 
 from pinecone_datasets import cfg
 from pinecone_datasets.catalog import DatasetMetadata
 from pinecone_datasets.fs import get_cloud_fs, LocalFileSystem
+
+if version("pinecone-client").startswith("3"):
+    from pinecone import Client as pc, Index
+elif version("pinecone-client").startswith("2"):
+    import pinecone as pc
+    from pinecone import GRPCIndex as Index
+else:
+    warnings.warn(
+        message="Pinecone client version not supported or non-existent,"
+        + "please use pip ineall pinecone-client to install v2 or "
+        + "pip install pinecone-datasets[clientv3] to install v3"
+    )
 
 
 @dataclass
@@ -361,7 +372,11 @@ class Dataset(object):
         self.to_path(dataset_path, **kwargs)
 
     async def _async_upsert(self, index_name: str, batch_size: int, concurrency: int):
-        index = self._pinecone_client.get_index(index_name=index_name)
+        index = (
+            self._pinecone_client.get_index(index_name=index_name)
+            if version("pinecone-client").startswith("3")
+            else Index(index_name=index_name)
+        )
 
         sem = asyncio.Semaphore(concurrency)
 
@@ -371,15 +386,13 @@ class Dataset(object):
             async with sem:
                 try:
                     return await index.upsert(vectors=batch, async_req=True)
-                except PineconeOpError as pe:
+                except Exception as pe:
                     if i in pinecone_failed_batches:
-                        raise PineconeOpError("Uploading batch failed twice")
+                        raise pe
                     else:
                         pinecone_failed_batches[i] = batch
                         print(f"failed batches: {pinecone_failed_batches.keys()}")
                         return UpsertResponse(upserted_count=0)
-                except Exception as e:
-                    raise e
 
         tasks = [
             send_batch(chunk, i)
@@ -424,7 +437,12 @@ class Dataset(object):
                 or pass them as arguments to the function"
             )
         # create client
-        self._pinecone_client = Client(api_key=api_key, region=environment)
+
+        if version("pinecone-client").startswith("3"):
+            self._pinecone_client = Client(api_key=api_key, region=environment)
+        elif version("pinecone-client").startswith("2"):
+            pc.init(api_key=api_key, environment=environment)
+            self._pinecone_client = pc
 
         pinecone_index_list = self._pinecone_client.list_indexes()
 
@@ -435,15 +453,17 @@ class Dataset(object):
         else:
             # create index
             print("creating index")
-            self._pinecone_client.create_index(
-                name=index_name, dimension=self.metadata.dense_model.dimension, **kwargs
-            )
-            print("index created")
-
-        current_status = self._pinecone_client.describe_index(name=index_name).status
-        if current_status == "Ready":
-            return True
-        return False
+            try:
+                self._pinecone_client.create_index(
+                    name=index_name,
+                    dimension=self.metadata.dense_model.dimension,
+                    **kwargs,
+                )
+                print("index created")
+                return True
+            except Exception as e:
+                print(f"error creating index: {e}")
+                return False
 
     def to_pinecone_index(
         self,

@@ -19,9 +19,10 @@ s3fs = "^2023.1.0"
 pydantic = "^1.10.5"
 protobuf = ">=3.19.3,<3.20.0"
 pandas = "^2.0.0"
-pinecone-client = "3.0.0rc2"
 tqdm = "^4.65.0"
 
+[tool.poetry.group.clientv3.dependencies]
+pinecone-client = "3.0.0rc2"
 
 [tool.poetry.group.dev]
 optional = true
