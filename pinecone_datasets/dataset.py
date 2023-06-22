@@ -439,7 +439,7 @@ class Dataset(object):
         # create client
 
         if version("pinecone-client").startswith("3"):
-            self._pinecone_client = Client(api_key=api_key, region=environment)
+            self._pinecone_client = pc(api_key=api_key, region=environment)
         elif version("pinecone-client").startswith("2"):
             pc.init(api_key=api_key, environment=environment)
             self._pinecone_client = pc
