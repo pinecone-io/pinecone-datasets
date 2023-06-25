@@ -26,7 +26,7 @@ def test_large_dataset_upsert_to_pinecone():
             print(f"Waiting for index {index_name} to be deleted")
             time.sleep(5)
     try:
-        ds.to_pinecone_index(index_name=index_name, batch_size=300, concurrency=10)
+        ds.to_pinecone_index(index_name=index_name, batch_size=300, concurrency=5)
         index = client.get_index(index_name)
 
         assert index_name in client.list_indexes()
