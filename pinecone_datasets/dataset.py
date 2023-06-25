@@ -342,7 +342,7 @@ class Dataset(object):
 
     @property
     def metadata(self) -> DatasetMetadata:
-        if not self._metadata:
+        if self._metadata.is_empty():
             self._metadata = self._load_metadata()
         return self._metadata
 

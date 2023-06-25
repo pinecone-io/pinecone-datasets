@@ -53,6 +53,9 @@ class DatasetMetadata(BaseModel):
             dense_model=DenseModelMetadata(name="", dimension=0),
         )
 
+    def is_empty(self) -> bool:
+        return self.name == "" and self.documents == 0 and self.queries == 0
+
 
 class Catalog(BaseModel):
     datasets: List[DatasetMetadata] = []
