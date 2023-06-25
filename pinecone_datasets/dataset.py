@@ -208,9 +208,13 @@ class Dataset(object):
         else:
             self._fs = None
             self._dataset_path = None
-        self._documents = None
-        self._queries = None
-        self._metadata = None
+        self._documents = pd.DataFrame(
+            columns=getattr(self._config.Schema.Names, "documents")
+        )
+        self._queries = pd.DataFrame(
+            columns=getattr(self._config.Schema.Names, "queries")
+        )
+        self._metadata = DatasetMetadata.empty()
         self._pinecone_client = None
 
     def _is_datatype_exists(self, data_type: str) -> bool:
@@ -286,7 +290,7 @@ class Dataset(object):
 
     @property
     def documents(self) -> pd.DataFrame:
-        if self._documents is None:
+        if self._documents.empty:
             self._documents = self._safe_read_from_path("documents")
         return self._documents
 
@@ -316,7 +320,7 @@ class Dataset(object):
 
     @property
     def queries(self) -> pd.DataFrame:
-        if self._queries is None:
+        if self._queries.empty:
             self._queries = self._safe_read_from_path("queries")
         return self._queries
 
