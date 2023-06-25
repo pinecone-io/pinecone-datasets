@@ -35,6 +35,18 @@ else:
     )
 
 
+class DatasetInitializationError(Exception):
+    message = """
+    This dataset was not initialized from path, but from memory, e.g. Dataset.from_pandas(...)
+    Therefore this dataset cannot be reloaded from path, or use methods that require a path.
+    If you want to reload a dataset from path, please use the `from_path` method and pass a valid path.
+    """
+
+    def __init__(self, message="My custom exception"):
+        self.message = message
+        super().__init__(self.message)
+
+
 @dataclass
 class UpsertResponse:
     upserted_count: int
@@ -116,7 +128,7 @@ class Dataset(object):
         Returns:
             Dataset: a Dataset object
         """
-        clazz = Dataset(dataset_path=os.getcwd(), **kwargs)
+        clazz = cls(dataset_path=None, **kwargs)
         clazz._documents = cls._read_pandas_dataframe(
             documents, documents_column_mapping, cfg.Schema.Names.documents
         )
@@ -185,23 +197,31 @@ class Dataset(object):
 
         """
         self._config = cfg
-        endpoint = urlparse(dataset_path)._replace(path="").geturl()
-        self._fs = get_cloud_fs(endpoint, **kwargs)
-        self._dataset_path = dataset_path
-        self._pinecone_client = None
+        if dataset_path is not None:
+            endpoint = urlparse(dataset_path)._replace(path="").geturl()
+            self._fs = get_cloud_fs(endpoint, **kwargs)
+            self._dataset_path = dataset_path
+            if not self._fs.exists(self._dataset_path):
+                raise FileNotFoundError(
+                    "Dataset does not exist. Please check the path or dataset_id"
+                )
+        else:
+            self._fs = None
+            self._dataset_path = None
         self._documents = None
         self._queries = None
         self._metadata = None
-
-        if not self._fs.exists(self._dataset_path):
-            raise FileNotFoundError(
-                "Dataset does not exist. Please check the path or dataset_id"
-            )
+        self._pinecone_client = None
 
     def _is_datatype_exists(self, data_type: str) -> bool:
+        if not self._fs:
+            raise DatasetInitializationError()
         return self._fs.exists(os.path.join(self._dataset_path, data_type))
 
     def _safe_read_from_path(self, data_type: str) -> pd.DataFrame:
+        if not self._fs:
+            raise DatasetInitializationError()
+
         read_path_str = os.path.join(self._dataset_path, data_type, "*.parquet")
         read_path = self._fs.glob(read_path_str)
         if self._is_datatype_exists(data_type):
@@ -241,6 +261,9 @@ class Dataset(object):
             return pd.DataFrame(columns=getattr(self._config.Schema.Names, data_type))
 
     def _load_metadata(self) -> DatasetMetadata:
+        if not self._fs:
+            raise DatasetInitializationError()
+
         with self._fs.open(
             os.path.join(self._dataset_path, "metadata.json"), "rb"
         ) as f:
@@ -251,10 +274,6 @@ class Dataset(object):
         # TODO: add more specific error handling, explain what is wrong
         except ValidationError as e:
             raise e
-
-    def _save_metadata(self, metadata: DatasetMetadata) -> None:  # pragma: no cover
-        with self._fs.open(os.path.join(self._dataset_path, "metadata.json"), "w") as f:
-            json.dump(metadata.dict(), f)
 
     def __getitem__(self, key: str):
         if key in ["documents", "queries"]:
@@ -362,7 +381,6 @@ class Dataset(object):
         self,
         dataset_id: str,
         catalog_base_path: str = "",
-        import_metadata_from_blob_mapping: dict = {},
         **kwargs,
     ):
         """
