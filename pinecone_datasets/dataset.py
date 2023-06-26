@@ -26,7 +26,11 @@ if version("pinecone-client").startswith("3"):
     from pinecone import Client as pc, Index
 elif version("pinecone-client").startswith("2"):
     import pinecone as pc
-    from pinecone import GRPCIndex as Index
+
+    try:
+        from pinecone import GRPCIndex as Index
+    except ImportError:
+        from pinecone import Index
 else:
     warnings.warn(
         message="Pinecone client version not supported or non-existent,"
@@ -47,16 +51,24 @@ class DatasetInitializationError(Exception):
         super().__init__(self.message)
 
 
+# TODO: import from Client
 @dataclass
 class UpsertResponse:
     upserted_count: int
 
 
 def iter_pandas_dataframe_slices(
-    df: pd.DataFrame, batch_size=1
+    df: pd.DataFrame, batch_size, return_indexes
 ) -> Generator[List[Dict[str, Any]], None, None]:
     for i in range(0, len(df), batch_size):
-        yield df.iloc[i : i + batch_size].to_dict(orient="records")
+        if return_indexes:
+            yield (
+                i,
+                df.iloc[i : i + batch_size].to_dict(orient="records"),
+                df.iloc[i : i + batch_size].index,
+            )
+        else:
+            yield df.iloc[i : i + batch_size].to_dict(orient="records")
 
 
 def iter_pandas_dataframe_single(
@@ -294,7 +306,9 @@ class Dataset(object):
             self._documents = self._safe_read_from_path("documents")
         return self._documents
 
-    def iter_documents(self, batch_size: int = 1) -> Iterator[List[Dict[str, Any]]]:
+    def iter_documents(
+        self, batch_size: int = 1, return_indexes=False
+    ) -> Iterator[List[Dict[str, Any]]]:
         """
         Iterates over the documents in the dataset.
 
@@ -310,10 +324,11 @@ class Dataset(object):
         """
         if isinstance(batch_size, int) and batch_size > 0:
             return iter_pandas_dataframe_slices(
-                self.documents[self._config.Schema.documents_select_columns].dropna(
+                df=self.documents[self._config.Schema.documents_select_columns].dropna(
                     axis=1, how="all"
                 ),
-                batch_size,
+                batch_size=batch_size,
+                return_indexes=return_indexes,
             )
         else:
             raise ValueError("batch_size must be greater than 0")
@@ -412,7 +427,7 @@ class Dataset(object):
 
         pinecone_failed_batches: Dict[Int, Any] = {}
 
-        async def send_batch(batch, i):
+        async def send_batch(i, batch, index):
             async with sem:
                 try:
                     return await index.upsert(vectors=batch, async_req=True)
@@ -420,13 +435,15 @@ class Dataset(object):
                     if i in pinecone_failed_batches:
                         raise pe
                     else:
-                        pinecone_failed_batches[i] = batch
+                        pinecone_failed_batches[i] = index
                         print(f"failed batches: {pinecone_failed_batches.keys()}")
                         return UpsertResponse(upserted_count=0)
 
         tasks = [
-            send_batch(chunk, i)
-            for i, chunk in enumerate(self.iter_documents(batch_size=batch_size))
+            send_batch(i, self.documents[index], index)
+            for i, chunk, index in self.iter_documents(
+                batch_size=batch_size, return_indexes=True
+            )
         ]
         failed_tasks_pinecone = []
 
@@ -438,7 +455,8 @@ class Dataset(object):
             pbar.update(res.upserted_count)
 
         failed_tasks = [
-            send_batch(chunk, i) for i, chunk in pinecone_failed_batches.items()
+            send_batch(i, self.documents[index], index)
+            for i, index in pinecone_failed_batches.items()
         ]
 
         for task in asyncio.as_completed(failed_tasks):
