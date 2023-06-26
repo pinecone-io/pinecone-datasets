@@ -40,8 +40,6 @@ def test_large_dataset_upsert_to_pinecone():
         assert deep_list_cmp(
             index.fetch(ids=["1"])["1"].values, ds.documents.loc[0].values[1].tolist()
         )
-    except Exception as e:
-        raise e
     finally:
         if index_name in client.list_indexes():
             print(f"Deleting index {index_name}")

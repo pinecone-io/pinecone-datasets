@@ -34,17 +34,6 @@ def test_load_dataset_pandas():
     assert ds.metadata.queries == 15000
 
 
-# def test_load_dataset_polars():
-#     ds = Dataset.from_catalog(test_dataset, engine="polars")
-#     assert ds.documents.shape[0] == 522931
-#     assert ds.documents.shape[1] == 5
-#     assert isinstance(ds.documents, pl.DataFrame)
-#     assert isinstance(ds.head(), pl.DataFrame)
-#     assert ds.head().shape[0] == 5
-#     assert ds.head().shape[1] == 5
-#     pl_assert_frame_equal(ds.head(), ds.documents.head())
-
-
 def test_list_datasets():
     lst = list_datasets()
     assert len(lst) > 0
