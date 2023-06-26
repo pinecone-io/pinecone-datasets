@@ -417,7 +417,7 @@ class Dataset(object):
         self.to_path(dataset_path, **kwargs)
 
     async def _async_upsert(self, index_name: str, batch_size: int, concurrency: int):
-        index = (
+        pinecone_index = (
             self._pinecone_client.get_index(index_name=index_name)
             if version("pinecone-client").startswith("3")
             else Index(index_name=index_name)
@@ -427,22 +427,22 @@ class Dataset(object):
 
         pinecone_failed_batches: Dict[Int, Any] = {}
 
-        async def send_batch(i, df, index):
+        async def send_batch(i, df, idx):
             async with sem:
                 try:
-                    batch = df.loc[index]
-                    return await index.upsert(vectors=batch, async_req=True)
+                    batch = df.loc[idx]
+                    return await pinecone_index.upsert(vectors=batch, async_req=True)
                 except Exception as pe:
                     if i in pinecone_failed_batches:
                         raise pe
                     else:
-                        pinecone_failed_batches[i] = index
+                        pinecone_failed_batches[i] = idx
                         print(f"failed batches: {pinecone_failed_batches.keys()}")
                         return UpsertResponse(upserted_count=0)
 
         tasks = [
-            send_batch(i, self.documents, index)
-            for i, chunk, index in self.iter_documents(
+            send_batch(i, self.documents, idx)
+            for i, chunk, idx in self.iter_documents(
                 batch_size=batch_size, return_indexes=True
             )
         ]
