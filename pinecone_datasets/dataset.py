@@ -62,11 +62,7 @@ def iter_pandas_dataframe_slices(
 ) -> Generator[List[Dict[str, Any]], None, None]:
     for i in range(0, len(df), batch_size):
         if return_indexes:
-            yield (
-                i,
-                df.iloc[i : i + batch_size].to_dict(orient="records"),
-                df.iloc[i : i + batch_size].index,
-            )
+            yield (i, df.iloc[i : i + batch_size].to_dict(orient="records"))
         else:
             yield df.iloc[i : i + batch_size].to_dict(orient="records")
 
@@ -425,28 +421,26 @@ class Dataset(object):
 
         sem = asyncio.Semaphore(concurrency)
 
-        pinecone_failed_batches: Dict[Int, Any] = {}
+        pinecone_failed_batches = []
 
-        async def send_batch(i, df, idx):
+        async def send_batch(i, batch):
             async with sem:
                 try:
-                    batch = df.loc[idx]
                     return await pinecone_index.upsert(vectors=batch, async_req=True)
                 except Exception as pe:
                     if i in pinecone_failed_batches:
                         raise pe
                     else:
-                        pinecone_failed_batches[i] = idx
+                        pinecone_failed_batches.append(i)
                         print(f"failed batches: {pinecone_failed_batches.keys()}")
                         return UpsertResponse(upserted_count=0)
 
         tasks = [
-            send_batch(i, self.documents, idx)
-            for i, chunk, idx in self.iter_documents(
+            send_batch(i, chunk)
+            for i, chunk in self.iter_documents(
                 batch_size=batch_size, return_indexes=True
             )
         ]
-        failed_tasks_pinecone = []
 
         pbar = tqdm(total=len(self.documents), desc="Upserting Vectors")
         total_upserted_count = 0
@@ -456,8 +450,14 @@ class Dataset(object):
             pbar.update(res.upserted_count)
 
         failed_tasks = [
-            send_batch(i, self.documents, index)
-            for i, index in pinecone_failed_batches.items()
+            send_batch(
+                i,
+                self.documents[self._config.Schema.documents_select_columns]
+                .dropna(axis=1, how="all")
+                .loc[i : i + batch_size]
+                .to_dict(orient="records"),
+            )
+            for i in pinecone_failed_batches
         ]
 
         for task in asyncio.as_completed(failed_tasks):
