@@ -455,7 +455,7 @@ class Dataset(object):
             pbar.update(res.upserted_count)
 
         failed_tasks = [
-            send_batch(i, self.documents[index], index)
+            send_batch(i, self.documents.loc[index], index)
             for i, index in pinecone_failed_batches.items()
         ]
 
