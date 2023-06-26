@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pinecone-datasets"
-version = "0.5.0-rc.8"
+version = "0.5.0-rc.9"
 description = "Pinecone Datasets lets you easily load datasets into your Pinecone index."
 authors = ["Pinecone"]
 maintainers = [
@@ -17,7 +17,7 @@ fsspec = "^2023.1.0"
 gcsfs = "^2023.1.0"
 s3fs = "^2023.1.0"
 pydantic = "^1.10.5"
-protobuf = ">=3.19.3,<3.20.0"
+protobuf = "~=3.20.0"
 pandas = "^2.0.0"
 tqdm = "^4.65.0"
 pinecone-client = { version = "3.0.0rc2", optional = true }
