@@ -432,7 +432,7 @@ class Dataset(object):
                         raise pe
                     else:
                         pinecone_failed_batches.append(i)
-                        print(f"failed batches: {pinecone_failed_batches.keys()}")
+                        print(f"failed batches: {pinecone_failed_batches}")
                         return UpsertResponse(upserted_count=0)
 
         tasks = [
