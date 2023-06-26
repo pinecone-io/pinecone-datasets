@@ -14,4 +14,4 @@ else:
 
 
 def test_version():
-    assert __version__ == "0.5.0-rc.9"
+    assert __version__ == "0.5.0-rc.10"
