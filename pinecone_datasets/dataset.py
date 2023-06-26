@@ -427,9 +427,10 @@ class Dataset(object):
 
         pinecone_failed_batches: Dict[Int, Any] = {}
 
-        async def send_batch(i, batch, index):
+        async def send_batch(i, df, index):
             async with sem:
                 try:
+                    batch = df.loc[index]
                     return await index.upsert(vectors=batch, async_req=True)
                 except Exception as pe:
                     if i in pinecone_failed_batches:
@@ -440,7 +441,7 @@ class Dataset(object):
                         return UpsertResponse(upserted_count=0)
 
         tasks = [
-            send_batch(i, self.documents[index], index)
+            send_batch(i, self.documents, index)
             for i, chunk, index in self.iter_documents(
                 batch_size=batch_size, return_indexes=True
             )
@@ -455,7 +456,7 @@ class Dataset(object):
             pbar.update(res.upserted_count)
 
         failed_tasks = [
-            send_batch(i, self.documents.loc[index], index)
+            send_batch(i, self.documents, index)
             for i, index in pinecone_failed_batches.items()
         ]
 
