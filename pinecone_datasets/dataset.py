@@ -36,13 +36,13 @@ else:
 
 
 class DatasetInitializationError(Exception):
-    message = """
+    long_message = """
     This dataset was not initialized from path, but from memory, e.g. Dataset.from_pandas(...)
     Therefore this dataset cannot be reloaded from path, or use methods that require a path.
     If you want to reload a dataset from path, please use the `from_path` method and pass a valid path.
     """
 
-    def __init__(self, message="My custom exception"):
+    def __init__(self, message=long_message):
         self.message = message
         super().__init__(self.message)
 
