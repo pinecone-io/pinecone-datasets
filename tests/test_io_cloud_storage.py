@@ -59,7 +59,7 @@ def test_io_cloud_storage_path():
         ),
     )
     ds = Dataset.from_pandas(documents=d, queries=q, metadata=metadata)
-    ds.save_to_path(str(dataset_path), endpoint_url="https://storage.googleapis.com")
+    ds.to_path(str(dataset_path), endpoint_url="https://storage.googleapis.com")
     loaded_ds = Dataset.from_path(
         str(dataset_path), endpoint_url="https://storage.googleapis.com"
     )
@@ -83,7 +83,7 @@ def test_io_cloud_storage_catalog():
         ),
     )
     ds = Dataset.from_pandas(documents=d, queries=q, metadata=metadata)
-    ds.save_to_catalog(
+    ds.to_catalog(
         catalog_base_path=catalog_base_path,
         dataset_id=dataset_id,
         endpoint_url="https://storage.googleapis.com",

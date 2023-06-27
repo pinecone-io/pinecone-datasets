@@ -43,6 +43,19 @@ class DatasetMetadata(BaseModel):
     tags: Optional[List[str]]
     args: Optional[Dict[str, Any]]
 
+    @staticmethod
+    def empty() -> "DatasetMetadata":
+        return DatasetMetadata(
+            name="",
+            created_at=get_time_now(),
+            documents=0,
+            queries=0,
+            dense_model=DenseModelMetadata(name="", dimension=0),
+        )
+
+    def is_empty(self) -> bool:
+        return self.name == "" and self.documents == 0 and self.queries == 0
+
 
 class Catalog(BaseModel):
     datasets: List[DatasetMetadata] = []

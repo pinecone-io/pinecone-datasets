@@ -1,7 +1,8 @@
+import pytest
 import pandas as pd
 from pandas.testing import assert_frame_equal as pd_assert_frame_equal
 
-from pinecone_datasets import Dataset
+from pinecone_datasets import Dataset, DatasetInitializationError
 from pinecone_datasets.catalog import DatasetMetadata, DenseModelMetadata
 
 d = pd.DataFrame(
@@ -57,8 +58,29 @@ def test_io(tmpdir):
         ),
     )
     ds = Dataset.from_pandas(documents=d, queries=q, metadata=metadata)
-    ds.save_to_path(str(dataset_path))
+    ds.to_path(str(dataset_path))
     loaded_ds = Dataset.from_path(str(dataset_path))
     assert loaded_ds.metadata == metadata
     pd_assert_frame_equal(loaded_ds.documents, ds.documents)
     pd_assert_frame_equal(loaded_ds.queries, ds.queries)
+
+
+def test_io_access_to_forbidden_functions():
+    dataset_name = "forbidden_functions_dataset"
+    metadata = DatasetMetadata(
+        name=dataset_name,
+        created_at="2021-01-01 00:00:00.000000",
+        documents=2,
+        queries=2,
+        dense_model=DenseModelMetadata(
+            name="ada2",
+            dimension=2,
+        ),
+    )
+    ds = Dataset.from_pandas(documents=d, queries=q, metadata=metadata)
+
+    with pytest.raises(DatasetInitializationError):
+        ds._safe_read_from_path(data_type="documents")
+
+    with pytest.raises(DatasetInitializationError):
+        ds._is_datatype_exists(data_type="documents")
