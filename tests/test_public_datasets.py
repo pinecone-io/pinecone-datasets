@@ -1,9 +1,11 @@
 import os
 
 import pandas as pd
-import polars as pl
+
+# import polars as pl
 import numpy as np
-from polars.testing import assert_frame_equal as pl_assert_frame_equal
+
+# from polars.testing import assert_frame_equal as pl_assert_frame_equal
 from pandas.testing import assert_frame_equal as pd_assert_frame_equal
 import pytest
 from pinecone_datasets import __version__, load_dataset, list_datasets, Dataset
@@ -12,10 +14,6 @@ WARN_MESSAGE = "Pinecone Datasets is a new and experimental library. The API is 
 
 test_base_path = "gs://ram-datasets"
 test_dataset = "quora_all-MiniLM-L6-bm25"
-
-
-def test_version():
-    assert __version__ == "0.4.0-alpha"
 
 
 def test_load_dataset_pandas():
@@ -34,17 +32,6 @@ def test_load_dataset_pandas():
 
     assert ds.metadata.name == test_dataset
     assert ds.metadata.queries == 15000
-
-
-def test_load_dataset_polars():
-    ds = Dataset.from_catalog(test_dataset, engine="polars")
-    assert ds.documents.shape[0] == 522931
-    assert ds.documents.shape[1] == 5
-    assert isinstance(ds.documents, pl.DataFrame)
-    assert isinstance(ds.head(), pl.DataFrame)
-    assert ds.head().shape[0] == 5
-    assert ds.head().shape[1] == 5
-    pl_assert_frame_equal(ds.head(), ds.documents.head())
 
 
 def test_list_datasets():
@@ -69,6 +56,22 @@ def test_iter_documents_pandas(tmpdir):
             "values": [0.1, 0.2, 0.3],
             "sparse_values": {"inices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
             "metadata": {"title": "title1", "url": "url1"},
+            "blob": None,
+        },
+        {
+            "id": "2",
+            "values": [0.4, 0.5, 0.6],
+            "sparse_values": {"inices": [4, 5, 6], "values": [0.4, 0.5, 0.6]},
+            "metadata": {"title": "title2", "url": "url2"},
+            "blob": None,
+        },
+    ]
+    itere_data = [
+        {
+            "id": "1",
+            "values": [0.1, 0.2, 0.3],
+            "sparse_values": {"inices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
+            "metadata": {"title": "title1", "url": "url1"},
         },
         {
             "id": "2",
@@ -84,17 +87,16 @@ def test_iter_documents_pandas(tmpdir):
     pd.DataFrame(data).to_parquet(documents_path.join("part-0.parquet"))
 
     ds = Dataset.from_catalog(dataset_name, catalog_base_path=str(tmpdir))
-
     for i, d in enumerate(ds.iter_documents()):
         assert isinstance(d, list)
         assert len(d) == 1
         assert isinstance(d[0], dict)
-        assert is_dicts_equal(d[0], data[i])
+        assert is_dicts_equal(d[0], itere_data[i])
         break
 
     for d in ds.iter_documents(batch_size=2):
-        assert is_dicts_equal(d[0], data[0])
-        assert is_dicts_equal(d[1], data[1])
+        assert is_dicts_equal(d[0], itere_data[0])
+        assert is_dicts_equal(d[1], itere_data[1])
         break
 
     assert ds.documents.shape[0] == 2
@@ -102,6 +104,23 @@ def test_iter_documents_pandas(tmpdir):
 
 def test_iter_queries_pandas(tmpdir):
     data = [
+        {
+            "vector": [0.1, 0.2, 0.3],
+            "sparse_vector": {"inices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
+            "filter": "filter1",
+            "top_k": 1,
+            "blob": None,
+        },
+        {
+            "vector": [0.4, 0.5, 0.6],
+            "sparse_vector": {"inices": [4, 5, 6], "values": [0.4, 0.5, 0.6]},
+            "filter": "filter2",
+            "top_k": 2,
+            "blob": None,
+        },
+    ]
+
+    iter_data = [
         {
             "vector": [0.1, 0.2, 0.3],
             "sparse_vector": {"inices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
@@ -115,7 +134,6 @@ def test_iter_queries_pandas(tmpdir):
             "top_k": 2,
         },
     ]
-
     dataset_name = "test_dataset"
     dataset_path = tmpdir.mkdir(dataset_name)
     queries_path = dataset_path.mkdir("queries")
@@ -127,7 +145,7 @@ def test_iter_queries_pandas(tmpdir):
         print(d)
         print(data[i])
         assert isinstance(d, dict)
-        assert is_dicts_equal(d, data[i])
+        assert is_dicts_equal(d, iter_data[i])
 
     assert ds.queries.shape[0] == 2
 

@@ -6,11 +6,13 @@
 pip install pinecone-datasets
 ```
 
-## Usage
+##  Usage - Loading
 
-You can use Pinecone Datasets to load our public datasets or with your own dataset.
+You can use Pinecone Datasets to load our public datasets or with your own datasets. Datasets library can be used in 2 main ways: ad-hoc loading of datasets from a path or as a catalog loader for datasets. 
 
-### Loading Pinecone Public Datasets
+### Loading Pinecone Public Datasets (catalog)
+
+Pinecone hosts a public datasets catalog, you can load a dataset by name using `list_datasets` and `load_dataset` functions. This will use the default catalog endpoint (currently GCS) to list and load datasets.
 
 ```python
 from pinecone_datasets import list_datasets, load_dataset
@@ -33,101 +35,35 @@ dataset.head()
 # └─────┴───────────────────────────┴─────────────────────────────────────┴───────────────────┴──────┘
 ```
 
+### Expected dataset structure
 
-### Iterating over a Dataset documents and queries
+pinecone datasets can load dataset from every storage where it has access (using the default access: s3, gcs or local permissions)
 
-Iterating over documents is useful for upserting but also for different updating. Iterating over queries is helpful in benchmarking
+ we expect data to be uploaded to the following directory structure:
 
-```python
+    ├── my-subdir                     # path to where all datasets
+    │   ├── my-dataset                # name of dataset
+    │   │   ├── metadata.json         # dataset metadata (optional, only for listed)
+    │   │   ├── documents             # datasets documents
+    │   │   │   ├── file1.parquet      
+    │   │   │   └── file2.parquet      
+    │   │   ├── queries               # dataset queries
+    │   │   │   ├── file1.parquet  
+    │   │   │   └── file2.parquet   
+    └── ...
 
-# List Iterator, where every list of size N Dicts with ("id", "metadata", "values", "sparse_values")
-dataset.iter_documents(batch_size=n) 
+The data schema is expected to be as follows:
 
-dataset.iter_queries()
+- `documents` directory contains parquet files with the following schema:
+    - Mandatory: `id: str, values: list[float]`
+    - Optional: `sparse_values: Dict: indices: List[int], values: List[float]`, `metadata: Dict`, `blob: dict`
+        - note: blob is a dict that can contain any data, it is not returned when iterating over the dataset and is inteded to be used for storing additional data that is not part of the dataset schema. however, it is sometime useful to store additional data in the dataset, for example, a document text. In future version this may become a first class citizen in the dataset schema.
+- `queries` directory contains parquet files with the following schema:
+    - Mandatory: `vector: list[float], top_k: int`
+    - Optional: `sparse_vector: Dict: indices: List[int], values: List[float]`, `filter: Dict`
+        - note: filter is a dict that contain pinecone filters, for more information see [here](https://docs.pinecone.io/docs/metadata-filtering)
 
-```
-
-### upserting to Index
-
-```bash
-pip install pinecone-client
-```
-
-```python
-import pinecone
-pinecone.init(api_key="API_KEY", environment="us-west1-gcp")
-
-pinecone.create_index(name="my-index", dimension=384, pod_type='s1')
-
-index = pinecone.Index("my-index")
-
-# you can iterate over documents in batches
-for batch in dataset.iter_documents(batch_size=100):
-    index.upsert(vectors=batch)
-
-# or upsert the dataset as dataframe
-index.upsert_from_dataframe(dataset.drop(columns=["blob"]))
-
-# using gRPC
-index = pinecone.GRPCIndex("my-index")
-```
-
-## Advanced Usage
-
-### Working with your own dataset storage
-
-Datasets is using Pinecone's public datasets bucket on GCS, you can use your own bucket by setting the `DATASETS_CATALOG_BASEPATH` environment variable.
-
-```bash
-export PINECONE_DATASETS_ENDPOINT="gs://my-bucket"
-```
-
-this will change the default endpoint to your bucket, and upon calling `list_datasets` or `load_dataset` it will scan your bucket and list all datasets.
-
-Note that you can also use `s3://` as a prefix to your bucket.
-
-### Authenication to your own bucket
-
-For now, Pinecone Datastes supports only GCS and S3 buckets, and with default authentication as provided by the fsspec implementation, respectively: `gcsfs` and `s3fs`.
-
-### Using aws key/secret authentication methods
-
-first, to set a new endpoint, set the environment variable `PINECONE_DATASETS_ENDPOINT` to your bucket.
-
-```bash
-export PINECONE_DATASETS_ENDPOINT="s3://my-bucket"
-```
-
-then, you can use the `key` and `secret` parameters to pass your credentials to the `list_datasets` and `load_dataset` functions.
-
-```python
-st = list_datasets(
-        key=os.environ.get("S3_ACCESS_KEY"),
-        secret=os.environ.get("S3_SECRET"),
-    )
-
-ds = load_dataset(
-        "test_dataset",
-        key=os.environ.get("S3_ACCESS_KEY"),
-        secret=os.environ.get("S3_SECRET"),
-)
-```
-
-## For developers
-
-This project is using poetry for dependency managemet. supported python version are 3.8+. To start developing, on project root directory run:
-
-```bash
-poetry install --with dev
-```
-
-To run test locally run 
-
-```bash
-poetry run pytest --cov pinecone_datasets
-```
-
-To create a pinecone-public dataset you may need to generate a dataset metadata. For example:
+in addition, a metadata file is expected to be in the dataset directory, for example: `s3://my-bucket/my-dataset/metadata.json`
 
 ```python
 from pinecone_datasets.catalog import DatasetMetadata
@@ -145,47 +81,126 @@ meta = DatasetMetadata(
 )
 ```
 
-to see the complete schema you can run:
+full metadata schema can be found in `pinecone_datasets.catalog.DatasetMetadata.schema`
 
-```python
-meta.schema()
+### Loading your own dataset from catalog
+
+To set you own catalog endpoint, set the environment variable `DATASETS_CATALOG_BASEPATH` to your bucket. Note that pinecone uses the default authentication method for the storage type (gcsfs for GCS and s3fs for S3).
+
+```bash
+export DATASETS_CATALOG_BASEPATH="s3://my-bucket/my-subdir"
 ```
 
-in order to list a dataset you can save dataset metadata (NOTE: write permission to loacaion is needed)
-
 ```python
-dataset = Dataset("non-listed-dataset")
-dataset._save_metadata(meta)
+from pinecone_datasets import list_datasets, load_dataset
+
+list_datasets()
+
+# ["my-dataset", ... ]
+
+dataset = load_dataset("my-dataset")
 ```
 
-### Uploading and listing a dataset. 
+### Loading your own dataset from path
 
-pinecone datasets can load dataset from every storage where it has access (using the default access: s3, gcs or local permissions)
-
- we expect data to be uploaded to the following directory structure:
-
-    ├── base_path                     # path to where all datasets
-    │   ├── dataset_id                # name of dataset
-    │   │   ├── metadata.json         # dataset metadata (optional, only for listed)
-    │   │   ├── documents             # datasets documents
-    │   │   │   ├── file1.parquet      
-    │   │   │   └── file2.parquet      
-    │   │   ├── queries               # dataset queries
-    │   │   │   ├── file1.parquet  
-    │   │   │   └── file2.parquet   
-    └── ...
-
-a listed dataset is a dataset that is loaded and listed using `load_dataset` and `list_dataset`
-pinecone datasets will scan storage and will list every dataset with metadata file, for example: `s3://my-bucket/my-dataset/metadata.json`
-
-### Accessing a non-listed dataset
-
-to access a non listed dataset you can directly load it via:
+You can load your own dataset from a local path or a remote path (GCS or S3). Note that pinecone uses the default authentication method for the storage type (gcsfs for GCS and s3fs for S3).
 
 ```python
 from pinecone_datasets import Dataset
 
-dataset = Dataset("non-listed-dataset")
+dataset = Dataset("s3://my-bucket/my-subdir/my-dataset")
+```
+
+### Loading from a pandas dataframe
+
+Pinecone Datasets enables you to load a dataset from a pandas dataframe. This is useful for loading a dataset from a local file and saving it to a remote storage.
+The minimal required data is a documents dataset, and the minimal required columns are `id` and `values`. The `id` column is a unique identifier for the document, and the `values` column is a list of floats representing the document vector.
+
+```python
+import pandas as pd
+
+df = pd.read_parquet("my-dataset.parquet")
+
+dataset = Dataset.from_pandas(df)
+```
+
+Please check the documentation for more information on the expected dataframe schema. There's also a column mapping variable that can be used to map the dataframe columns to the expected schema.
+
+
+## Usage - Accessing data
+
+Pinecone Datasets is build on top of pandas. This means that you can use all the pandas API to access the data. In addition, we provide some helper functions to access the data in a more convenient way. 
+
+### Accessing documents and queries dataframes
+
+accessing the documents and queries dataframes is done using the `documents` and `queries` properties. These properties are lazy and will only load the data when accessed. 
+
+```python
+document_df: pd.DataFrame = dataset.documents
+
+query_df: pd.DataFrame = dataset.queries
 ```
 
 
+## Usage - Iterating
+
+One of the main use cases for Pinecone Datasets is iterating over a dataset. This is useful for upserting a dataset to an index, or for benchmarking. It is also useful for iterating over large datasets - as of today, datasets are not yet lazy, however we are working on it.
+
+
+```python
+
+# List Iterator, where every list of size N Dicts with ("id", "values", "sparse_values", "metadata")
+dataset.iter_documents(batch_size=n) 
+
+# Dict Iterator, where every dict has ("vector", "sparse_vector", "filter", "top_k")
+dataset.iter_queries()
+
+```
+
+### The 'blob' column
+
+Pinecone dataset ship with a blob column which is inteneded to be used for storing additional data that is not part of the dataset schema. however, it is sometime useful to store additional data in the dataset, for example, a document text. We added a utility function to move data from the blob column to the metadata column. This is useful for example when upserting a dataset to an index and want to use the metadata to store text data.
+
+```python
+from pinecone_datasets import import_documents_keys_from_blob_to_metadata
+
+new_dataset = import_documents_keys_from_blob_to_metadata(dataset, keys=["text"])
+```
+
+
+### upserting to Index
+
+When upserting a Dataset to an Index, only the document data will be upserted to the index. The queries data will be ignored. 
+
+TODO: add example for API Key adn Environment Variables
+
+```python
+ds = load_dataset("dataset_name")
+
+# If index exists
+ds.to_index("index_name")
+
+# If index does not exist use create_index=True, this will create the index with the default pinecone settings and dimension from the dataset metadata.
+ds.to_index("index_name", create_index=True)
+
+```
+
+the `to_index` function also accepts additional parameters
+
+* `batch_size` and `concurrency` - for controlling the upserting process
+* `kwargs` - for passing additional parameters to the index creation process
+
+
+## For developers
+
+This project is using poetry for dependency managemet. supported python version are 3.8+. To start developing, on project root directory run:
+
+```bash
+poetry install --with dev
+```
+
+To run test locally run 
+
+```bash
+poetry run pytest --cov pinecone_datasets
+```
