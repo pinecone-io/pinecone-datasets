@@ -432,7 +432,6 @@ class Dataset(object):
                         raise pe
                     else:
                         pinecone_failed_batches.append(i)
-                        print(f"failed batches: {pinecone_failed_batches}")
                         return UpsertResponse(upserted_count=0)
 
         tasks = [
@@ -474,23 +473,10 @@ class Dataset(object):
         environment: Optional[str] = None,
         **kwargs,
     ) -> Index:
-        dimension = self.metadata.dense_model.dimension
-        api_key = api_key if api_key else os.environ.get("PINECONE_API_KEY", None)
-        environment = (
-            environment if environment else os.environ.get("PINECONE_ENVIRONMENT", None)
-        )
-
-        if not (api_key and environment):
-            raise ValueError(
-                "Please set PINECONE_API_KEY and PINECONE_ENVIRONMENT environment variables, \
-                or pass them as arguments to the function"
-            )
-        # create client
-
         if version("pinecone-client").startswith("3"):
-            self._pinecone_client = pc(api_key=api_key, region=environment)
+            self._pinecone_client = pc(api_key=api_key, region=environment, **kwargs)
         elif version("pinecone-client").startswith("2"):
-            pc.init(api_key=api_key, environment=environment)
+            pc.init(api_key=api_key, environment=environment, **kwargs)
             self._pinecone_client = pc
 
         pinecone_index_list = self._pinecone_client.list_indexes()
@@ -540,6 +526,7 @@ class Dataset(object):
 
         Keyword Args:
             kwargs (Dict): additional arguments to pass to the Pinecone Client constructor when creating the index.
+            see available parameters here: https://docs.pinecone.io/reference/create_index
 
 
         Returns:
@@ -559,8 +546,12 @@ class Dataset(object):
                 + "example: `await dataset.to_pinecone_index_async(index_name)`"
             )
 
-        if not self._create_index(index_name, **kwargs):
+        if not self._create_index(
+            index_name, api_key=api_key, environment=environment, **kwargs
+        ):
             raise RuntimeError("index creation failed")
+
+        # TODO: add concurrency = 0 as sync loop (def _upsert...) and add sync loop
 
         cor = self._async_upsert(
             index_name=index_name,
@@ -595,6 +586,8 @@ class Dataset(object):
 
         Keyword Args:
             kwargs (Dict): additional arguments to pass to the Pinecone Client constructor when creating the index.
+            see available parameters here: https://docs.pinecone.io/reference/create_index
+
 
         Returns:
             UpsertResponse: an object containing the upserted_count
@@ -604,15 +597,9 @@ class Dataset(object):
             result = await dataset.to_pinecone_index_async(index_name="my_index")
             ```
         """
-        loop = asyncio.get_event_loop()
-        if not loop.is_running():
-            raise RuntimeError(
-                "You are running inside a Jupyter Notebook or another Asyncio context. \
-                Plesae use the function to_pinecone_index instead. \
-                example: `dataset.to_pinecone_index(index_name)`"
-            )
-
-        if not self._create_index(index_name, **kwargs):
+        if not self._create_index(
+            index_name, api_key=api_key, environment=environment, **kwargs
+        ):
             raise RuntimeError("index creation failed")
 
         res = await self._async_upsert(

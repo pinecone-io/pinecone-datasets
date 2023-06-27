@@ -172,6 +172,8 @@ new_dataset = import_documents_keys_from_blob_to_metadata(dataset, keys=["text"]
 
 When upserting a Dataset to an Index, only the document data will be upserted to the index. The queries data will be ignored. 
 
+TODO: add example for API Key adn Environment Variables
+
 ```python
 ds = load_dataset("dataset_name")
 
