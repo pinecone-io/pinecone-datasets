@@ -83,6 +83,7 @@ meta = DatasetMetadata(
 
 full metadata schema can be found in `pinecone_datasets.catalog.DatasetMetadata.schema`
 
+
 ### Loading your own dataset from catalog
 
 To set you own catalog endpoint, set the environment variable `DATASETS_CATALOG_BASEPATH` to your bucket. Note that pinecone uses the default authentication method for the storage type (gcsfs for GCS and s3fs for S3).
@@ -101,6 +102,16 @@ list_datasets()
 dataset = load_dataset("my-dataset")
 ```
 
+additionally, you can load a dataset from the Dataset class
+
+```python
+
+from pinecone_datasets import Dataset
+
+dataset = Dataset.from_catalog("my-dataset")
+```
+
+
 ### Loading your own dataset from path
 
 You can load your own dataset from a local path or a remote path (GCS or S3). Note that pinecone uses the default authentication method for the storage type (gcsfs for GCS and s3fs for S3).
@@ -108,8 +119,10 @@ You can load your own dataset from a local path or a remote path (GCS or S3). No
 ```python
 from pinecone_datasets import Dataset
 
-dataset = Dataset("s3://my-bucket/my-subdir/my-dataset")
+dataset = Dataset.from_path("s3://my-bucket/my-subdir/my-dataset")
 ```
+
+This assumes that the path is structured as described in the Expected dataset structure section
 
 ### Loading from a pandas dataframe
 
@@ -120,8 +133,9 @@ The minimal required data is a documents dataset, and the minimal required colum
 import pandas as pd
 
 df = pd.read_parquet("my-dataset.parquet")
+metadata = DatasetMetadata(**metadata_dict)
 
-dataset = Dataset.from_pandas(df)
+dataset = Dataset.from_pandas(documents = df, quries = None, metadata = metadata)
 ```
 
 Please check the documentation for more information on the expected dataframe schema. There's also a column mapping variable that can be used to map the dataframe columns to the expected schema.
@@ -167,6 +181,41 @@ from pinecone_datasets import import_documents_keys_from_blob_to_metadata
 new_dataset = import_documents_keys_from_blob_to_metadata(dataset, keys=["text"])
 ```
 
+## Usage saving
+
+you can save your dataset to a catalog managed by you or to a local path or a remote path (GCS or S3). 
+
+### Saving to Catalog
+
+To set you own catalog endpoint, set the environment variable `DATASETS_CATALOG_BASEPATH` to your bucket. Note that pinecone uses the default authentication method for the storage type (gcsfs for GCS and s3fs for S3).
+
+After this environment variable is set you can save your dataset to the catalog using the `save` function
+
+```python
+from pinecone_datasets import Dataset
+
+metadata = DatasetMetadata(**{"name": "my-dataset", ...})
+```
+
+---
+
+🚨 *NOTE* Dataset name in the metadata must match the `dataset_id` parameter you pass to the catalog, in this example 'my-dataset'
+
+---
+
+```python
+dataset = Dataset.from_pandas(documents, queries, metadata)
+dataset.to_catalog("my-dataset")
+```
+
+### Saving to Path
+
+You can save your dataset to a local path or a remote path (GCS or S3). Note that pinecone uses the default authentication method for the storage type (gcsfs for GCS and s3fs for S3).
+
+```python
+dataset = Dataset.from_pandas(documents, queries, metadata)
+dataset.to_path("s3://my-bucket/my-subdir/my-dataset")
+```
 
 ### upserting to Index
 
@@ -177,11 +226,11 @@ TODO: add example for API Key adn Environment Variables
 ```python
 ds = load_dataset("dataset_name")
 
-# If index exists
-ds.to_index("index_name")
+ds.to_pinecone_index("index_name")
 
-# If index does not exist use create_index=True, this will create the index with the default pinecone settings and dimension from the dataset metadata.
-ds.to_index("index_name", create_index=True)
+# or, if you run in notebook environment
+
+await ds.to_pinecone_index_async("index_name")
 
 ```
 
@@ -189,6 +238,12 @@ the `to_index` function also accepts additional parameters
 
 * `batch_size` and `concurrency` - for controlling the upserting process
 * `kwargs` - for passing additional parameters to the index creation process
+
+---
+
+🚨 *NOTE* Creating an index from a dataset will always create a new index. If you want to upsert to an existing index, you can use the document iterator with Index.upsert method from Pinecone Client
+
+---
 
 
 ## For developers
@@ -204,3 +259,4 @@ To run test locally run
 ```bash
 poetry run pytest --cov pinecone_datasets
 ```
+
