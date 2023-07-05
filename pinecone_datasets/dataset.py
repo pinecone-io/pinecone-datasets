@@ -1,5 +1,5 @@
-import sys
 import glob
+import sys
 import os
 import itertools
 import time
@@ -412,7 +412,9 @@ class Dataset(object):
         dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
         self.to_path(dataset_path, **kwargs)
 
-    async def _async_upsert(self, index_name: str, batch_size: int, concurrency: int):
+    async def _async_upsert(
+        self, index_name: str, namespace: str, batch_size: int, concurrency: int
+    ):
         pinecone_index = (
             self._pinecone_client.get_index(index_name=index_name)
             if version("pinecone-client").startswith("3")
@@ -426,7 +428,9 @@ class Dataset(object):
         async def send_batch(i, batch):
             async with sem:
                 try:
-                    return await pinecone_index.upsert(vectors=batch, async_req=True)
+                    return await pinecone_index.upsert(
+                        vectors=batch, namespace=namespace, async_req=True
+                    )
                 except Exception as pe:
                     if i in pinecone_failed_batches:
                         raise pe
@@ -503,6 +507,8 @@ class Dataset(object):
     def to_pinecone_index(
         self,
         index_name: str,
+        namespace: Optional[str] = "",
+        should_create: bool = True,
         batch_size: int = 100,
         concurrency: int = 10,
         api_key: Optional[str] = None,
@@ -521,6 +527,7 @@ class Dataset(object):
 
         Args:
             index_name (str): the name of the index to upsert to
+            namespace (str, optional): the namespace to use for the upsert. Defaults to "".
             batch_size (int, optional): the batch size to use for the upsert. Defaults to 100.
             concurrency (int, optional): the concurrency to use for the upsert. Defaults to 10.
 
@@ -555,6 +562,7 @@ class Dataset(object):
 
         cor = self._async_upsert(
             index_name=index_name,
+            namespace=namespace,
             batch_size=batch_size,
             concurrency=concurrency,
         )
@@ -563,6 +571,8 @@ class Dataset(object):
     async def to_pinecone_index_async(
         self,
         index_name: str,
+        namespace: Optional[str] = "",
+        should_create: bool = True,
         batch_size: int = 100,
         concurrency: int = 10,
         api_key: Optional[str] = None,
@@ -581,6 +591,7 @@ class Dataset(object):
 
         Args:
             index_name (str): the name of the index to upsert to
+            namespace (str, optional): the namespace to use for the upsert. Defaults to "".
             batch_size (int, optional): the batch size to use for the upsert. Defaults to 100.
             concurrency (int, optional): the concurrency to use for the upsert. Defaults to 10.
 
@@ -604,6 +615,7 @@ class Dataset(object):
 
         res = await self._async_upsert(
             index_name=index_name,
+            namespace=namespace,
             batch_size=batch_size,
             concurrency=concurrency,
         )
