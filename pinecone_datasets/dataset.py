@@ -552,13 +552,12 @@ class Dataset(object):
                 + "Plesae use the function to_pinecone_index_async instead. "
                 + "example: `await dataset.to_pinecone_index_async(index_name)`"
             )
-        
+
         if should_create:
             if not self._create_index(
                 index_name, api_key=api_key, environment=environment, **kwargs
             ):
                 raise RuntimeError("index creation failed")
-        
 
         # TODO: add concurrency = 0 as sync loop (def _upsert...) and add sync loop
 
