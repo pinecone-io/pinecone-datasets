@@ -471,6 +471,7 @@ class Dataset(object):
         return {"upserted_count": total_upserted_count}
 
     def _set_pinecone_index(
+        self,
         api_key: Optional[str] = None,
         environment: Optional[str] = None,
         **kwargs,
