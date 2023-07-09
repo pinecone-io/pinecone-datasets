@@ -51,6 +51,7 @@ jobs:
     - name: Run pytest clientv2
       env:
         PY_VERSION: ${{ matrix.python-version }}
+        CLIENT_VERSION: v2
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
@@ -86,6 +87,7 @@ jobs:
     - name: Run pytest clientv3
       env:
         PY_VERSION: ${{ matrix.python-version }}
+        CLIENT_VERSION: v3
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}

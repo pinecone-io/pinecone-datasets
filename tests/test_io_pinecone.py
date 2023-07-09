@@ -23,7 +23,7 @@ class TestPinecone:
         elif version("pinecone-client").startswith("2"):
             PC.init()
             self.client = PC
-        self.index_name = f"quora-index-{os.environ['PY_VERSION'].replace('.', '-')}"
+        self.index_name = f"quora-index-{os.environ['CLIENT_VERSION']}-{os.environ['PY_VERSION'].replace('.', '-')}"
         self.dataset_size = 100000
         self.dataset_dim = 384
         self.tested_dataset = "quora_all-MiniLM-L6-bm25-100K"
