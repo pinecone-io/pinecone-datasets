@@ -544,14 +544,17 @@ class Dataset(object):
             result = dataset.to_pinecone_index(index_name="my_index")
             ```
         """
-
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            raise RuntimeError(
-                "You are running inside a Jupyter Notebook or another Asyncio context. "
-                + "Plesae use the function to_pinecone_index_async instead. "
-                + "example: `await dataset.to_pinecone_index_async(index_name)`"
-            )
+        try: 
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                raise RuntimeError(
+                    "You are running inside a Jupyter Notebook or another Asyncio context. "
+                    + "Plesae use the function to_pinecone_index_async instead. "
+                    + "example: `await dataset.to_pinecone_index_async(index_name)`"
+                )
+        except:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
 
         if should_create:
             if not self._create_index(
