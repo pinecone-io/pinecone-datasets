@@ -82,51 +82,45 @@ class TestPinecone:
             self.client.Index(this_test_index).describe_index_stats().total_vector_count
             == 0
         )
+        try:
+            # upsert dataset to index
+            self.ds.to_pinecone_index(
+                index_name=this_test_index,
+                batch_size=300,
+                concurrency=1,
+                create_index=False,
+            )
+            index = self.client.Index(this_test_index)
 
-        # upsert dataset to index
-        self.ds.to_pinecone_index(
-            index_name=this_test_index,
-            batch_size=300,
-            concurrency=1,
-            create_index=False,
-        )
-        index = self.client.Index(this_test_index)
+            # Wait for index to be ready
+            time.sleep(60)
+            assert index.describe_index_stats().total_vector_count == self.dataset_size
+            assert (
+                index.describe_index_stats().namespaces[""].vector_count
+                == self.dataset_size
+            )
 
-        # Wait for index to be ready
-        time.sleep(60)
-        assert index.describe_index_stats().total_vector_count == self.dataset_size
-        assert (
-            index.describe_index_stats().namespaces[""].vector_count
-            == self.dataset_size
-        )
+            # upsert dataset to index at a specific namespace
+            namespace = "test"
+            self.ds.to_pinecone_index(
+                index_name=this_test_index,
+                batch_size=300,
+                concurrency=1,
+                create_index=False,
+                namespace=namespace,
+            )
 
-        # upsert dataset to index at a specific namespace
-        namespace = "test"
-        self.ds.to_pinecone_index(
-            index_name=this_test_index,
-            batch_size=300,
-            concurrency=1,
-            create_index=False,
-            namespace=namespace,
-        )
+            # Wait for index to be ready
+            time.sleep(60)
+            assert (
+                index.describe_index_stats().total_vector_count == self.dataset_size * 2
+            )
+            assert (
+                index.describe_index_stats().namespaces[namespace].vector_count
+                == self.dataset_size
+            )
 
-        # Wait for index to be ready
-        time.sleep(60)
-        assert index.describe_index_stats().total_vector_count == self.dataset_size * 2
-        assert (
-            index.describe_index_stats().namespaces[namespace].vector_count
-            == self.dataset_size
-        )
-
-    def teardown_method(self):
-        def delete_one(index_name):
-            if index_name in self.client.list_indexes():
-                print(f"Deleting index {index_name}")
-                self.client.delete_index(index_name)
-
-                while index_name in self.client.list_indexes():
-                    print(f"Waiting for index {index_name} to be deleted")
-                    time.sleep(5)
-
-        for index_name in [self.index_name, self.index_name + "-precreated"]:
-            delete_one(index_name)
+        finally:
+            if this_test_index in self.client.list_indexes():
+                print(f"Deleting index {this_test_index}")
+                self.client.delete_index(this_test_index)
