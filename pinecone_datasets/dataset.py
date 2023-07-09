@@ -473,6 +473,7 @@ class Dataset(object):
     def _set_pinecone_index(
         api_key: Optional[str] = None,
         environment: Optional[str] = None,
+        **kwargs,
     ) -> None:
         if version("pinecone-client").startswith("3"):
             self._pinecone_client = pc(api_key=api_key, region=environment, **kwargs)
@@ -567,7 +568,7 @@ class Dataset(object):
             ):
                 raise RuntimeError("index creation failed")
         else:
-            self._set_pinecone_index(api_key=api_key, environment=environment)
+            self._set_pinecone_index(api_key=api_key, environment=environment, **kwargs)
 
         # TODO: add concurrency = 0 as sync loop (def _upsert...) and add sync loop
 
@@ -625,7 +626,7 @@ class Dataset(object):
             ):
                 raise RuntimeError("index creation failed")
         else:
-            self._set_pinecone_index(api_key=api_key, environment=environment)
+            self._set_pinecone_index(api_key=api_key, environment=environment, **kwargs)
 
         res = await self._async_upsert(
             index_name=index_name,
