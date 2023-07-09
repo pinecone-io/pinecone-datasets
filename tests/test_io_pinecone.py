@@ -27,6 +27,7 @@ class TestPinecone:
         self.dataset_size = 100000
         self.dataset_dim = 384
         self.tested_dataset = "quora_all-MiniLM-L6-bm25-100K"
+        self.ds = load_dataset(self.tested_dataset)
 
     def test_large_dataset_upsert_to_pinecone_with_creating_index(self):
         print(f"Testing dataset {self.tested_dataset} with index {self.index_name}")
@@ -65,21 +66,20 @@ class TestPinecone:
                 self.client.delete_index(self.index_name)
 
     def test_dataset_upsert_to_existing_index(self):
-        this_test_index = self.index_name + "-precreated"
-        # create an index
-        self.client.create_index(name=this_test_index, dimension=self.dataset_dim)
-        self.ds = load_dataset(self.tested_dataset)
-        assert self.ds.documents.shape[0] == self.dataset_size
-
-        # check that index exists
-        assert this_test_index in self.client.list_indexes()
-
-        # check that index is empty
-        assert (
-            self.client.Index(this_test_index).describe_index_stats().total_vector_count
-            == 0
-        )
         try:
+            # create an index
+            this_test_index = self.index_name + "-precreated"
+            self.client.create_index(name=this_test_index, dimension=self.dataset_dim)
+            # check that index exists
+            assert this_test_index in self.client.list_indexes()
+
+            # check that index is empty
+            assert (
+                self.client.Index(this_test_index)
+                .describe_index_stats()
+                .total_vector_count
+                == 0
+            )
             # upsert dataset to index
             self.ds.to_pinecone_index(
                 index_name=this_test_index,
