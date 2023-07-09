@@ -64,7 +64,7 @@ class TestPinecone:
 
             assert deep_list_cmp(
                 index.fetch(ids=["1"])["1"].values,
-                selfds.documents.loc[0].values[1].tolist(),
+                self.documents.loc[0].values[1].tolist(),
             )
         finally:
             if self.index_name in self.client.list_indexes():
