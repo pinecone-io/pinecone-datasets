@@ -544,7 +544,7 @@ class Dataset(object):
             result = dataset.to_pinecone_index(index_name="my_index")
             ```
         """
-        try: 
+        try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 raise RuntimeError(
