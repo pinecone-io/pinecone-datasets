@@ -28,13 +28,6 @@ class TestPinecone:
         self.dataset_dim = 384
         self.tested_dataset = "quora_all-MiniLM-L6-bm25-100K"
 
-        # create an index
-        self.client.create_index(
-            name=self.index_name + "-precreated", dimension=self.dataset_dim
-        )
-        self.ds = load_dataset(self.tested_dataset)
-        assert self.ds.documents.shape[0] == self.dataset_size
-
     def test_large_dataset_upsert_to_pinecone_with_creating_index(self):
         print(f"Testing dataset {self.tested_dataset} with index {self.index_name}")
 
@@ -64,7 +57,7 @@ class TestPinecone:
 
             assert deep_list_cmp(
                 index.fetch(ids=["1"])["1"].values,
-                self.documents.loc[0].values[1].tolist(),
+                self.ds.documents.loc[0].values[1].tolist(),
             )
         finally:
             if self.index_name in self.client.list_indexes():
@@ -73,6 +66,10 @@ class TestPinecone:
 
     def test_dataset_upsert_to_existing_index(self):
         this_test_index = self.index_name + "-precreated"
+        # create an index
+        self.client.create_index(name=this_test_index, dimension=self.dataset_dim)
+        self.ds = load_dataset(self.tested_dataset)
+        assert self.ds.documents.shape[0] == self.dataset_size
 
         # check that index exists
         assert this_test_index in self.client.list_indexes()
@@ -88,7 +85,7 @@ class TestPinecone:
                 index_name=this_test_index,
                 batch_size=300,
                 concurrency=1,
-                create_index=False,
+                should_create=False,
             )
             index = self.client.Index(this_test_index)
 
@@ -106,7 +103,7 @@ class TestPinecone:
                 index_name=this_test_index,
                 batch_size=300,
                 concurrency=1,
-                create_index=False,
+                should_create=False,
                 namespace=namespace,
             )
 
