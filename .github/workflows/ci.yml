@@ -3,14 +3,13 @@ name: CI
 on: push
 
 jobs:
-  run-tests:
-    name: Run tests
+  lint-and-mypy:
+    name: Lint and Mypy
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.9, '3.10', 3.11]
-
-    steps:
+        python-version: ['3.10']
+  steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
@@ -27,7 +26,64 @@ jobs:
       run: poetry run black --check .
     - name: Run mypy check
       run: poetry run mypy .
-    - name: Run pytest
+
+  run-tests-clientv2:
+    name: Run tests client v2
+    needs: lint-and-mypy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, '3.10', 3.11]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: 1.3.2
+    - name: install dependencies
+      run: |
+        poetry add pinecone-client==2.2.2
+        poetry install --with dev
+    - name: Run pytest clientv2
+      env:
+        PY_VERSION: ${{ matrix.python-version }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+        PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_ENVIRONMENT }}
+      run: poetry run pytest --html=report.html --cov pinecone_datasets
+    - name: upload pytest report.html
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: dataset-pytest-report-py${{ matrix.python-version }}
+        path: report.html
+
+  run-tests-clientv3:
+    name: Run tests client v3
+    needs: lint-and-mypy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, '3.10', 3.11]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: 1.3.2
+    - name: install dependencies
+      run: |
+        poetry install --with dev --all-extras
+    - name: Run pytest clientv3
       env:
         PY_VERSION: ${{ matrix.python-version }}
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
