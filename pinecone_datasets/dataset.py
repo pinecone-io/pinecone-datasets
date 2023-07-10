@@ -428,9 +428,15 @@ class Dataset(object):
         async def send_batch(i, batch):
             async with sem:
                 try:
-                    return await pinecone_index.upsert(
-                        vectors=batch, namespace=namespace, async_req=True
-                    )
+                    if version("pinecone-client").startswith("3"):
+                        return await pinecone_index.upsert(
+                            vectors=batch, namespace=namespace, async_req=True
+                        )
+                    elif version("pinecone-client").startswith("2"):
+                        fut = pinecone_index.upsert(
+                            vectors=batch, namespace=namespace, async_req=True
+                        )
+                        await asyncio.wrap_future(fut._delegate)
                 except Exception as pe:
                     if i in pinecone_failed_batches:
                         raise pe
