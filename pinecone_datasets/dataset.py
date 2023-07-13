@@ -23,14 +23,10 @@ from pinecone_datasets.catalog import DatasetMetadata
 from pinecone_datasets.fs import get_cloud_fs, LocalFileSystem
 
 if version("pinecone-client").startswith("3"):
-    from pinecone import Client as pc, Index
+    from pinecone import Client as pc
 elif version("pinecone-client").startswith("2"):
     import pinecone as pc
 
-    try:
-        from pinecone import GRPCIndex as Index
-    except ImportError:
-        from pinecone import Index
 else:
     warnings.warn(
         message="Pinecone client version not supported or non-existent,"
@@ -415,11 +411,7 @@ class Dataset(object):
     async def _async_upsert(
         self, index_name: str, namespace: str, batch_size: int, concurrency: int
     ):
-        pinecone_index = (
-            self._pinecone_client.get_index(index_name=index_name)
-            if version("pinecone-client").startswith("3")
-            else Index(index_name=index_name)
-        )
+        pinecone_index = self._pinecone_client.Index(index_name)
 
         sem = asyncio.Semaphore(concurrency)
 
