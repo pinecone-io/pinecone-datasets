@@ -486,7 +486,7 @@ class Dataset(object):
         api_key: Optional[str] = None,
         environment: Optional[str] = None,
         **kwargs,
-    ) -> Index:
+    ) -> pc.Index:
         self._set_pinecone_index(api_key=api_key, environment=environment)
         pinecone_index_list = self._pinecone_client.list_indexes()
 
