@@ -26,6 +26,7 @@ if version("pinecone-client").startswith("3"):
     from pinecone import Client as pc
 elif version("pinecone-client").startswith("2"):
     import pinecone as pc
+    from pinecone import GRPCIndex
 
 else:
     warnings.warn(
@@ -411,7 +412,11 @@ class Dataset(object):
     async def _async_upsert(
         self, index_name: str, namespace: str, batch_size: int, concurrency: int
     ):
-        pinecone_index = self._pinecone_client.Index(index_name)
+        pinecone_index = (
+            self._pinecone_client.Index(index_name)
+            if version("pinecone-client").startswith("3")
+            else self._pinecone_client.GRPCIndex(index_name)
+        )
 
         sem = asyncio.Semaphore(concurrency)
 
