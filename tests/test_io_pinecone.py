@@ -55,9 +55,13 @@ class TestPinecone:
             # Wait for index to be ready
             time.sleep(60)
             assert index.describe_index_stats().total_vector_count == self.dataset_size
-
+            fetch_results_values = (
+                index.fetch(ids=["1"])["1"].values
+                if version("pinecone-client").startswith("3")
+                else index.fetch(ids=["1"])["vectors"]["1"].values
+            )
             assert deep_list_cmp(
-                index.fetch(ids=["1"])["1"].values,
+                fetch_results_values,
                 self.ds.documents.loc[0].values[1].tolist(),
             )
         finally:
