@@ -13,7 +13,7 @@ elif version("pinecone-client").startswith("2"):
         from pinecone import Index
 from pinecone_datasets import list_datasets, load_dataset
 
-from tests.test_public_datasets import deep_list_cmp
+from tests.test_public_datasets import deep_list_cmp, deep_list_cmp_approx
 
 
 class TestPinecone:
@@ -60,7 +60,7 @@ class TestPinecone:
                 if version("pinecone-client").startswith("3")
                 else index.fetch(ids=["1"])["vectors"]["1"].values
             )
-            assert deep_list_cmp(
+            assert deep_list_cmp_approx(
                 fetch_results_values,
                 self.ds.documents.loc[0].values[1].tolist(),
             )
