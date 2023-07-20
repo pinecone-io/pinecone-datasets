@@ -160,6 +160,7 @@ def deep_list_cmp(l1, l2):
         same = same and l == r
     return same
 
+
 def deep_list_cmp_approx(l1, l2):
     same = True
     for l, r in zip(l1, l2):
