@@ -160,6 +160,12 @@ def deep_list_cmp(l1, l2):
         same = same and l == r
     return same
 
+def deep_list_cmp_approx(l1, l2):
+    same = True
+    for l, r in zip(l1, l2):
+        same = same and np.allclose(l, r)
+    return same
+
 
 def recursive_dict_compare(d1, d2):
     for k, v in d1.items():
