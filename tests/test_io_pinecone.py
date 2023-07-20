@@ -34,7 +34,7 @@ class TestPinecone:
 
         if self.index_name in self.client.list_indexes():
             print(f"Deleting index {self.index_name}")
-            self.client.delete_index(index_name)
+            self.client.delete_index(self.index_name)
 
             while self.index_name in self.client.list_indexes():
                 print(f"Waiting for index {self.index_name} to be deleted")
