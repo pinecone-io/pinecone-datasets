@@ -6,4 +6,6 @@ client = Client()
 
 def run():
     for index in client.list_indexes():
-        client.delete_index(index=index)
+        print(f"Deleting index {index}")
+        client.delete_index(index)
+        print(f"Deleted index {index}")
