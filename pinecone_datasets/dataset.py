@@ -418,6 +418,17 @@ class Dataset(object):
             else self._pinecone_client.GRPCIndex(index_name)
         )
 
+        if version("pinecone-client").startswith("2"):
+            res = pinecone_index.upsert_from_dataframe(
+                self.documents[self._config.Schema.documents_select_columns].dropna(
+                    axis=1, how="all"
+                ),
+                namespace=namespace,
+                batch_size=batch_size,
+            )
+
+            return {"upserted_count": res.upserted_count}
+
         sem = asyncio.Semaphore(concurrency)
 
         pinecone_failed_batches = []
@@ -425,15 +436,9 @@ class Dataset(object):
         async def send_batch(i, batch):
             async with sem:
                 try:
-                    if version("pinecone-client").startswith("3"):
-                        return await pinecone_index.upsert(
-                            vectors=batch, namespace=namespace, async_req=True
-                        )
-                    elif version("pinecone-client").startswith("2"):
-                        fut = pinecone_index.upsert(
-                            vectors=batch, namespace=namespace, async_req=True
-                        )
-                        await asyncio.wrap_future(fut._delegate)
+                    return await pinecone_index.upsert(
+                        vectors=batch, namespace=namespace, async_req=True
+                    )
                 except Exception as pe:
                     if i in pinecone_failed_batches:
                         raise pe
