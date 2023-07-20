@@ -102,6 +102,8 @@ jobs:
 
   cleanup:
     name: cleanup
+    if: ${{ always() }}
+    needs: [run-tests-clientv3, run-tests-clientv2]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
