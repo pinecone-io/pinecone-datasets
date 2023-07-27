@@ -121,7 +121,9 @@ import pandas as pd
 
 df = pd.read_parquet("my-dataset.parquet")
 
-dataset = Dataset.from_pandas(df)
+metadata = DatasetMetadata(...)
+
+dataset = Dataset.from_pandas(df, metadata)
 ```
 
 Please check the documentation for more information on the expected dataframe schema. There's also a column mapping variable that can be used to map the dataframe columns to the expected schema.
