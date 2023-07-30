@@ -239,11 +239,6 @@ the `to_index` function also accepts additional parameters
 * `batch_size` and `concurrency` - for controlling the upserting process
 * `kwargs` - for passing additional parameters to the index creation process
 
----
-
-🚨 *NOTE* Creating an index from a dataset will always create a new index. If you want to upsert to an existing index, you can use the document iterator with Index.upsert method from Pinecone Client
-
----
 
 
 ## For developers
