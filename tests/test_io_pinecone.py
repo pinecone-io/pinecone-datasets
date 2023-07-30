@@ -36,9 +36,13 @@ class TestPinecone:
             print(f"Deleting index {self.index_name}")
             self.client.delete_index(index_name)
 
-            while self.index_name in self.client.list_indexes():
-                print(f"Waiting for index {self.index_name} to be deleted")
+            for i in range(60): # 300 seconds
                 time.sleep(5)
+                if self.index_name not in self.client.list_indexes():
+                    break
+                print(f"Waiting for index {self.index_name} to be deleted")
+            else:
+                raise RuntimeError(f"Failed to delete index {self.index_name}")
         try:
             self.ds.to_pinecone_index(
                 index_name=self.index_name, batch_size=300, concurrency=1
