@@ -584,7 +584,7 @@ class Dataset(object):
     async def to_pinecone_index_async(
         self,
         index_name: str,
-        namespace: Optional[str] = "",
+        namespace: str = "",
         should_create: bool = True,
         batch_size: int = 100,
         concurrency: int = 10,
