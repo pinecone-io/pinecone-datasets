@@ -37,7 +37,7 @@ class TestPinecone:
             print(f"Deleting index {self.index_name}")
             self.client.delete_index(index_name)
 
-            for i in range(60): # 300 seconds
+            for i in range(60):  # 300 seconds
                 time.sleep(5)
                 if self.index_name not in self.client.list_indexes():
                     break
@@ -79,9 +79,7 @@ class TestPinecone:
 
         # check that index is empty
         assert (
-            self.client.Index(this_test_index)
-            .describe_index_stats()
-            .total_vector_count
+            self.client.Index(this_test_index).describe_index_stats().total_vector_count
             == 0
         )
         # upsert dataset to index
@@ -113,9 +111,7 @@ class TestPinecone:
 
         # Wait for index to be ready
         time.sleep(60)
-        assert (
-            index.describe_index_stats().total_vector_count == self.dataset_size * 2
-        )
+        assert index.describe_index_stats().total_vector_count == self.dataset_size * 2
         assert (
             index.describe_index_stats().namespaces[namespace].vector_count
             == self.dataset_size
