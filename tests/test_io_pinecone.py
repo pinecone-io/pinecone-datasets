@@ -45,7 +45,6 @@ class TestPinecone:
             else:
                 raise RuntimeError(f"Failed to delete index {self.index_name}")
 
-
         self.ds.to_pinecone_index(
             index_name=self.index_name, batch_size=300, concurrency=1
         )
@@ -53,10 +52,7 @@ class TestPinecone:
 
         assert self.index_name in self.client.list_indexes()
         assert self.client.describe_index(self.index_name).name == self.index_name
-        assert (
-            self.client.describe_index(self.index_name).dimension
-            == self.dataset_dim
-        )
+        assert self.client.describe_index(self.index_name).dimension == self.dataset_dim
 
         # Wait for index to be ready
         time.sleep(60)
