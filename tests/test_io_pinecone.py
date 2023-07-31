@@ -44,31 +44,28 @@ class TestPinecone:
                 print(f"Waiting for index {self.index_name} to be deleted")
             else:
                 raise RuntimeError(f"Failed to delete index {self.index_name}")
-        try:
-            self.ds.to_pinecone_index(
-                index_name=self.index_name, batch_size=300, concurrency=1
-            )
-            index = self.client.Index(self.index_name)
 
-            assert self.index_name in self.client.list_indexes()
-            assert self.client.describe_index(self.index_name).name == self.index_name
-            assert (
-                self.client.describe_index(self.index_name).dimension
-                == self.dataset_dim
-            )
 
-            # Wait for index to be ready
-            time.sleep(60)
-            assert index.describe_index_stats().total_vector_count == self.dataset_size
+        self.ds.to_pinecone_index(
+            index_name=self.index_name, batch_size=300, concurrency=1
+        )
+        index = self.client.Index(self.index_name)
 
-            assert deep_list_cmp(
-                index.fetch(ids=["1"])["1"].values,
-                self.ds.documents.loc[0].values[1].tolist(),
-            )
-        finally:
-            if self.index_name in self.client.list_indexes():
-                print(f"Deleting index {self.index_name}")
-                self.client.delete_index(self.index_name)
+        assert self.index_name in self.client.list_indexes()
+        assert self.client.describe_index(self.index_name).name == self.index_name
+        assert (
+            self.client.describe_index(self.index_name).dimension
+            == self.dataset_dim
+        )
+
+        # Wait for index to be ready
+        time.sleep(60)
+        assert index.describe_index_stats().total_vector_count == self.dataset_size
+
+        assert deep_list_cmp(
+            index.fetch(ids=["1"])["1"].values,
+            self.ds.documents.loc[0].values[1].tolist(),
+        )
 
     def test_dataset_upsert_to_existing_index(self):
         # create an index
@@ -121,3 +118,7 @@ class TestPinecone:
         if self.index_name in self.client.list_indexes():
             print(f"Deleting index {self.index_name}")
             self.client.delete_index(self.index_name)
+
+        if self.index_name + "-precreated" in self.client.list_indexes():
+            print(f"Deleting index {self.index_name}-precreated")
+            self.client.delete_index(self.index_name + "-precreated")
