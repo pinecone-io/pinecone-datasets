@@ -133,6 +133,7 @@ The minimal required data is a documents dataset, and the minimal required colum
 import pandas as pd
 
 df = pd.read_parquet("my-dataset.parquet")
+
 metadata = DatasetMetadata(**metadata_dict)
 
 dataset = Dataset.from_pandas(documents = df, quries = None, metadata = metadata)
@@ -254,4 +255,3 @@ To run test locally run
 ```bash
 poetry run pytest --cov pinecone_datasets
 ```
-
