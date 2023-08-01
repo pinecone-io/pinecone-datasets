@@ -376,9 +376,10 @@ class Dataset(object):
         documents_path = os.path.join(dataset_path, "documents")
         fs.makedirs(documents_path, exist_ok=True)
 
-        self.documents["metadata"] = self.documents["metadata"].apply(str)
+        df_documents_copy = self.documents.copy()
+        df_documents_copy["metadata"] = df_documents_copy["metadata"].apply(str)
 
-        self.documents.to_parquet(
+        df_documents_copy.to_parquet(
             os.path.join(documents_path, "part-0.parquet"),
             engine="pyarrow",
             index=False,
@@ -388,10 +389,10 @@ class Dataset(object):
         if not self.queries.empty:
             queries_path = os.path.join(dataset_path, "queries")
             fs.makedirs(queries_path, exist_ok=True)
+            df_queries_copy = self.queries.copy()
+            df_queries_copy["filter"] = df_queries_copy["filter"].apply(str)
 
-            self.queries["filter"] = self.queries["filter"].apply(str)
-
-            self.queries.to_parquet(
+            df_queries_copy.to_parquet(
                 os.path.join(queries_path, "part-0.parquet"),
                 engine="pyarrow",
                 index=False,
