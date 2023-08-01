@@ -14,7 +14,13 @@ elif version("pinecone-client").startswith("2"):
         from pinecone import GRPCIndex as Index
     except ImportError:
         from pinecone import Index
-from pinecone_datasets import list_datasets, load_dataset, DatasetMetadata, Dataset
+from pinecone_datasets import (
+    list_datasets,
+    load_dataset,
+    DatasetMetadata,
+    Dataset,
+    DenseModelMetadata,
+)
 
 from tests.test_public_datasets import deep_list_cmp
 
