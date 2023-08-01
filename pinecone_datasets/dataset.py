@@ -164,7 +164,7 @@ class Dataset(object):
             pd.DataFrame: the validated, renamed DataFrame
         """
         if df is None or df.empty:
-            return pd.DataFrame(columns=[column_name for column_name, _ in schema])
+            return pd.DataFrame(columns=[column_name for column_name, _, _ in schema])
         else:
             if column_mapping is not None:
                 df.rename(columns=column_mapping, inplace=True)
@@ -216,12 +216,8 @@ class Dataset(object):
         else:
             self._fs = None
             self._dataset_path = None
-        self._documents = pd.DataFrame(
-            columns=getattr(self._config.Schema.Names, "documents")
-        )
-        self._queries = pd.DataFrame(
-            columns=getattr(self._config.Schema.Names, "queries")
-        )
+        self._documents = None
+        self._queries = None
         self._metadata = DatasetMetadata.empty()
         self._pinecone_client = None
 
@@ -298,7 +294,7 @@ class Dataset(object):
 
     @property
     def documents(self) -> pd.DataFrame:
-        if self._documents.empty:
+        if self._documents is None:
             self._documents = self._safe_read_from_path("documents")
         return self._documents
 
@@ -331,7 +327,7 @@ class Dataset(object):
 
     @property
     def queries(self) -> pd.DataFrame:
-        if self._queries.empty:
+        if self._queries is None:
             self._queries = self._safe_read_from_path("queries")
         return self._queries
 
