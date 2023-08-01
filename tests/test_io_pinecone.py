@@ -68,13 +68,13 @@ class TestPinecone:
 
         data_queries = [
             {
-                "vector": [0.11, 0.21, 0.31],
+                "values": [0.11, 0.21, 0.31],
                 "filter": {"url": {"$eq": "url1"}},
                 "top_k": 1,
             },
             {
-                "vecotr": [0.41, 0.51, 0.61],
-                "sparse_vector": {"indices": [4, 6], "values": [0.4, 0.6]},
+                "values": [0.41, 0.51, 0.61],
+                "sparse_values": {"indices": [4, 6], "values": [0.4, 0.6]},
                 "metadata": {"title": {"$eq": "title2"}, "url": {"$neq": "url2"}},
                 "top_k": 2,
             },
