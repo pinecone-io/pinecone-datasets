@@ -3,6 +3,8 @@ import time
 import uuid
 from importlib.metadata import version
 
+import pandas as pd
+
 if version("pinecone-client").startswith("3"):
     from pinecone import Client as PC, Index
 elif version("pinecone-client").startswith("2"):
@@ -12,13 +14,15 @@ elif version("pinecone-client").startswith("2"):
         from pinecone import GRPCIndex as Index
     except ImportError:
         from pinecone import Index
-from pinecone_datasets import list_datasets, load_dataset
+from pinecone_datasets import list_datasets, load_dataset, DatasetMetadata, Dataset
 
 from tests.test_public_datasets import deep_list_cmp
 
 
 class TestPinecone:
     def setup_method(self):
+        # Prep Pinecone Dataset and Index for
+
         if version("pinecone-client").startswith("3"):
             self.client = PC()
         elif version("pinecone-client").startswith("2"):
@@ -29,6 +33,101 @@ class TestPinecone:
         self.dataset_dim = 384
         self.tested_dataset = "quora_all-MiniLM-L6-bm25-100K"
         self.ds = load_dataset(self.tested_dataset)
+
+        # Prep Local Dataasets with different metadata combinations
+
+        data_documents = [
+            {
+                "id": "1",
+                "values": [0.1, 0.2, 0.3],
+                "sparse_values": {"inices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
+                "metadata": {"url": "url1"},
+                "blob": None,
+            },
+            {
+                "id": "2",
+                "values": [0.4, 0.5, 0.6],
+                "sparse_values": {"inices": [4, 5, 6], "values": [0.4, 0.5, 0.6]},
+                "metadata": {"title": "title2"},
+                "blob": None,
+            },
+            {
+                "id": "3",
+                "values": [0.7, 0.8, 0.9],
+                "sparse_values": {"inices": [7, 8, 9], "values": [0.7, 0.8, 0.9]},
+                "metadata": None,
+                "blob": None,
+            },
+        ]
+
+        data_queries = [
+            {
+                "vector": [0.11, 0.21, 0.31],
+                "filter": {"url": {"$eq": "url1"}},
+                "top_k": 1,
+            },
+            {
+                "vecotr": [0.41, 0.51, 0.61],
+                "sparse_vector": {"inices": [4, 6], "values": [0.4, 0.6]},
+                "metadata": {"title": {"$eq": "title2"}, "url": {"$neq": "url2"}},
+                "top_k": 2,
+            },
+        ]
+
+        data_metadata = DatasetMetadata(
+            name="test",
+            documents=3,
+            queries=2,
+            dense_model=DenseModelMetadata(name="test", dimension=3),
+            description="test",
+            tags=["test"],
+            source="test",
+            license="test",
+            authors=["test"],
+            links={"test": "test"},
+            version="test",
+            created="test",
+            updated="test",
+            schema={"test": "test"},
+        )
+
+        self.ds_local = Dataset.from_pandas(
+            documents=pd.DataFrame(data_documents),
+            queries=pd.DataFrame(data_queries),
+            metadata=data_metadata,
+        )
+
+        self.index_name_local = f"test-index-{os.environ['PY_VERSION'].replace('.', '-')}-{uuid.uuid4().hex[:6]}"
+
+    def test_local_dataset_with_metadata(self):
+        print(
+            f"Testing dataset {self.tested_dataset} with index {self.index_name_local}"
+        )
+
+        self.ds_local.to_pinecone_index(
+            index_name=self.index_name_local, batch_size=3, concurrency=1
+        )
+        index = self.client.Index(self.index_name_local)
+
+        assert self.index_name_local in self.client.list_indexes()
+        assert (
+            self.client.describe_index(self.index_name_local).name
+            == self.index_name_local
+        )
+        assert (
+            self.client.describe_index(self.index_name_local).dimension
+            == self.ds_local.metadata.dense_model.dimension
+        )
+
+        # Wait for index to be ready
+        time.sleep(60)
+        assert (
+            index.describe_index_stats().total_vector_count
+            == self.ds_local.metadata.documents
+        )
+
+        for q in self.ds_local.queries:
+            index.query(**q)
 
     def test_large_dataset_upsert_to_pinecone_with_creating_index(self):
         print(f"Testing dataset {self.tested_dataset} with index {self.index_name}")
@@ -118,3 +217,7 @@ class TestPinecone:
         if self.index_name + "-precreated" in self.client.list_indexes():
             print(f"Deleting index {self.index_name}-precreated")
             self.client.delete_index(self.index_name + "-precreated")
+
+        if self.index_name_local in self.client.list_indexes():
+            print(f"Deleting index {self.index_name_local}")
+            self.client.delete_index(self.index_name_local)
