@@ -251,12 +251,6 @@ class Dataset(object):
             try:
                 # TODO: use of the columns_not_null and columns_to_null is only a workaround for proper schema validation and versioning
                 df = dataset.read_pandas(columns=columns_not_null).to_pandas()
-
-                if "metadata" in df.columns:
-                    df["metadata"] = df["metadata"].apply(json.loads)
-                elif "filter" in df.columns:
-                    df["filter"] = df["filter"].apply(json.loads)
-
                 for column_name, null_value in columns_to_null:
                     df[column_name] = null_value
                 return df
@@ -371,11 +365,7 @@ class Dataset(object):
         # save documents
         documents_path = os.path.join(dataset_path, "documents")
         fs.makedirs(documents_path, exist_ok=True)
-
-        df_documents_copy = self.documents.copy()
-        df_documents_copy["metadata"] = df_documents_copy["metadata"].apply(json.dumps)
-
-        df_documents_copy.to_parquet(
+        self.documents.to_parquet(
             os.path.join(documents_path, "part-0.parquet"),
             engine="pyarrow",
             index=False,
@@ -385,10 +375,7 @@ class Dataset(object):
         if not self.queries.empty:
             queries_path = os.path.join(dataset_path, "queries")
             fs.makedirs(queries_path, exist_ok=True)
-            df_queries_copy = self.queries.copy()
-            df_queries_copy["filter"] = df_queries_copy["filter"].apply(json.dumps)
-
-            df_queries_copy.to_parquet(
+            self.queries.to_parquet(
                 os.path.join(queries_path, "part-0.parquet"),
                 engine="pyarrow",
                 index=False,
@@ -479,7 +466,7 @@ class Dataset(object):
 
         return {"upserted_count": total_upserted_count}
 
-    def _set_pinecone_client(
+    def _set_pinecone_index(
         self,
         api_key: Optional[str] = None,
         environment: Optional[str] = None,
@@ -498,7 +485,7 @@ class Dataset(object):
         environment: Optional[str] = None,
         **kwargs,
     ) -> Index:
-        self._set_pinecone_client(api_key=api_key, environment=environment)
+        self._set_pinecone_index(api_key=api_key, environment=environment)
         pinecone_index_list = self._pinecone_client.list_indexes()
 
         if index_name in pinecone_index_list:
@@ -578,9 +565,7 @@ class Dataset(object):
             ):
                 raise RuntimeError("index creation failed")
         else:
-            self._set_pinecone_client(
-                api_key=api_key, environment=environment, **kwargs
-            )
+            self._set_pinecone_index(api_key=api_key, environment=environment, **kwargs)
 
         # TODO: add concurrency = 0 as sync loop (def _upsert...) and add sync loop
 
@@ -638,9 +623,7 @@ class Dataset(object):
             ):
                 raise RuntimeError("index creation failed")
         else:
-            self._set_pinecone_client(
-                api_key=api_key, environment=environment, **kwargs
-            )
+            self._set_pinecone_index(api_key=api_key, environment=environment, **kwargs)
 
         res = await self._async_upsert(
             index_name=index_name,
