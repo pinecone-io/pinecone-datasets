@@ -92,7 +92,7 @@ class TestPinecone:
             authors=["test"],
             links={"test": "test"},
             version="test",
-            created="test",
+            created_at="test",
             updated="test",
             schema={"test": "test"},
         )
