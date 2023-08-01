@@ -26,7 +26,7 @@ from tests.test_public_datasets import deep_list_cmp
 
 
 class TestPinecone:
-    def setup_method(self):
+    def setup_class(self):
         # Prep Pinecone Dataset and Index for
 
         if version("pinecone-client").startswith("3"):
@@ -170,7 +170,7 @@ class TestPinecone:
             index_name=this_test_index,
             batch_size=300,
             concurrency=1,
-            should_create=False,
+            should_create_index=False,
         )
         index = self.client.Index(this_test_index)
 
@@ -188,7 +188,7 @@ class TestPinecone:
             index_name=this_test_index,
             batch_size=300,
             concurrency=1,
-            should_create=False,
+            should_create_index=False,
             namespace=namespace,
         )
 
@@ -200,7 +200,7 @@ class TestPinecone:
             == self.dataset_size
         )
 
-    def teardown_method(self):
+    def teardown_class(self):
         if self.index_name in self.client.list_indexes():
             print(f"Deleting index {self.index_name}")
             self.client.delete_index(self.index_name)
