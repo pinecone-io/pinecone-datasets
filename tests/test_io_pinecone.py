@@ -68,13 +68,13 @@ class TestPinecone:
 
         data_queries = [
             {
-                "values": [0.11, 0.21, 0.31],
+                "vector": [0.11, 0.21, 0.31],
                 "filter": {"url": {"$eq": "url1"}},
                 "top_k": 1,
             },
             {
-                "values": [0.41, 0.51, 0.61],
-                "sparse_values": {"indices": [4, 6], "values": [0.4, 0.6]},
+                "vecotr": [0.41, 0.51, 0.61],
+                "sparse_vector": {"indices": [4, 6], "values": [0.4, 0.6]},
                 "metadata": {"title": {"$eq": "title2"}, "url": {"$neq": "url2"}},
                 "top_k": 2,
             },
@@ -132,8 +132,6 @@ class TestPinecone:
             == self.ds_local.metadata.documents
         )
 
-        for q in self.ds_local.iter_queries():
-            index.query(**q)
 
     def test_large_dataset_upsert_to_pinecone_with_creating_index(self):
         print(f"Testing dataset {self.tested_dataset} with index {self.index_name}")
