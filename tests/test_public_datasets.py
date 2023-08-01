@@ -66,7 +66,7 @@ def test_iter_documents_pandas(tmpdir):
             "blob": None,
         },
     ]
-    itere_data = [
+    iter_data = [
         {
             "id": "1",
             "values": [0.1, 0.2, 0.3],
@@ -91,12 +91,12 @@ def test_iter_documents_pandas(tmpdir):
         assert isinstance(d, list)
         assert len(d) == 1
         assert isinstance(d[0], dict)
-        assert is_dicts_equal(d[0], itere_data[i])
+        assert is_dicts_equal(d[0], iter_data[i])
         break
 
     for d in ds.iter_documents(batch_size=2):
-        assert is_dicts_equal(d[0], itere_data[0])
-        assert is_dicts_equal(d[1], itere_data[1])
+        assert is_dicts_equal(d[0], iter_data[0])
+        assert is_dicts_equal(d[1], iter_data[1])
         break
 
     assert ds.documents.shape[0] == 2
