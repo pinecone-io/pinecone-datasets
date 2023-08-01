@@ -515,7 +515,7 @@ class Dataset(object):
         self,
         index_name: str,
         namespace: Optional[str] = "",
-        should_create: bool = True,
+        should_create_index: bool = True,
         batch_size: int = 100,
         concurrency: int = 10,
         api_key: Optional[str] = None,
@@ -563,7 +563,7 @@ class Dataset(object):
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
-        if should_create:
+        if should_create_index:
             if not self._create_index(
                 index_name, api_key=api_key, environment=environment, **kwargs
             ):
@@ -585,7 +585,7 @@ class Dataset(object):
         self,
         index_name: str,
         namespace: str = "",
-        should_create: bool = True,
+        should_create_index: bool = True,
         batch_size: int = 100,
         concurrency: int = 10,
         api_key: Optional[str] = None,
@@ -621,7 +621,7 @@ class Dataset(object):
             result = await dataset.to_pinecone_index_async(index_name="my_index")
             ```
         """
-        if should_create:
+        if should_create_index:
             if not self._create_index(
                 index_name, api_key=api_key, environment=environment, **kwargs
             ):
