@@ -253,13 +253,9 @@ class Dataset(object):
                 df = dataset.read_pandas(columns=columns_not_null).to_pandas()
 
                 if "metadata" in df.columns:
-                    df["metadata"] = df["metadata"].apply(
-                        lambda x: json.loads(x.replace("'", '"'))
-                    )
+                    df["metadata"] = df["metadata"].apply(json.loads)
                 elif "filter" in df.columns:
-                    df["filter"] = df["filter"].apply(
-                        lambda x: json.loads(x.replace("'", '"'))
-                    )
+                    df["filter"] = df["filter"].apply(json.loads)
 
                 for column_name, null_value in columns_to_null:
                     df[column_name] = null_value
@@ -377,7 +373,7 @@ class Dataset(object):
         fs.makedirs(documents_path, exist_ok=True)
 
         df_documents_copy = self.documents.copy()
-        df_documents_copy["metadata"] = df_documents_copy["metadata"].apply(str)
+        df_documents_copy["metadata"] = df_documents_copy["metadata"].apply(json.dumps)
 
         df_documents_copy.to_parquet(
             os.path.join(documents_path, "part-0.parquet"),
@@ -390,7 +386,7 @@ class Dataset(object):
             queries_path = os.path.join(dataset_path, "queries")
             fs.makedirs(queries_path, exist_ok=True)
             df_queries_copy = self.queries.copy()
-            df_queries_copy["filter"] = df_queries_copy["filter"].apply(str)
+            df_queries_copy["filter"] = df_queries_copy["filter"].apply(json.dumps)
 
             df_queries_copy.to_parquet(
                 os.path.join(queries_path, "part-0.parquet"),
