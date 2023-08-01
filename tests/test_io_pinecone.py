@@ -132,7 +132,6 @@ class TestPinecone:
             == self.ds_local.metadata.documents
         )
 
-
     def test_large_dataset_upsert_to_pinecone_with_creating_index(self):
         print(f"Testing dataset {self.tested_dataset} with index {self.index_name}")
 
