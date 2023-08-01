@@ -251,6 +251,11 @@ class Dataset(object):
             try:
                 # TODO: use of the columns_not_null and columns_to_null is only a workaround for proper schema validation and versioning
                 df = dataset.read_pandas(columns=columns_not_null).to_pandas()
+
+                df["metadata"] = df["metadata"].apply(
+                    lambda x: json.loads(x.replace("'", '"'))
+                )
+
                 for column_name, null_value in columns_to_null:
                     df[column_name] = null_value
                 return df
@@ -365,6 +370,9 @@ class Dataset(object):
         # save documents
         documents_path = os.path.join(dataset_path, "documents")
         fs.makedirs(documents_path, exist_ok=True)
+
+        self.documents["metadata"] = self.documents["metadata"].apply(str)
+
         self.documents.to_parquet(
             os.path.join(documents_path, "part-0.parquet"),
             engine="pyarrow",
@@ -375,6 +383,9 @@ class Dataset(object):
         if not self.queries.empty:
             queries_path = os.path.join(dataset_path, "queries")
             fs.makedirs(queries_path, exist_ok=True)
+
+            self.queries["metadata"] = self.queries["metadata"].apply(str)
+
             self.queries.to_parquet(
                 os.path.join(queries_path, "part-0.parquet"),
                 engine="pyarrow",

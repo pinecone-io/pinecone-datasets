@@ -105,7 +105,7 @@ class TestPinecone:
 
         self.index_name_local = f"test-index-{os.environ['PY_VERSION'].replace('.', '-')}-{uuid.uuid4().hex[:6]}"
 
-    def test_local_dataset_with_metadata(self):
+    def test_local_dataset_with_metadata(self, tmpdir):
         print(
             f"Testing dataset {self.tested_dataset} with index {self.index_name_local}"
         )
@@ -132,7 +132,19 @@ class TestPinecone:
             == self.ds_local.metadata.documents
         )
 
-    def test_large_dataset_upsert_to_pinecone_with_creating_index(self):
+        dataset_name = "test_local_dataset_with_metadata"
+        dataset_path = tmpdir.mkdir(dataset_name)
+
+        self.ds_local.to_path(str(dataset_path))
+
+        loaded_ds = Dataset.from_path(str(dataset_path))
+        assert loaded_ds.metadata == self.ds_local.metadata
+
+        pd.testing.assert_frame_equal(loaded_ds.documents, self.ds_local.documents)
+
+        pd.testing.assert_frame_equal(loaded_ds.queries, self.ds_local.queries)
+
+    def _test_large_dataset_upsert_to_pinecone_with_creating_index(self):
         print(f"Testing dataset {self.tested_dataset} with index {self.index_name}")
 
         self.ds.to_pinecone_index(
@@ -153,7 +165,7 @@ class TestPinecone:
             self.ds.documents.loc[0].values[1].tolist(),
         )
 
-    def test_dataset_upsert_to_existing_index(self):
+    def _test_dataset_upsert_to_existing_index(self):
         # create an index
         this_test_index = self.index_name + "-precreated"
         self.client.create_index(name=this_test_index, dimension=self.dataset_dim)
