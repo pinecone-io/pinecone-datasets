@@ -61,7 +61,7 @@ class TestPinecone:
                 "id": "3",
                 "values": [0.7, 0.8, 0.9],
                 "sparse_values": {"indices": [7, 8, 9], "values": [0.7, 0.8, 0.9]},
-                "metadata": None,
+                "metadata": {},
                 "blob": None,
             },
         ]
