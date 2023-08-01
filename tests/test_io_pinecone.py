@@ -140,6 +140,7 @@ class TestPinecone:
         loaded_ds = Dataset.from_path(str(dataset_path))
         assert loaded_ds.metadata == self.ds_local.metadata
 
+        
         pd.testing.assert_frame_equal(loaded_ds.documents, self.ds_local.documents)
 
         pd.testing.assert_frame_equal(loaded_ds.queries, self.ds_local.queries)
