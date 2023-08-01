@@ -11,14 +11,14 @@ d = pd.DataFrame(
         {
             "id": "1",
             "values": [0.1, 0.2, 0.3],
-            "sparse_values": {"inices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
+            "sparse_values": {"indices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
             "metadata": {"title": "title1", "url": "url1"},
             "blob": None,
         },
         {
             "id": "2",
             "values": [0.4, 0.5, 0.6],
-            "sparse_values": {"inices": [4, 5, 6], "values": [0.4, 0.5, 0.6]},
+            "sparse_values": {"indices": [4, 5, 6], "values": [0.4, 0.5, 0.6]},
             "metadata": {"title": "title2", "url": "url2"},
             "blob": None,
         },
@@ -29,14 +29,14 @@ q = pd.DataFrame(
     [
         {
             "vector": [0.1, 0.2, 0.3],
-            "sparse_vector": {"inices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
+            "sparse_vector": {"indices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
             "filter": "filter1",
             "top_k": 1,
             "blob": None,
         },
         {
             "vector": [0.4, 0.5, 0.6],
-            "sparse_vector": {"inices": [4, 5, 6], "values": [0.4, 0.5, 0.6]},
+            "sparse_vector": {"indices": [4, 5, 6], "values": [0.4, 0.5, 0.6]},
             "filter": "filter2",
             "top_k": 2,
             "blob": None,

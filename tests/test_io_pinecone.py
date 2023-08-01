@@ -46,21 +46,21 @@ class TestPinecone:
             {
                 "id": "1",
                 "values": [0.1, 0.2, 0.3],
-                "sparse_values": {"inices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
+                "sparse_values": {"indices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
                 "metadata": {"url": "url1"},
                 "blob": None,
             },
             {
                 "id": "2",
                 "values": [0.4, 0.5, 0.6],
-                "sparse_values": {"inices": [4, 5, 6], "values": [0.4, 0.5, 0.6]},
+                "sparse_values": {"indices": [4, 5, 6], "values": [0.4, 0.5, 0.6]},
                 "metadata": {"title": "title2"},
                 "blob": None,
             },
             {
                 "id": "3",
                 "values": [0.7, 0.8, 0.9],
-                "sparse_values": {"inices": [7, 8, 9], "values": [0.7, 0.8, 0.9]},
+                "sparse_values": {"indices": [7, 8, 9], "values": [0.7, 0.8, 0.9]},
                 "metadata": None,
                 "blob": None,
             },
@@ -74,7 +74,7 @@ class TestPinecone:
             },
             {
                 "vecotr": [0.41, 0.51, 0.61],
-                "sparse_vector": {"inices": [4, 6], "values": [0.4, 0.6]},
+                "sparse_vector": {"indices": [4, 6], "values": [0.4, 0.6]},
                 "metadata": {"title": {"$eq": "title2"}, "url": {"$neq": "url2"}},
                 "top_k": 2,
             },
