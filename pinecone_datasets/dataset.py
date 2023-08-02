@@ -149,8 +149,8 @@ class Dataset(object):
     @staticmethod
     def _read_pandas_dataframe(
         df: pd.DataFrame,
-        column_mapping: Dict[str, str],
         schema: List[Tuple[str, bool, Any]],
+        column_mapping: Dict[str, str] = None,
     ) -> pd.DataFrame:
         """
         Reads a pandas DataFrame and validates it against a schema.
