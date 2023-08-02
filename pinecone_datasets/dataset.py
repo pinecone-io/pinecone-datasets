@@ -226,6 +226,23 @@ class Dataset(object):
             raise DatasetInitializationError()
         return self._fs.exists(os.path.join(self._dataset_path, data_type))
 
+    @staticmethod
+    def _convert_metadata_from_dict_to_json(metadata: Optional[dict]) -> str:
+        if not isinstance(metadata, dict):
+            raise TypeError("metadata must be a dict")
+        return json.dumps(metadata)
+
+    @staticmethod
+    def _convert_metadata_from_json_to_dict(metadata: Optional[str]) -> dict:
+        if metadata is None:
+            return None
+        if not isinstance(metadata, str):
+            if isinstance(metadata, dict):
+                return metadata
+            else:
+                raise TypeError("metadata must be a string or dict")
+        return json.loads(metadata)
+
     def _safe_read_from_path(self, data_type: str) -> pd.DataFrame:
         if not self._fs:
             raise DatasetInitializationError()
@@ -251,6 +268,17 @@ class Dataset(object):
             try:
                 # TODO: use of the columns_not_null and columns_to_null is only a workaround for proper schema validation and versioning
                 df = dataset.read_pandas(columns=columns_not_null).to_pandas()
+
+                # metadta supposed to be a dict [if legacy] or string
+                if data_type == "documents":
+                    df["metadata"] = df["metadata"].apply(
+                        self._convert_metadata_from_json_to_dict
+                    )
+                elif data_type == "queries":
+                    df["filter"] = df["filter"].apply(
+                        self._convert_metadata_from_json_to_dict
+                    )
+
                 for column_name, null_value in columns_to_null:
                     df[column_name] = null_value
                 return df
@@ -365,7 +393,12 @@ class Dataset(object):
         # save documents
         documents_path = os.path.join(dataset_path, "documents")
         fs.makedirs(documents_path, exist_ok=True)
-        self.documents.to_parquet(
+
+        documents_copy = self.documents.copy()
+        documents_copy["metadata"] = documents_copy["metadata"].apply(
+            self._convert_metadata_from_dict_to_json
+        )
+        documents_copy.to_parquet(
             os.path.join(documents_path, "part-0.parquet"),
             engine="pyarrow",
             index=False,
@@ -375,7 +408,11 @@ class Dataset(object):
         if not self.queries.empty:
             queries_path = os.path.join(dataset_path, "queries")
             fs.makedirs(queries_path, exist_ok=True)
-            self.queries.to_parquet(
+            queries_copy = self.queries.copy()
+            queries_copy["filter"] = queries_copy["filter"].apply(
+                self._convert_metadata_from_dict_to_json
+            )
+            queries_copy.to_parquet(
                 os.path.join(queries_path, "part-0.parquet"),
                 engine="pyarrow",
                 index=False,
