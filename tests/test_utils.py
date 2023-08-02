@@ -35,14 +35,18 @@ def test_read_pandas_dataframe(tmpdir):
     dataset_name = "test_read_pandas_dataframe"
     dataset_path = tmpdir.mkdir(dataset_name)
 
-    read_df = Dataset._read_pandas_dataframe(df, schema_documents)
+    read_df = Dataset._read_pandas_dataframe(
+        df, column_mapping=None, schema=schema_documents
+    )
     assert isinstance(read_df, pd.DataFrame)
 
     # check if the dataframe is the same
     pd.testing.assert_frame_equal(df, read_df)
 
     # test None case
-    none_df = Dataset._read_pandas_dataframe(None, schema_documents)
+    none_df = Dataset._read_pandas_dataframe(
+        None, column_mapping=None, schema=schema_documents
+    )
     assert none_df.empty
 
     for k, _, _ in schema_documents:
