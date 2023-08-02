@@ -228,8 +228,12 @@ class Dataset(object):
 
     @staticmethod
     def _convert_metadata_from_dict_to_json(metadata: Optional[dict]) -> str:
-        if not isinstance(metadata, dict):
-            raise TypeError("metadata must be a dict")
+        if pd.isna(metadata):
+            return None
+        if metadata and not isinstance(metadata, dict):
+            raise TypeError(
+                f"metadata must be a dict but its {type(metadata)} meta = {metadata}"
+            )
         return json.dumps(metadata)
 
     @staticmethod

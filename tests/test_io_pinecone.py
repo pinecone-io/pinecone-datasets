@@ -144,7 +144,7 @@ class TestPinecone:
 
         pd.testing.assert_frame_equal(loaded_ds.queries, self.ds_local.queries)
 
-    def _test_large_dataset_upsert_to_pinecone_with_creating_index(self):
+    def test_large_dataset_upsert_to_pinecone_with_creating_index(self):
         print(f"Testing dataset {self.tested_dataset} with index {self.index_name}")
 
         self.ds.to_pinecone_index(
@@ -165,7 +165,7 @@ class TestPinecone:
             self.ds.documents.loc[0].values[1].tolist(),
         )
 
-    def _test_dataset_upsert_to_existing_index(self):
+    def test_dataset_upsert_to_existing_index(self):
         # create an index
         this_test_index = self.index_name + "-precreated"
         self.client.create_index(name=this_test_index, dimension=self.dataset_dim)
