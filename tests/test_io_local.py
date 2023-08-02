@@ -29,14 +29,14 @@ q = pd.DataFrame(
         {
             "vector": [0.1, 0.2, 0.3],
             "sparse_vector": {"indices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
-            "filter": "filter1",
+            "filter": {"filter1": {"$eq": "filter1"}},
             "top_k": 1,
             "blob": None,
         },
         {
             "vector": [0.4, 0.5, 0.6],
             "sparse_vector": {"indices": [4, 5, 6], "values": [0.4, 0.5, 0.6]},
-            "filter": "filter2",
+            "filter": {"filter2": {"$eq": "filter2"}},
             "top_k": 2,
             "blob": None,
         },
