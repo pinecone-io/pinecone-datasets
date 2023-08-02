@@ -218,7 +218,7 @@ class Dataset(object):
             self._dataset_path = None
         self._documents = None
         self._queries = None
-        self._metadata = DatasetMetadata.empty()
+        self._metadata = None
         self._pinecone_client = None
 
     def _is_datatype_exists(self, data_type: str) -> bool:
@@ -381,7 +381,7 @@ class Dataset(object):
 
     @property
     def metadata(self) -> DatasetMetadata:
-        if self._metadata.is_empty():
+        if self._metadata is None:
             self._metadata = self._load_metadata()
         return self._metadata
 

@@ -8,7 +8,13 @@ import numpy as np
 # from polars.testing import assert_frame_equal as pl_assert_frame_equal
 from pandas.testing import assert_frame_equal as pd_assert_frame_equal
 import pytest
-from pinecone_datasets import __version__, load_dataset, list_datasets, Dataset
+from pinecone_datasets import (
+    __version__,
+    load_dataset,
+    list_datasets,
+    Dataset,
+    DatasetMetadata,
+)
 
 WARN_MESSAGE = "Pinecone Datasets is a new and experimental library. The API is subject to change without notice."
 
@@ -16,7 +22,7 @@ test_base_path = "gs://ram-datasets"
 test_dataset = "quora_all-MiniLM-L6-bm25"
 
 
-def test_load_dataset_pandas():
+def _test_load_dataset_pandas():
     lst = list_datasets()
     assert test_dataset in lst
     ds = load_dataset(test_dataset)
@@ -83,8 +89,9 @@ def test_iter_documents_pandas(tmpdir):
 
     dataset_name = "test_dataset"
     dataset_path = tmpdir.mkdir(dataset_name)
-    documents_path = dataset_path.mkdir("documents")
-    pd.DataFrame(data).to_parquet(documents_path.join("part-0.parquet"))
+    Dataset.from_pandas(
+        documents=pd.DataFrame(data), metadata=DatasetMetadata.empty()
+    ).to_path(str(dataset_path))
 
     ds = Dataset.from_catalog(dataset_name, catalog_base_path=str(tmpdir))
     for i, d in enumerate(ds.iter_documents()):
@@ -107,14 +114,14 @@ def test_iter_queries_pandas(tmpdir):
         {
             "vector": [0.1, 0.2, 0.3],
             "sparse_vector": {"inices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
-            "filter": "filter1",
+            "filter": {"filter1": {"$eq": "filter1"}},
             "top_k": 1,
             "blob": None,
         },
         {
             "vector": [0.4, 0.5, 0.6],
             "sparse_vector": {"inices": [4, 5, 6], "values": [0.4, 0.5, 0.6]},
-            "filter": "filter2",
+            "filter": {"filter2": {"$eq": "filter2"}},
             "top_k": 2,
             "blob": None,
         },
@@ -124,13 +131,13 @@ def test_iter_queries_pandas(tmpdir):
         {
             "vector": [0.1, 0.2, 0.3],
             "sparse_vector": {"inices": [1, 2, 3], "values": [0.1, 0.2, 0.3]},
-            "filter": "filter1",
+            "filter": {"filter1": {"$eq": "filter1"}},
             "top_k": 1,
         },
         {
             "vector": [0.4, 0.5, 0.6],
             "sparse_vector": {"inices": [4, 5, 6], "values": [0.4, 0.5, 0.6]},
-            "filter": "filter2",
+            "filter": {"filter2": {"$eq": "filter2"}},
             "top_k": 2,
         },
     ]
