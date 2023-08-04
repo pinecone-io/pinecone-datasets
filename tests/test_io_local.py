@@ -65,6 +65,36 @@ def test_io(tmpdir):
     pd_assert_frame_equal(loaded_ds.queries, ds.queries)
 
 
+def test_io_no_queries(tmpdir):
+    dataset_name = "test_io_dataset_no_q"
+    dataset_path = tmpdir.mkdir(dataset_name)
+    metadata = DatasetMetadata(
+        name=dataset_name,
+        created_at="2021-01-01 00:00:00.000000",
+        documents=2,
+        queries=0,
+        dense_model=DenseModelMetadata(
+            name="ada2",
+            dimension=2,
+        ),
+    )
+    ds = Dataset.from_pandas(documents=d, queries=None, metadata=metadata)
+
+    assert ds.queries.empty
+    assert [_ for _ in ds.iter_queries()] == []
+
+    ds.to_path(str(dataset_path))
+
+    with pytest.warns():
+        loaded_ds = Dataset.from_path(local_path)
+
+    assert loaded_ds.metadata == metadata
+    pd_assert_frame_equal(loaded_ds.documents, ds.documents)
+
+    assert loaded_ds.queries.empty
+    assert [_ for _ in loaded_ds.iteratae_queries()] == []
+
+
 def test_io_access_to_forbidden_functions():
     dataset_name = "forbidden_functions_dataset"
     metadata = DatasetMetadata(
