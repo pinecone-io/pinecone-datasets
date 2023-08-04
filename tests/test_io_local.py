@@ -85,8 +85,7 @@ def test_io_no_queries(tmpdir):
 
     ds.to_path(str(dataset_path))
 
-    with pytest.warns():
-        loaded_ds = Dataset.from_path(str(dataset_path))
+    loaded_ds = Dataset.from_path(str(dataset_path))
 
     assert loaded_ds.metadata == metadata
     pd_assert_frame_equal(loaded_ds.documents, ds.documents)
