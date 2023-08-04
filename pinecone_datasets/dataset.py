@@ -234,7 +234,7 @@ class Dataset(object):
             raise TypeError(
                 f"metadata must be a dict but its {type(metadata)} meta = {metadata}"
             )
-        return json.dumps(metadata)
+        return json.dumps(metadata, ensure_ascii=False)
 
     @staticmethod
     def _convert_metadata_from_json_to_dict(metadata: Optional[str]) -> dict:
