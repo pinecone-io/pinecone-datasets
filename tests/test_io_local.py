@@ -93,7 +93,7 @@ def test_io_no_queries(tmpdir):
     pd_assert_frame_equal(loaded_ds.documents, ds.documents)
 
     assert loaded_ds.queries.empty
-    assert [_ for _ in loaded_ds.iteratae_queries()] == []
+    assert [_ for _ in loaded_ds.iter_queries()] == []
 
 
 def test_io_access_to_forbidden_functions():
