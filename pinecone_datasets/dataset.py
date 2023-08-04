@@ -298,7 +298,11 @@ class Dataset(object):
                 UserWarning,
                 stacklevel=0,
             )
-            return pd.DataFrame(columns=getattr(self._config.Schema.Names, data_type))
+            return pd.DataFrame(
+                columns=[
+                    col[0] for col in getattr(self._config.Schema.Names, data_type)
+                ]
+            )
 
     def _load_metadata(self) -> DatasetMetadata:
         if not self._fs:
