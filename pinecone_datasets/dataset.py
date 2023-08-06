@@ -82,9 +82,6 @@ class Dataset(object):
         Args:
             dataset_path (str): a path to a local or cloud storage path containing a valid dataset.
 
-        Keyword Args:
-            engine (str): the engine to use for loading the dataset. Options are ['polars', 'pandas']. Defaults to 'pandas'.
-
         Returns:
             Dataset: a Dataset object
         """
@@ -403,31 +400,35 @@ class Dataset(object):
         fs.makedirs(documents_path, exist_ok=True)
 
         documents_metadta_copy = self.documents["metadata"].copy()
-        self.documents["metadata"] = self.documents["metadata"].apply(
-            self._convert_metadata_from_dict_to_json
-        )
-        self.documents.to_parquet(
-            os.path.join(documents_path, "part-0.parquet"),
-            engine="pyarrow",
-            index=False,
-            filesystem=fs,
-        )
-        self.documents["metadata"] = documents_metadta_copy
+        try:
+            self.documents["metadata"] = self.documents["metadata"].apply(
+                self._convert_metadata_from_dict_to_json
+            )
+            self.documents.to_parquet(
+                os.path.join(documents_path, "part-0.parquet"),
+                engine="pyarrow",
+                index=False,
+                filesystem=fs,
+            )
+        finally:
+            self.documents["metadata"] = documents_metadta_copy
         # save queries
         if not self.queries.empty:
             queries_path = os.path.join(dataset_path, "queries")
             fs.makedirs(queries_path, exist_ok=True)
             queries_filter_copy = self.queries["filter"].copy()
-            self.queries["filter"] = self.queries["filter"].apply(
-                self._convert_metadata_from_dict_to_json
-            )
-            self.queries.to_parquet(
-                os.path.join(queries_path, "part-0.parquet"),
-                engine="pyarrow",
-                index=False,
-                filesystem=fs,
-            )
-            self.queries["filter"] = queries_filter_copy
+            try:
+                self.queries["filter"] = self.queries["filter"].apply(
+                    self._convert_metadata_from_dict_to_json
+                )
+                self.queries.to_parquet(
+                    os.path.join(queries_path, "part-0.parquet"),
+                    engine="pyarrow",
+                    index=False,
+                    filesystem=fs,
+                )
+            finally:
+                self.queries["filter"] = queries_filter_copy
         else:
             warnings.warn("Queries are empty, not saving queries")
 
