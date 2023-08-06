@@ -1,5 +1,5 @@
-import sys
 import glob
+import sys
 import os
 import itertools
 import time
@@ -82,9 +82,6 @@ class Dataset(object):
         Args:
             dataset_path (str): a path to a local or cloud storage path containing a valid dataset.
 
-        Keyword Args:
-            engine (str): the engine to use for loading the dataset. Options are ['polars', 'pandas']. Defaults to 'pandas'.
-
         Returns:
             Dataset: a Dataset object
         """
@@ -164,7 +161,7 @@ class Dataset(object):
             pd.DataFrame: the validated, renamed DataFrame
         """
         if df is None or df.empty:
-            return pd.DataFrame(columns=[column_name for column_name, _ in schema])
+            return pd.DataFrame(columns=[column_name for column_name, _, _ in schema])
         else:
             if column_mapping is not None:
                 df.rename(columns=column_mapping, inplace=True)
@@ -216,19 +213,36 @@ class Dataset(object):
         else:
             self._fs = None
             self._dataset_path = None
-        self._documents = pd.DataFrame(
-            columns=getattr(self._config.Schema.Names, "documents")
-        )
-        self._queries = pd.DataFrame(
-            columns=getattr(self._config.Schema.Names, "queries")
-        )
-        self._metadata = DatasetMetadata.empty()
+        self._documents = None
+        self._queries = None
+        self._metadata = None
         self._pinecone_client = None
 
     def _is_datatype_exists(self, data_type: str) -> bool:
         if not self._fs:
             raise DatasetInitializationError()
         return self._fs.exists(os.path.join(self._dataset_path, data_type))
+
+    @staticmethod
+    def _convert_metadata_from_dict_to_json(metadata: Optional[dict]) -> str:
+        if pd.isna(metadata):
+            return None
+        if metadata and not isinstance(metadata, dict):
+            raise TypeError(
+                f"metadata must be a dict but its {type(metadata)} meta = {metadata}"
+            )
+        return json.dumps(metadata, ensure_ascii=False)
+
+    @staticmethod
+    def _convert_metadata_from_json_to_dict(metadata: Optional[str]) -> dict:
+        if metadata is None:
+            return None
+        if not isinstance(metadata, str):
+            if isinstance(metadata, dict):
+                return metadata
+            else:
+                raise TypeError("metadata must be a string or dict")
+        return json.loads(metadata)
 
     def _safe_read_from_path(self, data_type: str) -> pd.DataFrame:
         if not self._fs:
@@ -255,6 +269,17 @@ class Dataset(object):
             try:
                 # TODO: use of the columns_not_null and columns_to_null is only a workaround for proper schema validation and versioning
                 df = dataset.read_pandas(columns=columns_not_null).to_pandas()
+
+                # metadta supposed to be a dict [if legacy] or string
+                if data_type == "documents":
+                    df["metadata"] = df["metadata"].apply(
+                        self._convert_metadata_from_json_to_dict
+                    )
+                elif data_type == "queries":
+                    df["filter"] = df["filter"].apply(
+                        self._convert_metadata_from_json_to_dict
+                    )
+
                 for column_name, null_value in columns_to_null:
                     df[column_name] = null_value
                 return df
@@ -270,7 +295,11 @@ class Dataset(object):
                 UserWarning,
                 stacklevel=0,
             )
-            return pd.DataFrame(columns=getattr(self._config.Schema.Names, data_type))
+            return pd.DataFrame(
+                columns=[
+                    col[0] for col in getattr(self._config.Schema.Names, data_type)
+                ]
+            )
 
     def _load_metadata(self) -> DatasetMetadata:
         if not self._fs:
@@ -298,7 +327,7 @@ class Dataset(object):
 
     @property
     def documents(self) -> pd.DataFrame:
-        if self._documents.empty:
+        if self._documents is None:
             self._documents = self._safe_read_from_path("documents")
         return self._documents
 
@@ -331,7 +360,7 @@ class Dataset(object):
 
     @property
     def queries(self) -> pd.DataFrame:
-        if self._queries.empty:
+        if self._queries is None:
             self._queries = self._safe_read_from_path("queries")
         return self._queries
 
@@ -353,7 +382,7 @@ class Dataset(object):
 
     @property
     def metadata(self) -> DatasetMetadata:
-        if self._metadata.is_empty():
+        if self._metadata is None:
             self._metadata = self._load_metadata()
         return self._metadata
 
@@ -369,22 +398,37 @@ class Dataset(object):
         # save documents
         documents_path = os.path.join(dataset_path, "documents")
         fs.makedirs(documents_path, exist_ok=True)
-        self.documents.to_parquet(
-            os.path.join(documents_path, "part-0.parquet"),
-            engine="pyarrow",
-            index=False,
-            filesystem=fs,
-        )
-        # save queries
-        if not self.queries.empty:
-            queries_path = os.path.join(dataset_path, "queries")
-            fs.makedirs(queries_path, exist_ok=True)
-            self.queries.to_parquet(
-                os.path.join(queries_path, "part-0.parquet"),
+
+        documents_metadta_copy = self.documents["metadata"].copy()
+        try:
+            self.documents["metadata"] = self.documents["metadata"].apply(
+                self._convert_metadata_from_dict_to_json
+            )
+            self.documents.to_parquet(
+                os.path.join(documents_path, "part-0.parquet"),
                 engine="pyarrow",
                 index=False,
                 filesystem=fs,
             )
+        finally:
+            self.documents["metadata"] = documents_metadta_copy
+        # save queries
+        if not self.queries.empty:
+            queries_path = os.path.join(dataset_path, "queries")
+            fs.makedirs(queries_path, exist_ok=True)
+            queries_filter_copy = self.queries["filter"].copy()
+            try:
+                self.queries["filter"] = self.queries["filter"].apply(
+                    self._convert_metadata_from_dict_to_json
+                )
+                self.queries.to_parquet(
+                    os.path.join(queries_path, "part-0.parquet"),
+                    engine="pyarrow",
+                    index=False,
+                    filesystem=fs,
+                )
+            finally:
+                self.queries["filter"] = queries_filter_copy
         else:
             warnings.warn("Queries are empty, not saving queries")
 
@@ -412,7 +456,9 @@ class Dataset(object):
         dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
         self.to_path(dataset_path, **kwargs)
 
-    async def _async_upsert(self, index_name: str, batch_size: int, concurrency: int):
+    async def _async_upsert(
+        self, index_name: str, namespace: str, batch_size: int, concurrency: int
+    ):
         pinecone_index = (
             self._pinecone_client.get_index(index_name=index_name)
             if version("pinecone-client").startswith("3")
@@ -426,7 +472,9 @@ class Dataset(object):
         async def send_batch(i, batch):
             async with sem:
                 try:
-                    return await pinecone_index.upsert(vectors=batch, async_req=True)
+                    return await pinecone_index.upsert(
+                        vectors=batch, namespace=namespace, async_req=True
+                    )
                 except Exception as pe:
                     if i in pinecone_failed_batches:
                         raise pe
@@ -466,6 +514,18 @@ class Dataset(object):
 
         return {"upserted_count": total_upserted_count}
 
+    def _set_pinecone_index(
+        self,
+        api_key: Optional[str] = None,
+        environment: Optional[str] = None,
+        **kwargs,
+    ) -> None:
+        if version("pinecone-client").startswith("3"):
+            self._pinecone_client = pc(api_key=api_key, region=environment, **kwargs)
+        elif version("pinecone-client").startswith("2"):
+            pc.init(api_key=api_key, environment=environment, **kwargs)
+            self._pinecone_client = pc
+
     def _create_index(
         self,
         index_name: str,
@@ -473,12 +533,7 @@ class Dataset(object):
         environment: Optional[str] = None,
         **kwargs,
     ) -> Index:
-        if version("pinecone-client").startswith("3"):
-            self._pinecone_client = pc(api_key=api_key, region=environment, **kwargs)
-        elif version("pinecone-client").startswith("2"):
-            pc.init(api_key=api_key, environment=environment, **kwargs)
-            self._pinecone_client = pc
-
+        self._set_pinecone_index(api_key=api_key, environment=environment)
         pinecone_index_list = self._pinecone_client.list_indexes()
 
         if index_name in pinecone_index_list:
@@ -503,6 +558,8 @@ class Dataset(object):
     def to_pinecone_index(
         self,
         index_name: str,
+        namespace: Optional[str] = "",
+        should_create_index: bool = True,
         batch_size: int = 100,
         concurrency: int = 10,
         api_key: Optional[str] = None,
@@ -521,6 +578,7 @@ class Dataset(object):
 
         Args:
             index_name (str): the name of the index to upsert to
+            namespace (str, optional): the namespace to use for the upsert. Defaults to "".
             batch_size (int, optional): the batch size to use for the upsert. Defaults to 100.
             concurrency (int, optional): the concurrency to use for the upsert. Defaults to 10.
 
@@ -537,24 +595,31 @@ class Dataset(object):
             result = dataset.to_pinecone_index(index_name="my_index")
             ```
         """
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                raise RuntimeError(
+                    "You are running inside a Jupyter Notebook or another Asyncio context. "
+                    + "Plesae use the function to_pinecone_index_async instead. "
+                    + "example: `await dataset.to_pinecone_index_async(index_name)`"
+                )
+        except:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
 
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            raise RuntimeError(
-                "You are running inside a Jupyter Notebook or another Asyncio context. "
-                + "Plesae use the function to_pinecone_index_async instead. "
-                + "example: `await dataset.to_pinecone_index_async(index_name)`"
-            )
-
-        if not self._create_index(
-            index_name, api_key=api_key, environment=environment, **kwargs
-        ):
-            raise RuntimeError("index creation failed")
+        if should_create_index:
+            if not self._create_index(
+                index_name, api_key=api_key, environment=environment, **kwargs
+            ):
+                raise RuntimeError("index creation failed")
+        else:
+            self._set_pinecone_index(api_key=api_key, environment=environment, **kwargs)
 
         # TODO: add concurrency = 0 as sync loop (def _upsert...) and add sync loop
 
         cor = self._async_upsert(
             index_name=index_name,
+            namespace=namespace,
             batch_size=batch_size,
             concurrency=concurrency,
         )
@@ -563,6 +628,8 @@ class Dataset(object):
     async def to_pinecone_index_async(
         self,
         index_name: str,
+        namespace: str = "",
+        should_create_index: bool = True,
         batch_size: int = 100,
         concurrency: int = 10,
         api_key: Optional[str] = None,
@@ -581,6 +648,7 @@ class Dataset(object):
 
         Args:
             index_name (str): the name of the index to upsert to
+            namespace (str, optional): the namespace to use for the upsert. Defaults to "".
             batch_size (int, optional): the batch size to use for the upsert. Defaults to 100.
             concurrency (int, optional): the concurrency to use for the upsert. Defaults to 10.
 
@@ -597,13 +665,17 @@ class Dataset(object):
             result = await dataset.to_pinecone_index_async(index_name="my_index")
             ```
         """
-        if not self._create_index(
-            index_name, api_key=api_key, environment=environment, **kwargs
-        ):
-            raise RuntimeError("index creation failed")
+        if should_create_index:
+            if not self._create_index(
+                index_name, api_key=api_key, environment=environment, **kwargs
+            ):
+                raise RuntimeError("index creation failed")
+        else:
+            self._set_pinecone_index(api_key=api_key, environment=environment, **kwargs)
 
         res = await self._async_upsert(
             index_name=index_name,
+            namespace=namespace,
             batch_size=batch_size,
             concurrency=concurrency,
         )
