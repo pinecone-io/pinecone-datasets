@@ -23,7 +23,7 @@ from pinecone_datasets.catalog import DatasetMetadata
 from pinecone_datasets.fs import get_cloud_fs, LocalFileSystem
 
 import pinecone as pc
-from pinecone import GRPCIndex as Index
+from pinecone import Index
 
 
 class DatasetInitializationError(Exception):
