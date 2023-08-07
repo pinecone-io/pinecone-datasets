@@ -5,15 +5,8 @@ from importlib.metadata import version
 
 import pandas as pd
 
-if version("pinecone-client").startswith("3"):
-    from pinecone import Client as PC, Index
-elif version("pinecone-client").startswith("2"):
-    import pinecone as PC
-
-    try:
-        from pinecone import GRPCIndex as Index
-    except ImportError:
-        from pinecone import Index
+import pinecone as PC
+from pinecone import GRPCIndex as Index
 from pinecone_datasets import (
     list_datasets,
     load_dataset,
@@ -29,11 +22,8 @@ class TestPinecone:
     def setup_method(self):
         # Prep Pinecone Dataset and Index for
 
-        if version("pinecone-client").startswith("3"):
-            self.client = PC()
-        elif version("pinecone-client").startswith("2"):
-            PC.init()
-            self.client = PC
+        PC.init()
+        self.client = PC
         self.index_name = f"quora-index-{os.environ['PY_VERSION'].replace('.', '-')}-{uuid.uuid4().hex[-6:]}"
         self.dataset_size = 100000
         self.dataset_dim = 384
