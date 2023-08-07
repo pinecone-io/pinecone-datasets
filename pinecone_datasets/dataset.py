@@ -22,15 +22,8 @@ from pinecone_datasets import cfg
 from pinecone_datasets.catalog import DatasetMetadata
 from pinecone_datasets.fs import get_cloud_fs, LocalFileSystem
 
-try:
-    import pinecone as pc
-    from pinecone import GRPCIndex as Index
-except ImportError:
-    warnings.warn(
-        message="Pinecone client version not supported or non-existent,"
-        + "please use pip ineall pinecone-client or do pip install pinecone-datasets[pinecone-client]"
-    )
-    pc = None
+import pinecone as pc
+from pinecone import GRPCIndex as Index
 
 
 class DatasetInitializationError(Exception):
@@ -542,11 +535,6 @@ class Dataset(object):
             result = dataset.to_pinecone_index(index_name="my_index")
             ```
         """
-        if pc is None:
-            raise ImportError(
-                "Pinecone client version not supported or non-existent,"
-                + "please use `pip install pinecone-client` or do `pip install pinecone-datasets[pinecone-client]`"
-            )
         if should_create_index:
             if not self._create_index(
                 index_name, api_key=api_key, environment=environment, **kwargs
