@@ -6,7 +6,7 @@ from importlib.metadata import version
 import pandas as pd
 
 import pinecone as PC
-from pinecone import GRPCIndex as Index
+from pinecone import Index
 from pinecone_datasets import (
     list_datasets,
     load_dataset,
