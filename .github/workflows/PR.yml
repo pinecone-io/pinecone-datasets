@@ -1,6 +1,9 @@
-name: CI
+name: PR
 
-on: push
+on:
+  pull_request:
+      branches:
+        - main
 
 jobs:
   run-tests:
@@ -9,7 +12,6 @@ jobs:
     strategy:
       matrix:
         python-version: [3.8, 3.9, '3.10', 3.11]
-
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -32,6 +34,8 @@ jobs:
         PY_VERSION: ${{ matrix.python-version }}
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+        PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_ENVIRONMENT }}
       run: poetry run pytest -v --html=report.html --cov pinecone_datasets tests/system
     - name: upload pytest report.html
       uses: actions/upload-artifact@v3
