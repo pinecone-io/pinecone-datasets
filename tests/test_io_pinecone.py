@@ -15,7 +15,7 @@ from pinecone_datasets import (
     DenseModelMetadata,
 )
 
-from tests.test_public_datasets import deep_list_cmp
+from tests.test_public_datasets import deep_list_cmp, approx_deep_list_cmp
 
 
 class TestPinecone:
@@ -150,7 +150,7 @@ class TestPinecone:
         time.sleep(60)
         assert index.describe_index_stats().total_vector_count == self.dataset_size
 
-        assert deep_list_cmp(
+        assert approx_deep_list_cmp(
             index.fetch(ids=["1"])["vectors"]["1"].values,
             self.ds.documents.loc[0].values[1].tolist(),
         )
