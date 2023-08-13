@@ -151,7 +151,7 @@ class TestPinecone:
         assert index.describe_index_stats().total_vector_count == self.dataset_size
 
         assert deep_list_cmp(
-            index.fetch(ids=["1"])["1"].values,
+            index.fetch(ids=["1"])["vectors"]["1"].values,
             self.ds.documents.loc[0].values[1].tolist(),
         )
 
