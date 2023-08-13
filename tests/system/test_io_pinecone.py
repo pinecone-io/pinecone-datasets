@@ -15,7 +15,7 @@ from pinecone_datasets import (
     DenseModelMetadata,
 )
 
-from tests.test_public_datasets import deep_list_cmp, approx_deep_list_cmp
+from tests.system.test_public_datasets import deep_list_cmp, approx_deep_list_cmp
 
 
 class TestPinecone:
