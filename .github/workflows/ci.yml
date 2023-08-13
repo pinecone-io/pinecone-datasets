@@ -32,7 +32,7 @@ jobs:
         PY_VERSION: ${{ matrix.python-version }}
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      run: poetry run pytest -v --html=report.html --cov pinecone_datasets tests/system
+      run: poetry run pytest -v --html=report.html --cov pinecone_datasets tests/unit
     - name: upload pytest report.html
       uses: actions/upload-artifact@v3
       if: always()
