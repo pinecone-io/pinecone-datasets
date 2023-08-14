@@ -5,15 +5,8 @@ from importlib.metadata import version
 
 import pandas as pd
 
-if version("pinecone-client").startswith("3"):
-    from pinecone import Client as PC, Index
-elif version("pinecone-client").startswith("2"):
-    import pinecone as PC
-
-    try:
-        from pinecone import GRPCIndex as Index
-    except ImportError:
-        from pinecone import Index
+import pinecone as PC
+from pinecone import Index
 from pinecone_datasets import (
     list_datasets,
     load_dataset,
@@ -22,18 +15,15 @@ from pinecone_datasets import (
     DenseModelMetadata,
 )
 
-from tests.test_public_datasets import deep_list_cmp
+from tests.test_public_datasets import deep_list_cmp, approx_deep_list_cmp
 
 
 class TestPinecone:
     def setup_method(self):
         # Prep Pinecone Dataset and Index for
 
-        if version("pinecone-client").startswith("3"):
-            self.client = PC()
-        elif version("pinecone-client").startswith("2"):
-            PC.init()
-            self.client = PC
+        PC.init()
+        self.client = PC
         self.index_name = f"quora-index-{os.environ['PY_VERSION'].replace('.', '-')}-{uuid.uuid4().hex[-6:]}"
         self.dataset_size = 100000
         self.dataset_dim = 384
@@ -160,8 +150,8 @@ class TestPinecone:
         time.sleep(60)
         assert index.describe_index_stats().total_vector_count == self.dataset_size
 
-        assert deep_list_cmp(
-            index.fetch(ids=["1"])["1"].values,
+        assert approx_deep_list_cmp(
+            index.fetch(ids=["1"])["vectors"]["1"].values,
             self.ds.documents.loc[0].values[1].tolist(),
         )
 

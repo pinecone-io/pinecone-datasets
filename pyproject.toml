@@ -2,8 +2,10 @@
 name = "pinecone-datasets"
 version = "0.6.0"
 description = "Pinecone Datasets lets you easily load datasets into your Pinecone index."
-authors = ["Pinecone"]
+authors = ["Roy Miara <miararoy@gmail.com>"]
 maintainers = [
+    "Ilai Giloh <ilai@pinecone.io>",
+    "Amnon Catav <amnon@pinecone.io>",
     "Roy Miara <miararoy@gmail.com>",
 ]
 readme = "README.md"
@@ -18,11 +20,8 @@ s3fs = "^2023.1.0"
 pydantic = "^1.10.5"
 pandas = "^2.0.0"
 tqdm = "^4.65.0"
-pinecone-client = { version = "3.0.0rc2", optional = true }
+pinecone-client = "^2.2.2"
 
-
-[tool.poetry.extras]
-clientv3 = ["pinecone-client"]
 
 [tool.poetry.group.dev]
 optional = true

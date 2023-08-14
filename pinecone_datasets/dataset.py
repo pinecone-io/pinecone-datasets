@@ -22,21 +22,8 @@ from pinecone_datasets import cfg
 from pinecone_datasets.catalog import DatasetMetadata
 from pinecone_datasets.fs import get_cloud_fs, LocalFileSystem
 
-if version("pinecone-client").startswith("3"):
-    from pinecone import Client as pc, Index
-elif version("pinecone-client").startswith("2"):
-    import pinecone as pc
-
-    try:
-        from pinecone import GRPCIndex as Index
-    except ImportError:
-        from pinecone import Index
-else:
-    warnings.warn(
-        message="Pinecone client version not supported or non-existent,"
-        + "please use pip ineall pinecone-client to install v2 or "
-        + "pip install pinecone-datasets[clientv3] to install v3"
-    )
+import pinecone as pc
+from pinecone import Index
 
 
 class DatasetInitializationError(Exception):
@@ -456,63 +443,19 @@ class Dataset(object):
         dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
         self.to_path(dataset_path, **kwargs)
 
-    async def _async_upsert(
+    def _upsert_to_index(
         self, index_name: str, namespace: str, batch_size: int, concurrency: int
     ):
-        pinecone_index = (
-            self._pinecone_client.get_index(index_name=index_name)
-            if version("pinecone-client").startswith("3")
-            else Index(index_name=index_name)
+        pinecone_index = Index(index_name=index_name)
+
+        res = pinecone_index.upsert_from_dataframe(
+            self.documents[self._config.Schema.documents_select_columns].dropna(
+                axis=1, how="all"
+            ),
+            namespace=namespace,
+            batch_size=batch_size,
         )
-
-        sem = asyncio.Semaphore(concurrency)
-
-        pinecone_failed_batches = []
-
-        async def send_batch(i, batch):
-            async with sem:
-                try:
-                    return await pinecone_index.upsert(
-                        vectors=batch, namespace=namespace, async_req=True
-                    )
-                except Exception as pe:
-                    if i in pinecone_failed_batches:
-                        raise pe
-                    else:
-                        pinecone_failed_batches.append(i)
-                        return UpsertResponse(upserted_count=0)
-
-        tasks = [
-            send_batch(i, chunk)
-            for i, chunk in self.iter_documents(
-                batch_size=batch_size, return_indexes=True
-            )
-        ]
-
-        pbar = tqdm(total=len(self.documents), desc="Upserting Vectors")
-        total_upserted_count = 0
-        for task in asyncio.as_completed(tasks):
-            res = await task
-            total_upserted_count += res.upserted_count
-            pbar.update(res.upserted_count)
-
-        failed_tasks = [
-            send_batch(
-                i,
-                self.documents[self._config.Schema.documents_select_columns]
-                .dropna(axis=1, how="all")
-                .loc[i : i + batch_size]
-                .to_dict(orient="records"),
-            )
-            for i in pinecone_failed_batches
-        ]
-
-        for task in asyncio.as_completed(failed_tasks):
-            res = await task
-            total_upserted_count += res.upserted_count
-            pbar.update(res.upserted_count)
-
-        return {"upserted_count": total_upserted_count}
+        return {"upserted_count": res.upserted_count}
 
     def _set_pinecone_index(
         self,
@@ -520,11 +463,8 @@ class Dataset(object):
         environment: Optional[str] = None,
         **kwargs,
     ) -> None:
-        if version("pinecone-client").startswith("3"):
-            self._pinecone_client = pc(api_key=api_key, region=environment, **kwargs)
-        elif version("pinecone-client").startswith("2"):
-            pc.init(api_key=api_key, environment=environment, **kwargs)
-            self._pinecone_client = pc
+        pc.init(api_key=api_key, environment=environment, **kwargs)
+        self._pinecone_client = pc
 
     def _create_index(
         self,
@@ -595,18 +535,6 @@ class Dataset(object):
             result = dataset.to_pinecone_index(index_name="my_index")
             ```
         """
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                raise RuntimeError(
-                    "You are running inside a Jupyter Notebook or another Asyncio context. "
-                    + "Plesae use the function to_pinecone_index_async instead. "
-                    + "example: `await dataset.to_pinecone_index_async(index_name)`"
-                )
-        except:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
         if should_create_index:
             if not self._create_index(
                 index_name, api_key=api_key, environment=environment, **kwargs
@@ -615,69 +543,9 @@ class Dataset(object):
         else:
             self._set_pinecone_index(api_key=api_key, environment=environment, **kwargs)
 
-        # TODO: add concurrency = 0 as sync loop (def _upsert...) and add sync loop
-
-        cor = self._async_upsert(
+        return self._upsert_to_index(
             index_name=index_name,
             namespace=namespace,
             batch_size=batch_size,
             concurrency=concurrency,
         )
-        return asyncio.run(cor)
-
-    async def to_pinecone_index_async(
-        self,
-        index_name: str,
-        namespace: str = "",
-        should_create_index: bool = True,
-        batch_size: int = 100,
-        concurrency: int = 10,
-        api_key: Optional[str] = None,
-        environment: Optional[str] = None,
-        **kwargs,
-    ):
-        """
-        Saves the dataset to a Pinecone index.
-
-        this function will look for two environment variables:
-        - PINECONE_API_KEY
-        - PINECONE_ENVIRONMENT
-
-        Then, it will init a Pinecone Client and will perform an upsert to the index.
-        The upsert will be using async batches to increase performance.
-
-        Args:
-            index_name (str): the name of the index to upsert to
-            namespace (str, optional): the namespace to use for the upsert. Defaults to "".
-            batch_size (int, optional): the batch size to use for the upsert. Defaults to 100.
-            concurrency (int, optional): the concurrency to use for the upsert. Defaults to 10.
-
-        Keyword Args:
-            kwargs (Dict): additional arguments to pass to the Pinecone Client constructor when creating the index.
-            see available parameters here: https://docs.pinecone.io/reference/create_index
-
-
-        Returns:
-            UpsertResponse: an object containing the upserted_count
-
-        Examples:
-            ```python
-            result = await dataset.to_pinecone_index_async(index_name="my_index")
-            ```
-        """
-        if should_create_index:
-            if not self._create_index(
-                index_name, api_key=api_key, environment=environment, **kwargs
-            ):
-                raise RuntimeError("index creation failed")
-        else:
-            self._set_pinecone_index(api_key=api_key, environment=environment, **kwargs)
-
-        res = await self._async_upsert(
-            index_name=index_name,
-            namespace=namespace,
-            batch_size=batch_size,
-            concurrency=concurrency,
-        )
-
-        return res
