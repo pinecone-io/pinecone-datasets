@@ -1,7 +1,7 @@
 import os
 
 from pinecone_datasets import list_datasets, load_dataset, Dataset
-from tests.test_public_datasets import deep_list_cmp
+from tests.system.test_public_datasets import deep_list_cmp
 
 
 def test_list_private_datasets():
