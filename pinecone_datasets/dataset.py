@@ -471,10 +471,19 @@ class Dataset(object):
         index_name: str,
         api_key: Optional[str] = None,
         environment: Optional[str] = None,
+        should_create_index: bool = True,
         **kwargs,
-    ) -> Index:
+    ) -> None:
         self._set_pinecone_index(api_key=api_key, environment=environment)
-        pinecone_index_list = self._pinecone_client.list_indexes()
+        pinecone_index_list = pc.list_indexes()
+
+        if index_name in pinecone_index_list:
+            if should_create_index:
+                raise ValueError(
+                    f"Index {index_name} already exists. Set should_create_index=False to use the existing index."
+                )
+            else:
+                return
 
         # create index
         print("creating index")
@@ -525,19 +534,14 @@ class Dataset(object):
             result = dataset.to_pinecone_index(index_name="my_index")
             ```
         """
-        if index_name in pinecone_index_list:
-            if should_create_index:
-                raise ValueError(
-                    f"index {index_name} already exists. Set should_create_index=False to upsert to an existing index."
-                )
-            else:
-                self._set_pinecone_index(
-                    api_key=api_key, environment=environment, **kwargs
-                )
-        else:
-            self._create_index(
-                index_name, api_key=api_key, environment=environment, **kwargs
-            )
+
+        self._create_index(
+            index_name,
+            api_key=api_key,
+            environment=environment,
+            should_create_index=should_create_index,
+            **kwargs,
+        )
 
         return self._upsert_to_index(
             index_name=index_name,
