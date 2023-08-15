@@ -97,7 +97,7 @@ class TestPinecone:
 
     def test_local_dataset_with_metadata(self, tmpdir):
         print(
-            f"Testing dataset {self.tested_dataset} with index {self.index_name_local}"
+            f"Testing dataset {self.tested_dataset} with index {self.index_name_local} "
         )
 
         self.ds_local.to_pinecone_index(

@@ -471,29 +471,28 @@ class Dataset(object):
         index_name: str,
         api_key: Optional[str] = None,
         environment: Optional[str] = None,
+        should_create_index: bool = True,
         **kwargs,
-    ) -> Index:
+    ) -> None:
         self._set_pinecone_index(api_key=api_key, environment=environment)
-        pinecone_index_list = self._pinecone_client.list_indexes()
+        pinecone_index_list = pc.list_indexes()
 
         if index_name in pinecone_index_list:
-            raise ValueError(
-                f"index {index_name} already exists, Pinecone Datasets can only be upserted to a new indexe"
-            )
-        else:
-            # create index
-            print("creating index")
-            try:
-                self._pinecone_client.create_index(
-                    name=index_name,
-                    dimension=self.metadata.dense_model.dimension,
-                    **kwargs,
+            if should_create_index:
+                raise ValueError(
+                    f"Index {index_name} already exists. Set should_create_index=False to use the existing index."
                 )
-                print("index created")
-                return True
-            except Exception as e:
-                print(f"error creating index: {e}")
-                return False
+            else:
+                return
+
+        # create index
+        print("creating index")
+        self._pinecone_client.create_index(
+            name=index_name,
+            dimension=self.metadata.dense_model.dimension,
+            **kwargs,
+        )
+        print("index created")
 
     def to_pinecone_index(
         self,
@@ -535,13 +534,14 @@ class Dataset(object):
             result = dataset.to_pinecone_index(index_name="my_index")
             ```
         """
-        if should_create_index:
-            if not self._create_index(
-                index_name, api_key=api_key, environment=environment, **kwargs
-            ):
-                raise RuntimeError("index creation failed")
-        else:
-            self._set_pinecone_index(api_key=api_key, environment=environment, **kwargs)
+
+        self._create_index(
+            index_name,
+            api_key=api_key,
+            environment=environment,
+            should_create_index=should_create_index,
+            **kwargs,
+        )
 
         return self._upsert_to_index(
             index_name=index_name,
