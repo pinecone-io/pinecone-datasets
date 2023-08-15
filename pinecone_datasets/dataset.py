@@ -476,24 +476,14 @@ class Dataset(object):
         self._set_pinecone_index(api_key=api_key, environment=environment)
         pinecone_index_list = self._pinecone_client.list_indexes()
 
-        if index_name in pinecone_index_list:
-            raise ValueError(
-                f"index {index_name} already exists, Pinecone Datasets can only be upserted to a new indexe"
-            )
-        else:
-            # create index
-            print("creating index")
-            try:
-                self._pinecone_client.create_index(
-                    name=index_name,
-                    dimension=self.metadata.dense_model.dimension,
-                    **kwargs,
-                )
-                print("index created")
-                return True
-            except Exception as e:
-                print(f"error creating index: {e}")
-                return False
+        # create index
+        print("creating index")
+        self._pinecone_client.create_index(
+            name=index_name,
+            dimension=self.metadata.dense_model.dimension,
+            **kwargs,
+        )
+        print("index created")
 
     def to_pinecone_index(
         self,
@@ -535,13 +525,19 @@ class Dataset(object):
             result = dataset.to_pinecone_index(index_name="my_index")
             ```
         """
-        if should_create_index:
-            if not self._create_index(
-                index_name, api_key=api_key, environment=environment, **kwargs
-            ):
-                raise RuntimeError("index creation failed")
+        if index_name in pinecone_index_list:
+            if should_create_index:
+                raise ValueError(
+                    f"index {index_name} already exists. Set should_create_index=False to upsert to an existing index."
+                )
+            else:
+                self._set_pinecone_index(
+                    api_key=api_key, environment=environment, **kwargs
+                )
         else:
-            self._set_pinecone_index(api_key=api_key, environment=environment, **kwargs)
+            self._create_index(
+                index_name, api_key=api_key, environment=environment, **kwargs
+            )
 
         return self._upsert_to_index(
             index_name=index_name,
