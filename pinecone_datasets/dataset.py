@@ -155,7 +155,7 @@ class Dataset(object):
             for column_name, is_nullable, null_value in schema:
                 if column_name not in df.columns and not is_nullable:
                     raise ValueError(
-                        f"error, file is not matching Pinecone Datasets Schmea: {column_name} not found"
+                        f"error, file is not matching Pinecone Datasets Schema: {column_name} not found"
                     )
                 elif column_name not in df.columns and is_nullable:
                     df[column_name] = null_value
