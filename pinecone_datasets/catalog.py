@@ -47,7 +47,7 @@ class DatasetMetadata(BaseModel):
     @staticmethod
     def empty() -> "DatasetMetadata":
         return DatasetMetadata(
-            name=f"dataset-{str(uuid.uuid4())[:8]}",
+            name=f"pinecone_dataset_{str(uuid.uuid4())[:8]}",
             created_at=get_time_now(),
             documents=0,
             queries=0,

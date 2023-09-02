@@ -388,6 +388,16 @@ class Dataset(object):
         """
         Saves the dataset to a local or cloud storage path.
         """
+        # check that path and name match
+        name_from_path = dataset_path.split("/")[-1]
+        if name_from_path != self.metadata.name:
+            raise ValueError(
+                f"Dataset name: {self.metadata.name} does not match path name: .../{name_from_path}.\n" + 
+                "Path and name must match because the name is used to identify the dataset in the catalog.\n" + 
+                "In order to avoid having to manage a state, mapping between name and path, we require that the name and path match.\n" + 
+                f"You can resolve this error by saving it to path: {'/'.join(dataset_path.split('/')[:-1])}/{self.metadata.name}"
+            )
+
         fs = get_cloud_fs(dataset_path, **kwargs)
 
         # save documents
