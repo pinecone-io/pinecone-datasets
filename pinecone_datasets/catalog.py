@@ -1,6 +1,7 @@
 from datetime import datetime
 import warnings
 import os
+import uuid
 import json
 from ssl import SSLCertVerificationError
 from typing import List, Optional, Union, Any, Dict
@@ -46,7 +47,7 @@ class DatasetMetadata(BaseModel):
     @staticmethod
     def empty() -> "DatasetMetadata":
         return DatasetMetadata(
-            name="",
+            name=f"dataset-{str(uuid.uuid4())[:8]}",
             created_at=get_time_now(),
             documents=0,
             queries=0,

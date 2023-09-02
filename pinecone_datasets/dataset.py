@@ -99,7 +99,7 @@ class Dataset(object):
     def from_pandas(
         cls,
         documents: pd.DataFrame,
-        metadata: DatasetMetadata,
+        metadata: Optional[DatasetMetadata] = None,
         documents_column_mapping: Optional[Dict] = None,
         queries: Optional[pd.DataFrame] = None,
         queries_column_mapping: Optional[Dict] = None,
@@ -127,7 +127,15 @@ class Dataset(object):
         clazz._queries = cls._read_pandas_dataframe(
             queries, queries_column_mapping, cfg.Schema.Names.queries
         )
-        clazz._metadata = metadata
+        if metadata is None:
+            temp_metadata = DatasetMetadata.empty()
+            warnings.warn(f"Metadata is None, the Dataset name created is {temp_metadata.name}")
+            temp_metadata.dense_model.dimension = len(documents.iloc[0]["values"].values[0])
+            temp_metadata.documents = len(documents)
+            temp_metadata.queries = len(queries) if queries is not None else 0
+            clazz._metadata = temp_metadata
+        else:
+            clazz._metadata = metadata
         return clazz
 
     @staticmethod
