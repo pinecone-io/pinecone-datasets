@@ -43,6 +43,7 @@ q = pd.DataFrame(
     ]
 )
 
+
 def test_default_loading():
     ds = Dataset.from_pandas(documents=d, queries=q)
     assert ds.metadata.name.startswith("pinecone_dataset_")
@@ -53,11 +54,14 @@ def test_default_loading():
     pd_assert_frame_equal(ds.documents, d)
     pd_assert_frame_equal(ds.queries, q)
 
+
 def test_fails_save_name_not_match(tmpdir):
     dataset_name = "test_io_dataset"
     dataset_path = tmpdir.mkdir(dataset_name)
     ds = Dataset.from_pandas(documents=d, queries=q)
-    ds.to_path(str(dataset_path))
+    caught_exception = None
+    with pytest.raises(ValueError) as e:
+        ds.to_path(str(dataset_path))
 
 
 def test_io(tmpdir):

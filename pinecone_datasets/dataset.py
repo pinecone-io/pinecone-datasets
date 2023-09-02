@@ -23,7 +23,8 @@ from pinecone_datasets.catalog import DatasetMetadata
 from pinecone_datasets.fs import get_cloud_fs, LocalFileSystem
 
 import pinecone as pc
-from pinecone import Index
+
+# from pinecone import Index
 
 
 class DatasetInitializationError(Exception):
@@ -129,8 +130,10 @@ class Dataset(object):
         )
         if metadata is None:
             temp_metadata = DatasetMetadata.empty()
-            warnings.warn(f"Metadata is None, the Dataset name created is {temp_metadata.name}")
-            temp_metadata.dense_model.dimension = len(documents.iloc[0]["values"].values[0])
+            warnings.warn(
+                f"Metadata is None, the Dataset name created is {temp_metadata.name}"
+            )
+            temp_metadata.dense_model.dimension = len(documents.iloc[0]["values"])
             temp_metadata.documents = len(documents)
             temp_metadata.queries = len(queries) if queries is not None else 0
             clazz._metadata = temp_metadata
@@ -392,10 +395,10 @@ class Dataset(object):
         name_from_path = dataset_path.split("/")[-1]
         if name_from_path != self.metadata.name:
             raise ValueError(
-                f"Dataset name: {self.metadata.name} does not match path name: .../{name_from_path}.\n" + 
-                "Path and name must match because the name is used to identify the dataset in the catalog.\n" + 
-                "In order to avoid having to manage a state, mapping between name and path, we require that the name and path match.\n" + 
-                f"You can resolve this error by saving it to path: {'/'.join(dataset_path.split('/')[:-1])}/{self.metadata.name}"
+                f"Dataset name: {self.metadata.name} does not match path name: .../{name_from_path}.\n"
+                + "Path and name must match because the name is used to identify the dataset in the catalog.\n"
+                + "In order to avoid having to manage a state, mapping between name and path, we require that the name and path match.\n"
+                + f"You can resolve this error by saving it to path: {'/'.join(dataset_path.split('/')[:-1])}/{self.metadata.name}"
             )
 
         fs = get_cloud_fs(dataset_path, **kwargs)
@@ -464,7 +467,7 @@ class Dataset(object):
     def _upsert_to_index(
         self, index_name: str, namespace: str, batch_size: int, concurrency: int
     ):
-        pinecone_index = Index(index_name=index_name)
+        pinecone_index = pc.Index(index_name=index_name)
 
         res = pinecone_index.upsert_from_dataframe(
             self.documents[self._config.Schema.documents_select_columns].dropna(
@@ -490,7 +493,7 @@ class Dataset(object):
         api_key: Optional[str] = None,
         environment: Optional[str] = None,
         **kwargs,
-    ) -> Index:
+    ) -> pc.Index:
         self._set_pinecone_index(api_key=api_key, environment=environment)
         pinecone_index_list = self._pinecone_client.list_indexes()
 
