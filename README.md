@@ -141,6 +141,24 @@ dataset = Dataset.from_pandas(documents = df, quries = None, metadata = metadata
 
 Please check the documentation for more information on the expected dataframe schema. There's also a column mapping variable that can be used to map the dataframe columns to the expected schema.
 
+### Loading from a sentence transformer
+
+Pinecone Datasets enables you to create an embedding dataset using a variety of transformers from [Sentence Transformer](https://huggingface.co/sentence-transformers). Use it to load more than 124 embedding models. 
+
+```python
+sentences = [
+   "How do I get a replacement Medicare card?",
+   "What is the monthly premium for Medicare Part B?"
+]
+
+dataset = Dataset.from_sentence_transformers(
+    'sentence-transformers/all-MiniLM-L6-v2',
+    sentences
+)
+
+```
+
+In the future we may support importing sentences from public Hugging Face datasets.
 
 ## Usage - Accessing data
 
@@ -247,6 +265,7 @@ the `to_index` function also accepts additional parameters
 This project is using poetry for dependency managemet. supported python version are 3.8+. To start developing, on project root directory run:
 
 ```bash
+poetry config virtualenvs.in-project true 
 poetry install --with dev
 ```
 

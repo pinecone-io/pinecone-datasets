@@ -9,3 +9,4 @@ scratchpad.ipynb
 .pytest_cache/
 .coverage
 poetry.lock
+__pycache__

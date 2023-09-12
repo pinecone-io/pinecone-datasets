@@ -19,12 +19,13 @@ from pydantic import ValidationError
 from typing import Any, Generator, Iterator, List, Union, Dict, Optional, Tuple
 
 from pinecone_datasets import cfg
-from pinecone_datasets.catalog import DatasetMetadata
+from pinecone_datasets.catalog import DatasetMetadata, DenseModelMetadata
 from pinecone_datasets.fs import get_cloud_fs, LocalFileSystem
 
 import pinecone as pc
 from pinecone import Index
 
+from sentence_transformers import SentenceTransformer
 
 class DatasetInitializationError(Exception):
     long_message = """
@@ -129,6 +130,59 @@ class Dataset(object):
         )
         clazz._metadata = metadata
         return clazz
+
+    @classmethod
+    def from_sentence_transformers(
+        cls,
+        model_name_or_path: str='sentence-transformers/all-MiniLM-L6-v2',
+        sentences: str | List[str]=[],
+        metadata: DatasetMetadata=DatasetMetadata.empty(),
+        queries: Optional[pd.DataFrame] = None,
+        queries_column_mapping: Optional[Dict] = None,
+        encode_kwargs: Dict = {},
+        **kwargs,
+    ) -> "Dataset":
+        """
+        Create a Dataset object from a list of sentences and a sentence transformer
+
+        Args:
+            model_name_or_path (str): sentence transformers model name, can be a local path or Hugging Faces model, `sentence-transformers/all-MiniLM-L6-v2`
+            sentences (List): List of sentences to embed
+            metadata (DatasetMetadata): a Dataset Meta data
+
+        Keyword Args:
+            encode_kwargs (Dict): arguments to pass to the `SentenceTransformer.encode()` function
+            kwargs (Dict): additional arguments to pass to the `SentenceTransformer` constructor
+
+        Returns:
+            Dataset: a Dataset object
+        """
+        len_sentences = len(sentences)
+        assert model_name_or_path and len_sentences
+
+        model = SentenceTransformer(model_name_or_path, **kwargs)
+        embeddings = model.encode(sentences, **encode_kwargs)
+
+        df = pd.DataFrame(
+            {
+                "id": range(len_sentences),
+                "values": embeddings.tolist()
+            }
+        )
+
+        embedding_dim = embeddings[0].shape[0]
+        metadata.documents = len_sentences
+        metadata.dense_model = DenseModelMetadata(
+            dimension=embedding_dim, 
+            tokenizer=model_name_or_path, 
+            name=model_name_or_path
+        )
+
+        return cls.from_pandas(
+            documents=df, metadata=metadata,
+            queries=queries, 
+            queries_column_mapping=queries_column_mapping
+        )
 
     @staticmethod
     def _read_pandas_dataframe(
