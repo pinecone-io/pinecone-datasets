@@ -444,7 +444,7 @@ class Dataset(object):
         self.to_path(dataset_path, **kwargs)
 
     def _upsert_to_index(
-        self, index_name: str, namespace: str, batch_size: int, concurrency: int
+        self, index_name: str, namespace: str, batch_size: int, show_progress: bool
     ):
         pinecone_index = Index(index_name=index_name)
 
@@ -454,6 +454,7 @@ class Dataset(object):
             ),
             namespace=namespace,
             batch_size=batch_size,
+            show_progress=show_progress,
         )
         return {"upserted_count": res.upserted_count}
 
@@ -501,7 +502,7 @@ class Dataset(object):
         namespace: Optional[str] = "",
         should_create_index: bool = True,
         batch_size: int = 100,
-        concurrency: int = 10,
+        show_progress: bool = True,
         api_key: Optional[str] = None,
         environment: Optional[str] = None,
         **kwargs,
@@ -547,5 +548,5 @@ class Dataset(object):
             index_name=index_name,
             namespace=namespace,
             batch_size=batch_size,
-            concurrency=concurrency,
+            show_progress=show_progress,
         )
