@@ -376,6 +376,37 @@ class Dataset(object):
     def head(self, n: int = 5) -> pd.DataFrame:
         return self.documents.head(n)
 
+    @staticmethod
+    def _batch_generator(df, batch_size):
+        for start in range(0, len(df), batch_size):
+            yield df.iloc[start:start+batch_size]
+
+    @staticmethod
+    def write_parquet_partitioned(df, path, rows_per_file, row_group_size, fs):
+        """
+        Write a dataframe to a parquet file in batches.
+        """
+
+        if row_group_size > rows_per_file:
+            raise ValueError("row_group_size must be less than or equal to rows_per_file")
+        
+        for i, batch in enumerate(Dataset._batch_generator(df, rows_per_file)):
+            try: 
+                batch.to_parquet(
+                    os.path.join(path, f"part-{i}.parquet"),
+                    engine="pyarrow",
+                    index=False,
+                    filesystem=fs,
+                    row_group_size=row_group_size
+                )
+            except Exception as e:
+                # delete all files written so far
+                warnings.warn(f"error writing batch {i}: {e}, deleting all files written so far")
+                for j in range(i):
+                    fs.rm(os.path.join(path, f"part-{j}.parquet"))
+                raise RuntimeError(f"error writing batch {i}: {e}")
+
+
     def to_path(self, dataset_path: str, **kwargs):
         """
         Saves the dataset to a local or cloud storage path.
@@ -391,12 +422,7 @@ class Dataset(object):
             self.documents["metadata"] = self.documents["metadata"].apply(
                 self._convert_metadata_from_dict_to_json
             )
-            self.documents.to_parquet(
-                os.path.join(documents_path, "part-0.parquet"),
-                engine="pyarrow",
-                index=False,
-                filesystem=fs,
-            )
+            self.write_parquet_partitioned(self.documents, documents_path, 10 ** 6, 10 ** 5, fs)
         finally:
             self.documents["metadata"] = documents_metadta_copy
         # save queries
@@ -408,12 +434,7 @@ class Dataset(object):
                 self.queries["filter"] = self.queries["filter"].apply(
                     self._convert_metadata_from_dict_to_json
                 )
-                self.queries.to_parquet(
-                    os.path.join(queries_path, "part-0.parquet"),
-                    engine="pyarrow",
-                    index=False,
-                    filesystem=fs,
-                )
+                self.write_parquet_partitioned(self.queries, queries_path, 10 ** 4, 10 ** 4, fs)
             finally:
                 self.queries["filter"] = queries_filter_copy
         else:
