@@ -237,7 +237,7 @@ await ds.to_pinecone_index_async("index_name")
 
 the `to_index` function also accepts additional parameters
 
-* `batch_size` and `concurrency` - for controlling the upserting process
+* `batch_size` for controlling the upserting process
 * `kwargs` - for passing additional parameters to the index creation process
 
 
