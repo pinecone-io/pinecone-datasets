@@ -407,7 +407,7 @@ class Dataset(object):
                 raise RuntimeError(f"error writing batch {i}: {e}")
 
 
-    def to_path(self, dataset_path: str, **kwargs):
+    def to_path(self, dataset_path: str, rows_per_file: int=10 ** 6, row_group_size: int=10 ** 5, **kwargs):
         """
         Saves the dataset to a local or cloud storage path.
         """
@@ -422,7 +422,7 @@ class Dataset(object):
             self.documents["metadata"] = self.documents["metadata"].apply(
                 self._convert_metadata_from_dict_to_json
             )
-            self.write_parquet_partitioned(self.documents, documents_path, 10 ** 6, 10 ** 5, fs)
+            self.write_parquet_partitioned(self.documents, documents_path, rows_per_file, row_group_size, fs)
         finally:
             self.documents["metadata"] = documents_metadta_copy
         # save queries
@@ -434,7 +434,7 @@ class Dataset(object):
                 self.queries["filter"] = self.queries["filter"].apply(
                     self._convert_metadata_from_dict_to_json
                 )
-                self.write_parquet_partitioned(self.queries, queries_path, 10 ** 4, 10 ** 4, fs)
+                self.write_parquet_partitioned(self.queries, queries_path, rows_per_file, row_group_size, fs)
             finally:
                 self.queries["filter"] = queries_filter_copy
         else:
