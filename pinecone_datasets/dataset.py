@@ -522,7 +522,7 @@ class Dataset(object):
             namespace (str, optional): the namespace to use for the upsert. Defaults to "".
             batch_size (int, optional): the batch size to use for the upsert. Defaults to 100.
             show_progress (bool, optional): whether to show a progress bar while upserting. Defaults to True.
-            
+
         Keyword Args:
             kwargs (Dict): additional arguments to pass to the Pinecone Client constructor when creating the index.
             see available parameters here: https://docs.pinecone.io/reference/create_index

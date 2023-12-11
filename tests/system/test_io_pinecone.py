@@ -100,9 +100,7 @@ class TestPinecone:
             f"Testing dataset {self.tested_dataset} with index {self.index_name_local}"
         )
 
-        self.ds_local.to_pinecone_index(
-            index_name=self.index_name_local, batch_size=3
-        )
+        self.ds_local.to_pinecone_index(index_name=self.index_name_local, batch_size=3)
         index = self.client.Index(self.index_name_local)
 
         assert self.index_name_local in self.client.list_indexes()
@@ -137,9 +135,7 @@ class TestPinecone:
     def test_large_dataset_upsert_to_pinecone_with_creating_index(self):
         print(f"Testing dataset {self.tested_dataset} with index {self.index_name}")
 
-        self.ds.to_pinecone_index(
-            index_name=self.index_name, batch_size=300
-        )
+        self.ds.to_pinecone_index(index_name=self.index_name, batch_size=300)
         index = self.client.Index(self.index_name)
 
         assert self.index_name in self.client.list_indexes()
