@@ -1,33 +1,21 @@
-import glob
 import sys
 import os
-import itertools
-import time
 import json
-import asyncio
 import warnings
 from urllib.parse import urlparse
 from dataclasses import dataclass
-from importlib.metadata import version
 
-import gcsfs
-import s3fs
 import pandas as pd
-from tqdm.auto import tqdm
 import pyarrow.parquet as pq
 from pydantic import ValidationError
-from typing import Any, Generator, Iterator, List, Union, Dict, Optional, Tuple, NamedTuple
+from typing import Any, Generator, Iterator, List, Dict, Optional, Tuple, NamedTuple
 
 from pinecone_datasets import cfg
 from pinecone_datasets.catalog import DatasetMetadata
-from pinecone_datasets.fs import get_cloud_fs, LocalFileSystem
-from pinecone_datasets.utils import is_pinecone_3
+from pinecone_datasets.fs import get_cloud_fs
 
 import pinecone as pc
-from pinecone import Index
-
-if is_pinecone_3():
-    from pinecone import ServerlessSpec, PodSpec
+from pinecone import Index, ServerlessSpec, PodSpec
 
 
 class DatasetInitializationError(Exception):
@@ -465,31 +453,21 @@ class Dataset(object):
     def _set_pinecone_index(
         self,
         api_key: Optional[str] = None,
-        environment: Optional[str] = None,
         **kwargs,
     ) -> None:
-        if is_pinecone_3():
-            self._pinecone_client = pc.Pinecone(api_key=api_key, **kwargs)
-        else:
-            pc.init(api_key=api_key, environment=environment, **kwargs)
-            self._pinecone_client = pc
+        self._pinecone_client = pc.Pinecone(api_key=api_key, **kwargs)
 
     def _get_index_list(self) -> List[str]:
-        if is_pinecone_3():
-            index_list = [i["name"] for i in self._pinecone_client.list_indexes()]
-        else:
-            index_list = self._pinecone_client.list_indexes()
-        return index_list
+        return [i["name"] for i in self._pinecone_client.list_indexes()]
 
     def _create_index(
         self,
         index_name: str,
         api_key: Optional[str] = None,
-        environment: Optional[str] = None,
         spec: Optional[NamedTuple] = None,
         **kwargs,
     ) -> Index:
-        self._set_pinecone_index(api_key=api_key, environment=environment)
+        self._set_pinecone_index(api_key=api_key)
         pinecone_index_list = self._get_index_list()
 
         if index_name in pinecone_index_list:
@@ -558,27 +536,24 @@ class Dataset(object):
             result = dataset.to_pinecone_index(index_name="my_index")
             ```
         """
-        if is_pinecone_3():
-            print(f"serverless: {serverless}")
-            serverless = serverless or os.environ.get("SERVERLESS", False)
-            if serverless:
-                spec = ServerlessSpec(
-                    cloud=cloud or os.environ["PINECONE_CLOUD"],
-                    region=environment or os.environ["PINECONE_ENVIRONMENT"],
-                )
-            else:
-                spec = PodSpec(
-                    environment=os.environ["PINECONE_ENVIRONMENT"],
-                )
+        print(f"serverless: {serverless}")
+        serverless = serverless or os.environ.get("SERVERLESS", False)
+        if serverless:
+            spec = ServerlessSpec(
+                cloud=cloud or os.environ["PINECONE_CLOUD"],
+                region=environment or os.environ["PINECONE_ENVIRONMENT"],
+            )
         else:
-            spec = None
+            spec = PodSpec(
+                environment=os.environ["PINECONE_ENVIRONMENT"],
+            )
         if should_create_index:
             if not self._create_index(
-                index_name, api_key=api_key, environment=environment, spec=spec, **kwargs
+                index_name, api_key=api_key, spec=spec, **kwargs
             ):
                 raise RuntimeError("index creation failed")
         else:
-            self._set_pinecone_index(api_key=api_key, environment=environment, **kwargs)
+            self._set_pinecone_index(api_key=api_key, **kwargs)
 
         return self._upsert_to_index(
             index_name=index_name,

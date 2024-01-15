@@ -1,14 +1,12 @@
 import os
 import time
 import uuid
-from importlib.metadata import version
 
 import pandas as pd
 
 import pinecone as pc
-from pinecone import Index
+from pinecone import ServerlessSpec, PodSpec
 from pinecone_datasets import (
-    list_datasets,
     load_dataset,
     DatasetMetadata,
     Dataset,
@@ -17,21 +15,17 @@ from pinecone_datasets import (
 
 from typing import List
 
-from tests.system.test_public_datasets import deep_list_cmp, approx_deep_list_cmp
-from pinecone_datasets.utils import is_pinecone_3
+from tests.system.test_public_datasets import approx_deep_list_cmp
 
-if is_pinecone_3():
-    from pinecone import ServerlessSpec, PodSpec
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class TestPinecone:
     def setup_method(self):
         # Prep Pinecone Dataset and Index for testing
-        if is_pinecone_3():
-            self.client = pc.Pinecone()
-        else:
-            pc.init()
-            self.client = pc
+        self.client = pc.Pinecone()
         self.index_name = f"quora-index-{os.environ['PY_VERSION'].replace('.', '-')}-{uuid.uuid4().hex[-6:]}"
         self.dataset_size = 100000
         self.dataset_dim = 384
@@ -162,24 +156,22 @@ class TestPinecone:
     def test_dataset_upsert_to_existing_index(self):
         # create an index
         this_test_index = self.index_name + "-precreated"  
-        if is_pinecone_3():
-            if os.environ["SERVERLESS"]:
-                spec = ServerlessSpec(
-                    cloud=os.environ["PINECONE_CLOUD"],
-                    region=os.environ["PINECONE_ENVIRONMENT"],
-                )
-            else:
-                spec = PodSpec(environment=os.environ["PINECONE_ENVIRONMENT"])
-            print(f"CLOUD {os.environ['PINECONE_CLOUD']}")
-            print(f"SPEC {spec}")
-            self.client.create_index(
-                name=this_test_index,
-                dimension=self.dataset_dim,
-                spec=spec
+        if os.environ["SERVERLESS"]:
+            spec = ServerlessSpec(
+                cloud=os.environ["PINECONE_CLOUD"],
+                region=os.environ["PINECONE_ENVIRONMENT"],
             )
-            print(f"Created v3 index {this_test_index} with spec {spec}")
         else:
-            self.client.create_index(name=this_test_index, dimension=self.dataset_dim)
+            spec = PodSpec(environment=os.environ["PINECONE_ENVIRONMENT"])
+        print(f"CLOUD {os.environ['PINECONE_CLOUD']}")
+        print(f"SPEC {spec}")
+        self.client.create_index(
+            name=this_test_index,
+            dimension=self.dataset_dim,
+            spec=spec
+        )
+        print(f"Created v3 index {this_test_index} with spec {spec}")
+
         # check that index exists
         assert this_test_index in self._get_index_list()
 
@@ -222,11 +214,7 @@ class TestPinecone:
         )
     
     def _get_index_list(self) -> List[str]:
-        if is_pinecone_3():
-            index_list = [i["name"] for i in self.client.list_indexes()]
-        else:
-            index_list = self.client.list_indexes()
-        return index_list
+        return [i["name"] for i in self.client.list_indexes()]
 
     def teardown_method(self):
         if self.index_name in self._get_index_list():
