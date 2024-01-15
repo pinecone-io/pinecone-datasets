@@ -26,8 +26,8 @@ def spec_type(request):
 class TestPinecone:
     def setup_method(self):
         # Prep Pinecone Dataset and Index for testing
-        self.api_key = os.environ["PINECONE_API_KEY"]
-        self.client = pc.Pinecone(api_key=self.api_key)
+        api_key = os.environ["PINECONE_API_KEY"]
+        self.client = pc.Pinecone(api_key=api_key)
         self.index_name = f"quora-index-{os.environ['PY_VERSION'].replace('.', '-')}-{uuid.uuid4().hex[-6:]}"
         self.dataset_size = 100000
         self.dataset_dim = 384
@@ -100,12 +100,13 @@ class TestPinecone:
         self.index_name_local = f"test-index-{os.environ['PY_VERSION'].replace('.', '-')}-{uuid.uuid4().hex[:6]}"
 
     def test_local_dataset_with_metadata(self, tmpdir):
+        api_key = os.environ["PINECONE_API_KEY"]
         print(
             f"Testing dataset {self.tested_dataset} with index {self.index_name_local}"
         )
 
         self.ds_local.to_pinecone_index(
-            api_key=self.api_key,
+            api_key=api_key,
             index_name=self.index_name_local,
             batch_size=3
         )
@@ -141,10 +142,11 @@ class TestPinecone:
         pd.testing.assert_frame_equal(loaded_ds.queries, self.ds_local.queries)
 
     def test_large_dataset_upsert_to_pinecone_with_creating_index(self):
+        api_key = os.environ["PINECONE_API_KEY"]
         print(f"Testing dataset {self.tested_dataset} with index {self.index_name}")
 
         self.ds.to_pinecone_index(
-            api_key=self.api_key,
+            api_key=api_key,
             index_name=self.index_name,
             batch_size=300
         )
@@ -165,6 +167,7 @@ class TestPinecone:
 
     @pytest.mark.parametrize("spec_type", ["pod", "serverless"], indirect=True)
     def test_dataset_upsert_to_existing_index(self, spec_type):
+        api_key = os.environ["PINECONE_API_KEY"]
         # create an index
         this_test_index = self.index_name + "-precreated"  
         if spec_type == "serverless":
@@ -193,7 +196,7 @@ class TestPinecone:
         )
         # upsert dataset to index
         self.ds.to_pinecone_index(
-            api_key=self.api_key,
+            api_key=api_key,
             index_name=this_test_index,
             batch_size=300,
             should_create_index=False,
@@ -211,7 +214,7 @@ class TestPinecone:
         # upsert dataset to index at a specific namespace
         namespace = "test"
         self.ds.to_pinecone_index(
-            api_key=self.api_key,
+            api_key=api_key,
             index_name=this_test_index,
             batch_size=300,
             should_create_index=False,
