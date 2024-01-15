@@ -3,6 +3,7 @@ import time
 import uuid
 
 import pandas as pd
+import pytest
 
 import pinecone as pc
 from pinecone import ServerlessSpec, PodSpec
@@ -17,10 +18,10 @@ from typing import List
 
 from tests.system.test_public_datasets import approx_deep_list_cmp
 
-from dotenv import load_dotenv
 
-load_dotenv()
-
+@pytest.fixture
+def spec_type(request):
+    return request.param
 
 class TestPinecone:
     def setup_method(self):
@@ -153,18 +154,19 @@ class TestPinecone:
             self.ds.documents.loc[0].values[1].tolist(),
         )
 
-    def test_dataset_upsert_to_existing_index(self):
+    @pytest.mark.parametrize("spec_type", ["pod", "serverless"], indirect=True)
+    def test_dataset_upsert_to_existing_index(self, spec_type):
         # create an index
         this_test_index = self.index_name + "-precreated"  
-        if os.environ["SERVERLESS"]:
+        if spec_type == "serverless":
             spec = ServerlessSpec(
-                cloud=os.environ["PINECONE_CLOUD"],
-                region=os.environ["PINECONE_ENVIRONMENT"],
+                cloud=os.getenv("PINECONE_CLOUD", "aws"),
+                region=os.getenv("PINECONE_REGION", "us-west-2"),
             )
-        else:
+        elif spec_type == "pod":
             spec = PodSpec(environment=os.environ["PINECONE_ENVIRONMENT"])
-        print(f"CLOUD {os.environ['PINECONE_CLOUD']}")
-        print(f"SPEC {spec}")
+        else:
+            raise ValueError(f"Unknown spec type {spec_type}")
         self.client.create_index(
             name=this_test_index,
             dimension=self.dataset_dim,

@@ -501,6 +501,7 @@ class Dataset(object):
         show_progress: bool = True,
         api_key: Optional[str] = None,
         environment: Optional[str] = None,
+        region: Optional[str] = None,
         cloud: Optional[str] = None,
         serverless: Optional[bool] = None,
         **kwargs,
@@ -540,12 +541,12 @@ class Dataset(object):
         serverless = serverless or os.environ.get("SERVERLESS", False)
         if serverless:
             spec = ServerlessSpec(
-                cloud=cloud or os.environ["PINECONE_CLOUD"],
-                region=environment or os.environ["PINECONE_ENVIRONMENT"],
+                cloud=cloud or os.getenv("PINECONE_CLOUD", "aws"),
+                region=region or os.getenv("PINECONE_REGION", "us-west2"),
             )
         else:
             spec = PodSpec(
-                environment=os.environ["PINECONE_ENVIRONMENT"],
+                environment=environment or os.environ["PINECONE_ENVIRONMENT"],
             )
         if should_create_index:
             if not self._create_index(
