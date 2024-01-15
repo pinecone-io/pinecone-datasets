@@ -512,14 +512,20 @@ class Dataset(object):
         this function will look for four environment variables:
         - SERVERLESS
         - PINECONE_API_KEY
-        - PINECONE_ENVIRONMENT
+        - PINECONE_REGION
         - PINECONE_CLOUD
+        - PINECONE_ENVIRONMENT
 
         Then, it will init a Pinecone Client and will perform an upsert to the index.
         The upsert will be using async batches to increase performance.
 
         Args:
             index_name (str): the name of the index to upsert to
+            api_key (str, optional): the api key to use for the upsert. Defaults to None.
+            region (str, optional): the region to use for the upsert for serverless. Defaults to None.
+            cloud (str, optional): the cloud to use for the upsert for serverless. Defaults to None.
+            environment (str, optional): the environment to use for the upsert for pod-based. Defaults to None.
+            serverless (bool, optional): whether to use serverless or pod-based. Defaults to None.
             namespace (str, optional): the namespace to use for the upsert. Defaults to "".
             batch_size (int, optional): the batch size to use for the upsert. Defaults to 100.
             show_progress (bool, optional): whether to show a progress bar while upserting. Defaults to True.

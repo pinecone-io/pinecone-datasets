@@ -136,7 +136,7 @@ df = pd.read_parquet("my-dataset.parquet")
 
 metadata = DatasetMetadata(**metadata_dict)
 
-dataset = Dataset.from_pandas(documents = df, quries = None, metadata = metadata)
+dataset = Dataset.from_pandas(documents = df, queries = None, metadata = metadata)
 ```
 
 Please check the documentation for more information on the expected dataframe schema. There's also a column mapping variable that can be used to map the dataframe columns to the expected schema.
@@ -235,9 +235,10 @@ await ds.to_pinecone_index_async("index_name")
 
 ```
 
-the `to_index` function also accepts additional parameters
+the `to_pinecone_index` function also accepts additional parameters:
 
 * `batch_size` for controlling the upserting process
+* `api_key` for passing your API key, otherwise you can 
 * `kwargs` - for passing additional parameters to the index creation process
 
 
