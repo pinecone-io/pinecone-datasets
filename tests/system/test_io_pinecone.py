@@ -5,7 +5,7 @@ from importlib.metadata import version
 
 import pandas as pd
 
-import pinecone as PC
+import pinecone as pc
 from pinecone import Index
 from pinecone_datasets import (
     list_datasets,
@@ -15,15 +15,23 @@ from pinecone_datasets import (
     DenseModelMetadata,
 )
 
+from typing import List
+
 from tests.system.test_public_datasets import deep_list_cmp, approx_deep_list_cmp
+from pinecone_datasets.utils import is_pinecone_3
+
+if is_pinecone_3():
+    from pinecone import ServerlessSpec, PodSpec
 
 
 class TestPinecone:
     def setup_method(self):
-        # Prep Pinecone Dataset and Index for
-
-        PC.init()
-        self.client = PC
+        # Prep Pinecone Dataset and Index for testing
+        if is_pinecone_3():
+            self.client = pc.Pinecone()
+        else:
+            pc.init()
+            self.client = pc
         self.index_name = f"quora-index-{os.environ['PY_VERSION'].replace('.', '-')}-{uuid.uuid4().hex[-6:]}"
         self.dataset_size = 100000
         self.dataset_dim = 384
@@ -63,7 +71,7 @@ class TestPinecone:
                 "top_k": 1,
             },
             {
-                "vecotr": [0.41, 0.51, 0.61],
+                "vector": [0.41, 0.51, 0.61],
                 "sparse_vector": {"indices": [4, 6], "values": [0.4, 0.6]},
                 "metadata": {"title": {"$eq": "title2"}, "url": {"$neq": "url2"}},
                 "top_k": 2,
@@ -103,7 +111,7 @@ class TestPinecone:
         self.ds_local.to_pinecone_index(index_name=self.index_name_local, batch_size=3)
         index = self.client.Index(self.index_name_local)
 
-        assert self.index_name_local in self.client.list_indexes()
+        assert self.index_name_local in self._get_index_list()
         assert (
             self.client.describe_index(self.index_name_local).name
             == self.index_name_local
@@ -138,7 +146,7 @@ class TestPinecone:
         self.ds.to_pinecone_index(index_name=self.index_name, batch_size=300)
         index = self.client.Index(self.index_name)
 
-        assert self.index_name in self.client.list_indexes()
+        assert self.index_name in self._get_index_list()
         assert self.client.describe_index(self.index_name).name == self.index_name
         assert self.client.describe_index(self.index_name).dimension == self.dataset_dim
 
@@ -153,10 +161,27 @@ class TestPinecone:
 
     def test_dataset_upsert_to_existing_index(self):
         # create an index
-        this_test_index = self.index_name + "-precreated"
-        self.client.create_index(name=this_test_index, dimension=self.dataset_dim)
+        this_test_index = self.index_name + "-precreated"  
+        if is_pinecone_3():
+            if os.environ["SERVERLESS"]:
+                spec = ServerlessSpec(
+                    cloud=os.environ["PINECONE_CLOUD"],
+                    region=os.environ["PINECONE_ENVIRONMENT"],
+                )
+            else:
+                spec = PodSpec(environment=os.environ["PINECONE_ENVIRONMENT"])
+            print(f"CLOUD {os.environ['PINECONE_CLOUD']}")
+            print(f"SPEC {spec}")
+            self.client.create_index(
+                name=this_test_index,
+                dimension=self.dataset_dim,
+                spec=spec
+            )
+            print(f"Created v3 index {this_test_index} with spec {spec}")
+        else:
+            self.client.create_index(name=this_test_index, dimension=self.dataset_dim)
         # check that index exists
-        assert this_test_index in self.client.list_indexes()
+        assert this_test_index in self._get_index_list()
 
         # check that index is empty
         assert (
@@ -195,16 +220,23 @@ class TestPinecone:
             index.describe_index_stats().namespaces[namespace].vector_count
             == self.dataset_size
         )
+    
+    def _get_index_list(self) -> List[str]:
+        if is_pinecone_3():
+            index_list = [i["name"] for i in self.client.list_indexes()]
+        else:
+            index_list = self.client.list_indexes()
+        return index_list
 
     def teardown_method(self):
-        if self.index_name in self.client.list_indexes():
+        if self.index_name in self._get_index_list():
             print(f"Deleting index {self.index_name}")
             self.client.delete_index(self.index_name)
 
-        if self.index_name + "-precreated" in self.client.list_indexes():
+        if self.index_name + "-precreated" in self._get_index_list():
             print(f"Deleting index {self.index_name}-precreated")
             self.client.delete_index(self.index_name + "-precreated")
 
-        if self.index_name_local in self.client.list_indexes():
+        if self.index_name_local in self._get_index_list():
             print(f"Deleting index {self.index_name_local}")
             self.client.delete_index(self.index_name_local)

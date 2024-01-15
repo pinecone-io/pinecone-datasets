@@ -16,14 +16,18 @@ import pandas as pd
 from tqdm.auto import tqdm
 import pyarrow.parquet as pq
 from pydantic import ValidationError
-from typing import Any, Generator, Iterator, List, Union, Dict, Optional, Tuple
+from typing import Any, Generator, Iterator, List, Union, Dict, Optional, Tuple, NamedTuple
 
 from pinecone_datasets import cfg
 from pinecone_datasets.catalog import DatasetMetadata
 from pinecone_datasets.fs import get_cloud_fs, LocalFileSystem
+from pinecone_datasets.utils import is_pinecone_3
 
 import pinecone as pc
 from pinecone import Index
+
+if is_pinecone_3():
+    from pinecone import ServerlessSpec, PodSpec
 
 
 class DatasetInitializationError(Exception):
@@ -446,7 +450,7 @@ class Dataset(object):
     def _upsert_to_index(
         self, index_name: str, namespace: str, batch_size: int, show_progress: bool
     ):
-        pinecone_index = Index(index_name=index_name)
+        pinecone_index = self._pinecone_client.Index(index_name)
 
         res = pinecone_index.upsert_from_dataframe(
             self.documents[self._config.Schema.documents_select_columns].dropna(
@@ -464,18 +468,29 @@ class Dataset(object):
         environment: Optional[str] = None,
         **kwargs,
     ) -> None:
-        pc.init(api_key=api_key, environment=environment, **kwargs)
-        self._pinecone_client = pc
+        if is_pinecone_3():
+            self._pinecone_client = pc.Pinecone(api_key=api_key, **kwargs)
+        else:
+            pc.init(api_key=api_key, environment=environment, **kwargs)
+            self._pinecone_client = pc
+
+    def _get_index_list(self) -> List[str]:
+        if is_pinecone_3():
+            index_list = [i["name"] for i in self._pinecone_client.list_indexes()]
+        else:
+            index_list = self._pinecone_client.list_indexes()
+        return index_list
 
     def _create_index(
         self,
         index_name: str,
         api_key: Optional[str] = None,
         environment: Optional[str] = None,
+        spec: Optional[NamedTuple] = None,
         **kwargs,
     ) -> Index:
         self._set_pinecone_index(api_key=api_key, environment=environment)
-        pinecone_index_list = self._pinecone_client.list_indexes()
+        pinecone_index_list = self._get_index_list()
 
         if index_name in pinecone_index_list:
             raise ValueError(
@@ -485,9 +500,12 @@ class Dataset(object):
             # create index
             print("creating index")
             try:
+                print("creating index")
+                print(f"spec: {spec}")
                 self._pinecone_client.create_index(
                     name=index_name,
                     dimension=self.metadata.dense_model.dimension,
+                    spec=spec,
                     **kwargs,
                 )
                 print("index created")
@@ -505,14 +523,18 @@ class Dataset(object):
         show_progress: bool = True,
         api_key: Optional[str] = None,
         environment: Optional[str] = None,
+        cloud: Optional[str] = None,
+        serverless: Optional[bool] = None,
         **kwargs,
     ):
         """
         Saves the dataset to a Pinecone index.
 
-        this function will look for two environment variables:
+        this function will look for four environment variables:
+        - SERVERLESS
         - PINECONE_API_KEY
         - PINECONE_ENVIRONMENT
+        - PINECONE_CLOUD
 
         Then, it will init a Pinecone Client and will perform an upsert to the index.
         The upsert will be using async batches to increase performance.
@@ -536,9 +558,23 @@ class Dataset(object):
             result = dataset.to_pinecone_index(index_name="my_index")
             ```
         """
+        if is_pinecone_3():
+            print(f"serverless: {serverless}")
+            serverless = serverless or os.environ.get("SERVERLESS", False)
+            if serverless:
+                spec = ServerlessSpec(
+                    cloud=cloud or os.environ["PINECONE_CLOUD"],
+                    region=environment or os.environ["PINECONE_ENVIRONMENT"],
+                )
+            else:
+                spec = PodSpec(
+                    environment=os.environ["PINECONE_ENVIRONMENT"],
+                )
+        else:
+            spec = None
         if should_create_index:
             if not self._create_index(
-                index_name, api_key=api_key, environment=environment, **kwargs
+                index_name, api_key=api_key, environment=environment, spec=spec, **kwargs
             ):
                 raise RuntimeError("index creation failed")
         else:
