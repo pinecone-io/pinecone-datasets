@@ -27,6 +27,7 @@ class TestPinecone:
     def setup_method(self):
         # Prep Pinecone Dataset and Index for testing
         api_key = os.environ["PINECONE_API_KEY"]
+        print(f"!!!!! API_KEY LENGTH: {len(api_key)}")
         self.client = pc.Pinecone(api_key=api_key)
         self.index_name = f"quora-index-{os.environ['PY_VERSION'].replace('.', '-')}-{uuid.uuid4().hex[-6:]}"
         self.dataset_size = 100000
