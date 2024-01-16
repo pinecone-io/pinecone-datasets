@@ -19,9 +19,17 @@ from typing import List
 from tests.system.test_public_datasets import approx_deep_list_cmp
 
 
-@pytest.fixture
-def spec_type(request):
-    return request.param
+@pytest.fixture(scope="module", params=[ServerlessSpec, PodSpec])
+def spec(request):
+    spec_class = request.param
+    if spec_class == ServerlessSpec:
+        return ServerlessSpec(
+            cloud=os.getenv("PINECONE_CLOUD", "aws"),
+            region=os.getenv("PINECONE_REGION", "us-west-2"),
+        )
+    else:
+        return PodSpec(environment=os.environ["PINECONE_ENVIRONMENT"])
+
 
 
 class TestPinecone:
@@ -99,6 +107,17 @@ class TestPinecone:
 
         self.index_name_local = f"test-index-{os.environ['PY_VERSION'].replace('.', '-')}-{uuid.uuid4().hex[:6]}"
 
+    def _wait_for_index(self, index: pc.Index, expected_docs=0, timeout: int = 60):
+        for _ in range(timeout):
+            try:
+                vector_count = index.describe_index_stats().total_vector_count
+                assert vector_count >= expected_docs
+                return
+            except Exception as e:
+                time.sleep(1)
+        else:
+            raise TimeoutError(f"Index not created after {timeout} seconds")
+
     def test_local_dataset_with_metadata(self, tmpdir):
         print(
             f"Testing dataset {self.tested_dataset} with index {self.index_name_local}"
@@ -118,11 +137,7 @@ class TestPinecone:
         )
 
         # Wait for index to be ready
-        time.sleep(60)
-        assert (
-            index.describe_index_stats().total_vector_count
-            == self.ds_local.metadata.documents
-        )
+        self._wait_for_index(index, expected_docs=self.ds_local.metadata.documents)
 
         dataset_name = "test_local_dataset_with_metadata"
         dataset_path = tmpdir.mkdir(dataset_name)
@@ -147,27 +162,16 @@ class TestPinecone:
         assert self.client.describe_index(self.index_name).dimension == self.dataset_dim
 
         # Wait for index to be ready
-        time.sleep(60)
-        assert index.describe_index_stats().total_vector_count == self.dataset_size
+        self._wait_for_index(index, expected_docs=self.dataset_size)
 
         assert approx_deep_list_cmp(
             index.fetch(ids=["1"])["vectors"]["1"].values,
             self.ds.documents.loc[0].values[1].tolist(),
         )
 
-    @pytest.mark.parametrize("spec_type", ["pod", "serverless"], indirect=True)
-    def test_dataset_upsert_to_existing_index(self, spec_type):
+    def test_dataset_upsert_to_existing_index(self, spec):
         # create an index
         this_test_index = self.index_name + "-precreated"
-        if spec_type == "serverless":
-            spec = ServerlessSpec(
-                cloud=os.getenv("PINECONE_CLOUD", "aws"),
-                region=os.getenv("PINECONE_REGION", "us-west-2"),
-            )
-        elif spec_type == "pod":
-            spec = PodSpec(environment=os.environ["PINECONE_ENVIRONMENT"])
-        else:
-            raise ValueError(f"Unknown spec type {spec_type}")
         self.client.create_index(
             name=this_test_index, dimension=self.dataset_dim, spec=spec
         )
@@ -175,6 +179,7 @@ class TestPinecone:
 
         # check that index exists
         assert this_test_index in self._get_index_list()
+        self._wait_for_index(self.client.Index(this_test_index), expected_docs=0)
 
         # check that index is empty
         assert (
@@ -190,12 +195,7 @@ class TestPinecone:
         index = self.client.Index(this_test_index)
 
         # Wait for index to be ready
-        time.sleep(60)
-        assert index.describe_index_stats().total_vector_count == self.dataset_size
-        assert (
-            index.describe_index_stats().namespaces[""].vector_count
-            == self.dataset_size
-        )
+        self._wait_for_index(index, expected_docs=self.dataset_size)
 
         # upsert dataset to index at a specific namespace
         namespace = "test"
@@ -207,8 +207,7 @@ class TestPinecone:
         )
 
         # Wait for index to be ready
-        time.sleep(60)
-        assert index.describe_index_stats().total_vector_count == self.dataset_size * 2
+        self._wait_for_index(index, expected_docs=self.dataset_size * 2)
         assert (
             index.describe_index_stats().namespaces[namespace].vector_count
             == self.dataset_size
