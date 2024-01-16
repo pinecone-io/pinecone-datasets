@@ -458,7 +458,7 @@ class Dataset(object):
         self._pinecone_client = pc.Pinecone(api_key=api_key, **kwargs)
 
     def _get_index_list(self) -> List[str]:
-        return [i["name"] for i in self._pinecone_client.list_indexes()]
+        return self._pinecone_client.list_indexes().names()
 
     def _create_index(
         self,
