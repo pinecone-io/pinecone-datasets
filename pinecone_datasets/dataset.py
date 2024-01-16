@@ -555,9 +555,7 @@ class Dataset(object):
                 environment=environment or os.environ["PINECONE_ENVIRONMENT"],
             )
         if should_create_index:
-            if not self._create_index(
-                index_name, api_key=api_key, spec=spec, **kwargs
-            ):
+            if not self._create_index(index_name, api_key=api_key, spec=spec, **kwargs):
                 raise RuntimeError("index creation failed")
         else:
             self._set_pinecone_index(api_key=api_key, **kwargs)

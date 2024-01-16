@@ -23,6 +23,7 @@ from tests.system.test_public_datasets import approx_deep_list_cmp
 def spec_type(request):
     return request.param
 
+
 class TestPinecone:
     def setup_method(self):
         # Prep Pinecone Dataset and Index for testing
@@ -103,10 +104,7 @@ class TestPinecone:
             f"Testing dataset {self.tested_dataset} with index {self.index_name_local}"
         )
 
-        self.ds_local.to_pinecone_index(
-            index_name=self.index_name_local,
-            batch_size=3
-        )
+        self.ds_local.to_pinecone_index(index_name=self.index_name_local, batch_size=3)
         index = self.client.Index(self.index_name_local)
 
         assert self.index_name_local in self._get_index_list()
@@ -141,10 +139,7 @@ class TestPinecone:
     def test_large_dataset_upsert_to_pinecone_with_creating_index(self):
         print(f"Testing dataset {self.tested_dataset} with index {self.index_name}")
 
-        self.ds.to_pinecone_index(
-            index_name=self.index_name,
-            batch_size=300
-        )
+        self.ds.to_pinecone_index(index_name=self.index_name, batch_size=300)
         index = self.client.Index(self.index_name)
 
         assert self.index_name in self._get_index_list()
@@ -163,7 +158,7 @@ class TestPinecone:
     @pytest.mark.parametrize("spec_type", ["pod", "serverless"], indirect=True)
     def test_dataset_upsert_to_existing_index(self, spec_type):
         # create an index
-        this_test_index = self.index_name + "-precreated"  
+        this_test_index = self.index_name + "-precreated"
         if spec_type == "serverless":
             spec = ServerlessSpec(
                 cloud=os.getenv("PINECONE_CLOUD", "aws"),
@@ -174,9 +169,7 @@ class TestPinecone:
         else:
             raise ValueError(f"Unknown spec type {spec_type}")
         self.client.create_index(
-            name=this_test_index,
-            dimension=self.dataset_dim,
-            spec=spec
+            name=this_test_index, dimension=self.dataset_dim, spec=spec
         )
         print(f"Created v3 index {this_test_index} with spec {spec}")
 
@@ -220,7 +213,7 @@ class TestPinecone:
             index.describe_index_stats().namespaces[namespace].vector_count
             == self.dataset_size
         )
-    
+
     def _get_index_list(self) -> List[str]:
         return [i["name"] for i in self.client.list_indexes()]
 
