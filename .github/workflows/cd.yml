@@ -6,37 +6,43 @@ on:
 jobs:
 
   release:
+    permissions:
+      contents: write
+
     name: Release
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: 1.3.2
+
     - name: Set Version
-      run: echo "VERSION=$(awk -F' = ' '/^\[tool.poetry\]$/{f=1} f&&/^version = /{gsub(/"/, "", $2); print $2; exit}' pyproject.toml)" >> $GITHUB_ENV
+      run: echo "VERSION=$(poetry version -s)" >> $GITHUB_ENV
 
-    - name: Create tag
-      uses: actions/github-script@v5
-      with:
-        script: |
-          github.rest.git.createRef({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            ref: 'refs/tags/V${{ env.VERSION }}',
-            sha: context.sha
-          })
-    - name: Create a Release
-      uses: elgohr/Github-Release-Action@v4
-      env:
-        GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-      with:
-        title: Release ${{ env.VERSION }}
+#    - name: Create tag
+#      uses: actions/github-script@v5
+#      with:
+#        script: |
+#          github.rest.git.createRef({
+#            owner: context.repo.owner,
+#            repo: context.repo.repo,
+#            ref: 'refs/tags/V${{ env.VERSION }}',
+#            sha: context.sha
+#          })
 
-    - name: Check python versions
-      run: |
-        python --version
-        python3 --version
-        which python3.10
-        python3.10 --version
     - name: Build and publish to pypi
       run: |
-        curl -sSL https://install.python-poetry.org | python3.10 -
-        poetry publish -u pinecone -p ${{ secrets.PYPI_PASSWORD }} --build
+        poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
+        poetry publish --build
+
+    - name: Create GH release
+      uses: ncipollo/release-action@v1
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag: ${{ env.VERSION }}
+        name: ${{ env.VERSION }}
+        artifacts: "dist/*"
