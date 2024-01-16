@@ -31,7 +31,6 @@ def spec(request):
         return PodSpec(environment=os.environ["PINECONE_ENVIRONMENT"])
 
 
-
 class TestPinecone:
     def setup_method(self):
         # Prep Pinecone Dataset and Index for testing
