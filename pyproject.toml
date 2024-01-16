@@ -12,7 +12,7 @@ readme = "README.md"
 
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8,<3.13"
 pyarrow = "^11.0.0"
 fsspec = "^2023.1.0"
 gcsfs = "^2023.1.0"
@@ -20,7 +20,7 @@ s3fs = "^2023.1.0"
 pydantic = "^1.10.5"
 pandas = "^2.0.0"
 tqdm = "^4.65.0"
-pinecone-client = "^2.2.2"
+pinecone-client = "3.0.0.dev10"
 
 
 [tool.poetry.group.dev]

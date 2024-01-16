@@ -1,29 +1,32 @@
 import os
 import time
 import uuid
-from importlib.metadata import version
 
 import pandas as pd
+import pytest
 
-import pinecone as PC
-from pinecone import Index
+import pinecone as pc
+from pinecone import ServerlessSpec, PodSpec
 from pinecone_datasets import (
-    list_datasets,
     load_dataset,
     DatasetMetadata,
     Dataset,
     DenseModelMetadata,
 )
 
-from tests.system.test_public_datasets import deep_list_cmp, approx_deep_list_cmp
+from typing import List
 
+from tests.system.test_public_datasets import approx_deep_list_cmp
+
+
+@pytest.fixture
+def spec_type(request):
+    return request.param
 
 class TestPinecone:
     def setup_method(self):
-        # Prep Pinecone Dataset and Index for
-
-        PC.init()
-        self.client = PC
+        # Prep Pinecone Dataset and Index for testing
+        self.client = pc.Pinecone()
         self.index_name = f"quora-index-{os.environ['PY_VERSION'].replace('.', '-')}-{uuid.uuid4().hex[-6:]}"
         self.dataset_size = 100000
         self.dataset_dim = 384
@@ -63,7 +66,7 @@ class TestPinecone:
                 "top_k": 1,
             },
             {
-                "vecotr": [0.41, 0.51, 0.61],
+                "vector": [0.41, 0.51, 0.61],
                 "sparse_vector": {"indices": [4, 6], "values": [0.4, 0.6]},
                 "metadata": {"title": {"$eq": "title2"}, "url": {"$neq": "url2"}},
                 "top_k": 2,
@@ -100,10 +103,13 @@ class TestPinecone:
             f"Testing dataset {self.tested_dataset} with index {self.index_name_local}"
         )
 
-        self.ds_local.to_pinecone_index(index_name=self.index_name_local, batch_size=3)
+        self.ds_local.to_pinecone_index(
+            index_name=self.index_name_local,
+            batch_size=3
+        )
         index = self.client.Index(self.index_name_local)
 
-        assert self.index_name_local in self.client.list_indexes()
+        assert self.index_name_local in self._get_index_list()
         assert (
             self.client.describe_index(self.index_name_local).name
             == self.index_name_local
@@ -135,10 +141,13 @@ class TestPinecone:
     def test_large_dataset_upsert_to_pinecone_with_creating_index(self):
         print(f"Testing dataset {self.tested_dataset} with index {self.index_name}")
 
-        self.ds.to_pinecone_index(index_name=self.index_name, batch_size=300)
+        self.ds.to_pinecone_index(
+            index_name=self.index_name,
+            batch_size=300
+        )
         index = self.client.Index(self.index_name)
 
-        assert self.index_name in self.client.list_indexes()
+        assert self.index_name in self._get_index_list()
         assert self.client.describe_index(self.index_name).name == self.index_name
         assert self.client.describe_index(self.index_name).dimension == self.dataset_dim
 
@@ -151,12 +160,28 @@ class TestPinecone:
             self.ds.documents.loc[0].values[1].tolist(),
         )
 
-    def test_dataset_upsert_to_existing_index(self):
+    @pytest.mark.parametrize("spec_type", ["pod", "serverless"], indirect=True)
+    def test_dataset_upsert_to_existing_index(self, spec_type):
         # create an index
-        this_test_index = self.index_name + "-precreated"
-        self.client.create_index(name=this_test_index, dimension=self.dataset_dim)
+        this_test_index = self.index_name + "-precreated"  
+        if spec_type == "serverless":
+            spec = ServerlessSpec(
+                cloud=os.getenv("PINECONE_CLOUD", "aws"),
+                region=os.getenv("PINECONE_REGION", "us-west-2"),
+            )
+        elif spec_type == "pod":
+            spec = PodSpec(environment=os.environ["PINECONE_ENVIRONMENT"])
+        else:
+            raise ValueError(f"Unknown spec type {spec_type}")
+        self.client.create_index(
+            name=this_test_index,
+            dimension=self.dataset_dim,
+            spec=spec
+        )
+        print(f"Created v3 index {this_test_index} with spec {spec}")
+
         # check that index exists
-        assert this_test_index in self.client.list_indexes()
+        assert this_test_index in self._get_index_list()
 
         # check that index is empty
         assert (
@@ -195,16 +220,19 @@ class TestPinecone:
             index.describe_index_stats().namespaces[namespace].vector_count
             == self.dataset_size
         )
+    
+    def _get_index_list(self) -> List[str]:
+        return [i["name"] for i in self.client.list_indexes()]
 
     def teardown_method(self):
-        if self.index_name in self.client.list_indexes():
+        if self.index_name in self._get_index_list():
             print(f"Deleting index {self.index_name}")
             self.client.delete_index(self.index_name)
 
-        if self.index_name + "-precreated" in self.client.list_indexes():
+        if self.index_name + "-precreated" in self._get_index_list():
             print(f"Deleting index {self.index_name}-precreated")
             self.client.delete_index(self.index_name + "-precreated")
 
-        if self.index_name_local in self.client.list_indexes():
+        if self.index_name_local in self._get_index_list():
             print(f"Deleting index {self.index_name_local}")
             self.client.delete_index(self.index_name_local)
