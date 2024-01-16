@@ -1,29 +1,22 @@
-import glob
 import sys
 import os
-import itertools
-import time
 import json
-import asyncio
+import time
 import warnings
 from urllib.parse import urlparse
 from dataclasses import dataclass
-from importlib.metadata import version
 
-import gcsfs
-import s3fs
 import pandas as pd
-from tqdm.auto import tqdm
 import pyarrow.parquet as pq
 from pydantic import ValidationError
-from typing import Any, Generator, Iterator, List, Union, Dict, Optional, Tuple
+from typing import Any, Generator, Iterator, List, Dict, Optional, Tuple, NamedTuple
 
 from pinecone_datasets import cfg
 from pinecone_datasets.catalog import DatasetMetadata
-from pinecone_datasets.fs import get_cloud_fs, LocalFileSystem
+from pinecone_datasets.fs import get_cloud_fs
 
 import pinecone as pc
-from pinecone import Index
+from pinecone import Index, ServerlessSpec, PodSpec
 
 
 class DatasetInitializationError(Exception):
@@ -446,7 +439,7 @@ class Dataset(object):
     def _upsert_to_index(
         self, index_name: str, namespace: str, batch_size: int, show_progress: bool
     ):
-        pinecone_index = Index(index_name=index_name)
+        pinecone_index = self._pinecone_client.Index(index_name)
 
         res = pinecone_index.upsert_from_dataframe(
             self.documents[self._config.Schema.documents_select_columns].dropna(
@@ -461,21 +454,22 @@ class Dataset(object):
     def _set_pinecone_index(
         self,
         api_key: Optional[str] = None,
-        environment: Optional[str] = None,
         **kwargs,
     ) -> None:
-        pc.init(api_key=api_key, environment=environment, **kwargs)
-        self._pinecone_client = pc
+        self._pinecone_client = pc.Pinecone(api_key=api_key, **kwargs)
+
+    def _get_index_list(self) -> List[str]:
+        return self._pinecone_client.list_indexes().names()
 
     def _create_index(
         self,
         index_name: str,
         api_key: Optional[str] = None,
-        environment: Optional[str] = None,
+        spec: Optional[NamedTuple] = None,
         **kwargs,
     ) -> Index:
-        self._set_pinecone_index(api_key=api_key, environment=environment)
-        pinecone_index_list = self._pinecone_client.list_indexes()
+        self._set_pinecone_index(api_key=api_key)
+        pinecone_index_list = self._get_index_list()
 
         if index_name in pinecone_index_list:
             raise ValueError(
@@ -483,18 +477,27 @@ class Dataset(object):
             )
         else:
             # create index
-            print("creating index")
             try:
                 self._pinecone_client.create_index(
                     name=index_name,
                     dimension=self.metadata.dense_model.dimension,
+                    spec=spec,
                     **kwargs,
                 )
-                print("index created")
+                self._wait_for_index_creation(index_name)
                 return True
             except Exception as e:
                 print(f"error creating index: {e}")
                 return False
+
+    def _wait_for_index_creation(self, index_name: str, timeout: int = 60):
+        for _ in range(timeout):
+            try:
+                self._pinecone_client.Index(index_name).describe_index_stats()
+                return
+            except Exception as e:
+                time.sleep(1)
+        raise TimeoutError(f"Index creation timed out after {timeout} seconds")
 
     def to_pinecone_index(
         self,
@@ -505,13 +508,19 @@ class Dataset(object):
         show_progress: bool = True,
         api_key: Optional[str] = None,
         environment: Optional[str] = None,
+        region: Optional[str] = None,
+        cloud: Optional[str] = None,
+        serverless: Optional[bool] = None,
         **kwargs,
     ):
         """
         Saves the dataset to a Pinecone index.
 
-        this function will look for two environment variables:
+        this function will look for four environment variables:
+        - SERVERLESS
         - PINECONE_API_KEY
+        - PINECONE_REGION
+        - PINECONE_CLOUD
         - PINECONE_ENVIRONMENT
 
         Then, it will init a Pinecone Client and will perform an upsert to the index.
@@ -519,6 +528,11 @@ class Dataset(object):
 
         Args:
             index_name (str): the name of the index to upsert to
+            api_key (str, optional): the api key to use for the upsert. Defaults to None.
+            region (str, optional): the region to use for the upsert for serverless. Defaults to None.
+            cloud (str, optional): the cloud to use for the upsert for serverless. Defaults to None.
+            environment (str, optional): the environment to use for the upsert for pod-based. Defaults to None.
+            serverless (bool, optional): whether to use serverless or pod-based. Defaults to None.
             namespace (str, optional): the namespace to use for the upsert. Defaults to "".
             batch_size (int, optional): the batch size to use for the upsert. Defaults to 100.
             show_progress (bool, optional): whether to show a progress bar while upserting. Defaults to True.
@@ -536,13 +550,21 @@ class Dataset(object):
             result = dataset.to_pinecone_index(index_name="my_index")
             ```
         """
+        serverless = serverless or os.environ.get("SERVERLESS", False)
+        if serverless:
+            spec = ServerlessSpec(
+                cloud=cloud or os.getenv("PINECONE_CLOUD", "aws"),
+                region=region or os.getenv("PINECONE_REGION", "us-west2"),
+            )
+        else:
+            spec = PodSpec(
+                environment=environment or os.environ["PINECONE_ENVIRONMENT"],
+            )
         if should_create_index:
-            if not self._create_index(
-                index_name, api_key=api_key, environment=environment, **kwargs
-            ):
+            if not self._create_index(index_name, api_key=api_key, spec=spec, **kwargs):
                 raise RuntimeError("index creation failed")
         else:
-            self._set_pinecone_index(api_key=api_key, environment=environment, **kwargs)
+            self._set_pinecone_index(api_key=api_key, **kwargs)
 
         return self._upsert_to_index(
             index_name=index_name,
