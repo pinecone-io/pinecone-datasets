@@ -119,10 +119,6 @@ class TestPinecone:
             raise TimeoutError(f"Index not created after {timeout} seconds")
 
     def test_local_dataset_with_metadata(self, tmpdir):
-        print(
-            f"Testing dataset {self.tested_dataset} with index {self.index_name_local}"
-        )
-
         self.ds_local.to_pinecone_index(index_name=self.index_name_local, batch_size=3)
         index = self.client.Index(self.index_name_local)
 
@@ -152,8 +148,6 @@ class TestPinecone:
         pd.testing.assert_frame_equal(loaded_ds.queries, self.ds_local.queries)
 
     def test_large_dataset_upsert_to_pinecone_with_creating_index(self):
-        print(f"Testing dataset {self.tested_dataset} with index {self.index_name}")
-
         self.ds.to_pinecone_index(index_name=self.index_name, batch_size=300)
         index = self.client.Index(self.index_name)
 
@@ -175,7 +169,6 @@ class TestPinecone:
         self.client.create_index(
             name=this_test_index, dimension=self.dataset_dim, spec=spec
         )
-        print(f"Created v3 index {this_test_index} with spec {spec}")
 
         # check that index exists
         assert this_test_index in self._get_index_list()

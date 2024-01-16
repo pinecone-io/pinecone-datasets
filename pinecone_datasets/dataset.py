@@ -477,10 +477,7 @@ class Dataset(object):
             )
         else:
             # create index
-            print("creating index")
             try:
-                print("creating index")
-                print(f"spec: {spec}")
                 self._pinecone_client.create_index(
                     name=index_name,
                     dimension=self.metadata.dense_model.dimension,
@@ -488,10 +485,8 @@ class Dataset(object):
                     **kwargs,
                 )
                 self._wait_for_index_creation(index_name)
-                print("index created")
                 return True
             except Exception as e:
-                raise
                 print(f"error creating index: {e}")
                 return False
 
@@ -555,7 +550,6 @@ class Dataset(object):
             result = dataset.to_pinecone_index(index_name="my_index")
             ```
         """
-        print(f"serverless: {serverless}")
         serverless = serverless or os.environ.get("SERVERLESS", False)
         if serverless:
             spec = ServerlessSpec(
