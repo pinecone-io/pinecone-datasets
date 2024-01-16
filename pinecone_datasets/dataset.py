@@ -1,6 +1,7 @@
 import sys
 import os
 import json
+import time
 import warnings
 from urllib.parse import urlparse
 from dataclasses import dataclass
@@ -458,7 +459,7 @@ class Dataset(object):
         self._pinecone_client = pc.Pinecone(api_key=api_key, **kwargs)
 
     def _get_index_list(self) -> List[str]:
-        return [i["name"] for i in self._pinecone_client.list_indexes()]
+        return self._pinecone_client.list_indexes().names()
 
     def _create_index(
         self,
@@ -486,11 +487,22 @@ class Dataset(object):
                     spec=spec,
                     **kwargs,
                 )
+                self._wait_for_index_creation(index_name)
                 print("index created")
                 return True
             except Exception as e:
+                raise
                 print(f"error creating index: {e}")
                 return False
+
+    def _wait_for_index_creation(self, index_name: str, timeout: int = 60):
+        for _ in range(timeout):
+            try:
+                self._pinecone_client.Index(index_name).describe_index_stats()
+                return
+            except Exception as e:
+                time.sleep(1)
+        raise TimeoutError(f"Index creation timed out after {timeout} seconds")
 
     def to_pinecone_index(
         self,
