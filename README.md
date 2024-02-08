@@ -222,7 +222,7 @@ dataset.to_path("s3://my-bucket/my-subdir/my-dataset")
 
 When upserting a Dataset to an Index, only the document data will be upserted to the index. The queries data will be ignored. 
 
-TODO: add example for API Key adn Environment Variables
+TODO: add example for API Key and Environment Variables
 
 ```python
 ds = load_dataset("dataset_name")
