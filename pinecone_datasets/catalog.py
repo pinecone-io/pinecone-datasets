@@ -72,26 +72,25 @@ class Catalog(BaseModel):
             )
         collected_datasets = []
         try:
-            for f in fs.listdir(public_datasets_base_path):
-                if f["type"] == "directory":
-                    try:
-                        prefix = "gs" if isinstance(fs, gcsfs.GCSFileSystem) else "s3"
-                        with fs.open(f"{prefix}://{f['name']}/metadata.json") as f:
-                            try:
-                                this_dataset_json = json.load(f)
-                            except json.JSONDecodeError:
-                                warnings.warn(
-                                    f"Not a JSON: Invalid metadata.json for {f['name']}, skipping"
-                                )
-                            try:
-                                this_dataset = DatasetMetadata(**this_dataset_json)
-                                collected_datasets.append(this_dataset)
-                            except ValidationError:
-                                warnings.warn(
-                                    f"metadata file for dataset: {f['name']} is not valid, skipping"
-                                )
-                    except FileNotFoundError:
-                        pass
+            for name in fs.glob(public_datasets_base_path + "/*/metadata.json"):
+                try:
+                    prefix = "gs" if isinstance(fs, gcsfs.GCSFileSystem) else "s3"
+                    with fs.open(prefix + "://" + name) as f:
+                        try:
+                            this_dataset_json = json.load(f)
+                        except json.JSONDecodeError:
+                            warnings.warn(
+                                f"Not a JSON: Invalid metadata.json for {name}, skipping"
+                            )
+                        try:
+                            this_dataset = DatasetMetadata(**this_dataset_json)
+                            collected_datasets.append(this_dataset)
+                        except ValidationError:
+                            warnings.warn(
+                                f"metadata file for dataset: {name} is not valid, skipping"
+                            )
+                except FileNotFoundError:
+                    pass
             return Catalog(datasets=collected_datasets)
         except SSLCertVerificationError:
             raise ValueError("There is an Issue with loading the public catalog")
