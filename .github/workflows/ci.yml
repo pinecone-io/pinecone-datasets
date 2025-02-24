@@ -34,7 +34,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       run: poetry run pytest -n 4 --html=report.html --cov pinecone_datasets tests/unit
     - name: upload pytest report.html
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: dataset-pytest-report-py${{ matrix.python-version }}
