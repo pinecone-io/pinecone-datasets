@@ -15,8 +15,7 @@ from pinecone_datasets import cfg
 from pinecone_datasets.catalog import DatasetMetadata
 from pinecone_datasets.fs import get_cloud_fs
 
-import pinecone as pc
-from pinecone import Index, ServerlessSpec, PodSpec
+from pinecone import Pinecone, ServerlessSpec, PodSpec
 
 
 class DatasetInitializationError(Exception):
@@ -456,7 +455,7 @@ class Dataset(object):
         api_key: Optional[str] = None,
         **kwargs,
     ) -> None:
-        self._pinecone_client = pc.Pinecone(api_key=api_key, **kwargs)
+        self._pinecone_client = Pinecone(api_key=api_key, **kwargs)
 
     def _get_index_list(self) -> List[str]:
         return self._pinecone_client.list_indexes().names()
@@ -467,7 +466,7 @@ class Dataset(object):
         api_key: Optional[str] = None,
         spec: Optional[NamedTuple] = None,
         **kwargs,
-    ) -> Index:
+    ) -> bool:
         self._set_pinecone_index(api_key=api_key)
         pinecone_index_list = self._get_index_list()
 
@@ -476,7 +475,6 @@ class Dataset(object):
                 f"index {index_name} already exists, Pinecone Datasets can only be upserted to a new indexe"
             )
         else:
-            # create index
             try:
                 self._pinecone_client.create_index(
                     name=index_name,
@@ -493,7 +491,7 @@ class Dataset(object):
     def _wait_for_index_creation(self, index_name: str, timeout: int = 60):
         for _ in range(timeout):
             try:
-                self._pinecone_client.Index(index_name).describe_index_stats()
+                self._pinecone_client.Index(name=index_name).describe_index_stats()
                 return
             except Exception as e:
                 time.sleep(1)
@@ -550,7 +548,7 @@ class Dataset(object):
             result = dataset.to_pinecone_index(index_name="my_index")
             ```
         """
-        serverless = serverless or os.environ.get("SERVERLESS", False)
+        serverless = serverless or os.environ.get("SERVERLESS", True)
         if serverless:
             spec = ServerlessSpec(
                 cloud=cloud or os.getenv("PINECONE_CLOUD", "aws"),

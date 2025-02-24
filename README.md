@@ -159,7 +159,7 @@ query_df: pd.DataFrame = dataset.queries
 
 ## Usage - Iterating
 
-One of the main use cases for Pinecone Datasets is iterating over a dataset. This is useful for upserting a dataset to an index, or for benchmarking. It is also useful for iterating over large datasets - as of today, datasets are not yet lazy, however we are working on it.
+One of the main use cases for Pinecone Datasets is iterating over a dataset. This is useful for upserting a dataset to an index, or for benchmarking.
 
 
 ```python
@@ -184,7 +184,7 @@ new_dataset = import_documents_keys_from_blob_to_metadata(dataset, keys=["text"]
 
 ## Usage saving
 
-you can save your dataset to a catalog managed by you or to a local path or a remote path (GCS or S3). 
+You can save your dataset to a catalog managed by you or to a local path or a remote path (GCS or S3). 
 
 ### Saving to Catalog
 
@@ -228,11 +228,6 @@ TODO: add example for API Key adn Environment Variables
 ds = load_dataset("dataset_name")
 
 ds.to_pinecone_index("index_name")
-
-# or, if you run in notebook environment
-
-await ds.to_pinecone_index_async("index_name")
-
 ```
 
 the `to_pinecone_index` function also accepts additional parameters:
