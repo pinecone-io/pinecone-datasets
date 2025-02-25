@@ -18,6 +18,7 @@ from pinecone_datasets.utils import deprecated
 
 from pinecone import Pinecone, ServerlessSpec, PodSpec
 
+
 class DatasetInitializationError(Exception):
     long_message = """
     This dataset was not initialized from path, but from memory, e.g. Dataset.from_pandas(...)
