@@ -14,9 +14,9 @@ from typing import Any, Generator, Iterator, List, Dict, Optional, Tuple, NamedT
 from pinecone_datasets import cfg
 from pinecone_datasets.catalog import DatasetMetadata
 from pinecone_datasets.fs import get_cloud_fs
+from pinecone_datasets.utils import deprecated
 
 from pinecone import Pinecone, ServerlessSpec, PodSpec
-
 
 class DatasetInitializationError(Exception):
     long_message = """
@@ -497,6 +497,7 @@ class Dataset(object):
                 time.sleep(1)
         raise TimeoutError(f"Index creation timed out after {timeout} seconds")
 
+    @deprecated
     def to_pinecone_index(
         self,
         index_name: str,
@@ -548,7 +549,7 @@ class Dataset(object):
             result = dataset.to_pinecone_index(index_name="my_index")
             ```
         """
-        serverless = serverless or os.environ.get("SERVERLESS", True)
+        serverless = serverless or os.environ.get("SERVERLESS", False)
         if serverless:
             spec = ServerlessSpec(
                 cloud=cloud or os.getenv("PINECONE_CLOUD", "aws"),

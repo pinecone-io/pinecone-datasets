@@ -240,7 +240,7 @@ the `to_pinecone_index` function also accepts additional parameters:
 
 ## For developers
 
-This project is using poetry for dependency managemet. supported python version are 3.8+. To start developing, on project root directory run:
+This project is using poetry for dependency managemet. supported python version are 3.9+. To start developing, on project root directory run:
 
 ```bash
 poetry install --with dev
