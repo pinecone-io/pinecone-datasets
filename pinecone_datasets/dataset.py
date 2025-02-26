@@ -6,6 +6,7 @@ import warnings
 from urllib.parse import urlparse
 from dataclasses import dataclass
 
+
 import pandas as pd
 import pyarrow.parquet as pq
 from pydantic import ValidationError
