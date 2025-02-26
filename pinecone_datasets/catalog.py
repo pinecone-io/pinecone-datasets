@@ -33,15 +33,15 @@ class DatasetMetadata(BaseModel):
     created_at: str
     documents: int
     queries: int
-    source: Optional[str]
-    license: Optional[str]
-    bucket: Optional[str]
-    task: Optional[str]
+    source: Optional[str] = None
+    license: Optional[str] = None
+    bucket: Optional[str] = None
+    task: Optional[str] = None
     dense_model: DenseModelMetadata
-    sparse_model: Optional[SparseModelMetdata]
-    description: Optional[str]
-    tags: Optional[List[str]]
-    args: Optional[Dict[str, Any]]
+    sparse_model: Optional[SparseModelMetdata] = None
+    description: Optional[str] = None
+    tags: Optional[List[str]] = None
+    args: Optional[Dict[str, Any]] = None
 
     @staticmethod
     def empty() -> "DatasetMetadata":
@@ -86,10 +86,12 @@ class Catalog(BaseModel):
                             try:
                                 this_dataset = DatasetMetadata(**this_dataset_json)
                                 collected_datasets.append(this_dataset)
-                            except ValidationError:
+                            except ValidationError as e:
                                 warnings.warn(
-                                    f"metadata file for dataset: {f['name']} is not valid, skipping"
+                                    f"metadata file for dataset: {f} is not valid, skipping"
                                 )
+                                print(this_dataset_json)
+                                print(e)
                     except FileNotFoundError:
                         pass
             return Catalog(datasets=collected_datasets)
