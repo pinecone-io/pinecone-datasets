@@ -44,6 +44,7 @@ q = pd.DataFrame(
     ]
 )
 
+
 @pytest.mark.skip(reason="Need to figure out S3 credentials in CI")
 class TestSaveDatasetToS3:
     def test_io_cloud_storage_path(self):
@@ -67,7 +68,6 @@ class TestSaveDatasetToS3:
         assert loaded_ds.metadata == metadata
         pd_assert_frame_equal(loaded_ds.documents, ds.documents)
         pd_assert_frame_equal(loaded_ds.queries, ds.queries)
-
 
     def test_io_cloud_storage_catalog(self):
         dataset_name = "test_io_dataset"
