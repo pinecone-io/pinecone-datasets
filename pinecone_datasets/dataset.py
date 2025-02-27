@@ -13,7 +13,6 @@ from .fs import get_cloud_fs
 from .utils import deprecated
 from .dataset_fswriter import DatasetFSWriter
 from .dataset_fsreader import DatasetFSReader
-from .index_writer import IndexWriter
 
 logger = logging.getLogger(__name__)
 
@@ -299,90 +298,3 @@ class Dataset(object):
         Saves the dataset to a local or cloud storage path.
         """
         DatasetFSWriter.write_dataset(dataset_path, self, **kwargs)
-
-    @deprecated
-    def to_pinecone_index(
-        self,
-        index_name: str,
-        namespace: Optional[str] = "",
-        should_create_index: bool = True,
-        batch_size: int = 100,
-        show_progress: bool = True,
-        api_key: Optional[str] = None,
-        environment: Optional[str] = None,
-        region: Optional[str] = None,
-        cloud: Optional[str] = None,
-        serverless: Optional[bool] = None,
-        **kwargs,
-    ):
-        """
-        Saves the dataset to a Pinecone index.
-
-        this function will look for four environment variables:
-        - SERVERLESS
-        - PINECONE_API_KEY
-        - PINECONE_REGION
-        - PINECONE_CLOUD
-        - PINECONE_ENVIRONMENT
-
-        Then, it will init a Pinecone Client and will perform an upsert to the index.
-        The upsert will be using async batches to increase performance.
-
-        Args:
-            index_name (str): the name of the index to upsert to
-            api_key (str, optional): the api key to use for the upsert. Defaults to None.
-            region (str, optional): the region to use for the upsert for serverless. Defaults to None.
-            cloud (str, optional): the cloud to use for the upsert for serverless. Defaults to None.
-            environment (str, optional): the environment to use for the upsert for pod-based. Defaults to None.
-            serverless (bool, optional): whether to use serverless or pod-based. Defaults to None.
-            namespace (str, optional): the namespace to use for the upsert. Defaults to "".
-            batch_size (int, optional): the batch size to use for the upsert. Defaults to 100.
-            show_progress (bool, optional): whether to show a progress bar while upserting. Defaults to True.
-
-        Keyword Args:
-            kwargs (Dict): additional arguments to pass to the Pinecone Client constructor when creating the index.
-            see available parameters here: https://docs.pinecone.io/reference/create_index
-
-
-        Returns:
-            UpsertResponse: an object containing the upserted_count
-
-        Examples:
-            ```python
-            result = dataset.to_pinecone_index(index_name="my_index")
-            ```
-        """
-        index_writer = IndexWriter(api_key=api_key, **kwargs)
-
-        if should_create_index:
-            if environment is not None and (cloud is not None or region is not None):
-                raise ValueError(
-                    "environment, cloud, and region should not all be provided; environment is used with pod-based indexes while cloud and region are used with serverless indexes"
-                )
-
-            is_serverless = (
-                serverless
-                or os.environ.get("SERVERLESS", False)
-                or (cloud is not None and region is not None)
-            )
-            if is_serverless:
-                index_writer.create_serverless_index(
-                    index_name=index_name,
-                    dimension=self.metadata.dense_model.dimension,
-                    cloud=cloud or os.getenv("PINECONE_CLOUD", "aws"),
-                    region=region or os.getenv("PINECONE_REGION", "us-west2"),
-                )
-            else:
-                index_writer.create_pod_index(
-                    index_name=index_name,
-                    dimension=self.metadata.dense_model.dimension,
-                    environment=environment or os.environ["PINECONE_ENVIRONMENT"],
-                )
-
-        return index_writer.upsert_to_index(
-            index_name=index_name,
-            df=self.documents,
-            namespace=namespace,
-            batch_size=batch_size,
-            show_progress=show_progress,
-        )

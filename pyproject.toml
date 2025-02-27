@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "pinecone-datasets"
 version = "1.0.0.dev2"
-description = "Pinecone Datasets lets you easily load datasets into your Pinecone index."
+description = "Load datasets to explore Pinecone"
 authors = ["Pinecone Support <support@pinecone.io>"]
 maintainers = [
     "Amnon Catav <amnon@pinecone.io>",
@@ -19,7 +19,6 @@ s3fs = "^2025.2.0"
 pydantic = "^2.0.0"
 pandas = "^2.0.0"
 tqdm = "^4.65.0"
-pinecone = "^6.0.1"
 pyarrow = "^18.0.0"
 
 
