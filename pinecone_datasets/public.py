@@ -27,7 +27,8 @@ def list_datasets(as_df=False, **kwargs) -> list:
 
     """
     global catalog
-    catalog = Catalog.load(**kwargs)
+    catalog = Catalog()
+    catalog.load(**kwargs)
     return catalog.list_datasets(as_df=as_df)
 
 

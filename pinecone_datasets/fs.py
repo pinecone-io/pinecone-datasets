@@ -6,10 +6,10 @@ from fsspec.implementations.local import LocalFileSystem
 
 from pinecone_datasets import cfg
 
+CloudOrLocalFS = Union[gcsfs.GCSFileSystem, s3fs.S3FileSystem, LocalFileSystem]
 
-def get_cloud_fs(
-    path, **kwargs
-) -> Union[gcsfs.GCSFileSystem, s3fs.S3FileSystem, LocalFileSystem]:
+
+def get_cloud_fs(path, **kwargs) -> CloudOrLocalFS:
     """
     returns a filesystem object for the given path, if it is a cloud storage path (gs:// or s3://)
 
@@ -22,7 +22,10 @@ def get_cloud_fs(
     """
     is_anon = path == cfg.Storage.endpoint
     if path.startswith("gs://") or "storage.googleapis.com" in path:
-        fs = gcsfs.GCSFileSystem(token="anon" if is_anon else None, **kwargs)
+        if kwargs.get("token", None):
+            fs = gcsfs.GCSFileSystem(**kwargs)
+        else:
+            fs = gcsfs.GCSFileSystem(token="anon" if is_anon else None, **kwargs)
     elif path.startswith("s3://") or "s3.amazonaws.com" in path:
         fs = s3fs.S3FileSystem(anon=is_anon, **kwargs)
     else:

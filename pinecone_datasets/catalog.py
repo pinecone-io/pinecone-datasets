@@ -1,78 +1,43 @@
-from datetime import datetime
 import warnings
 import os
 import json
 from ssl import SSLCertVerificationError
-from typing import List, Optional, Union, Any, Dict
+from typing import List, Optional, Union
 import s3fs
 import gcsfs
 from pydantic import BaseModel, ValidationError, Field
 import pandas as pd
 
-from pinecone_datasets import cfg
-from pinecone_datasets.fs import get_cloud_fs
-
-
-class DenseModelMetadata(BaseModel):
-    name: str
-    tokenizer: Optional[str]
-    dimension: int
-
-
-class SparseModelMetdata(BaseModel):
-    name: Optional[str]
-    tokenizer: Optional[str]
-
-
-def get_time_now() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-
-
-class DatasetMetadata(BaseModel):
-    name: str
-    created_at: str
-    documents: int
-    queries: int
-    source: Optional[str] = None
-    license: Optional[str] = None
-    bucket: Optional[str] = None
-    task: Optional[str] = None
-    dense_model: DenseModelMetadata
-    sparse_model: Optional[SparseModelMetdata] = None
-    description: Optional[str] = None
-    tags: Optional[List[str]] = None
-    args: Optional[Dict[str, Any]] = None
-
-    @staticmethod
-    def empty() -> "DatasetMetadata":
-        return DatasetMetadata(
-            name="",
-            created_at=get_time_now(),
-            documents=0,
-            queries=0,
-            dense_model=DenseModelMetadata(name="", dimension=0),
-        )
-
-    def is_empty(self) -> bool:
-        return self.name == "" and self.documents == 0 and self.queries == 0
+from .cfg import Storage
+from .fs import get_cloud_fs
+from .dataset import Dataset
+from .dataset_fswriter import DatasetFSWriter
+from .dataset_metadata import DatasetMetadata
 
 
 class Catalog(BaseModel):
+    def __init__(self, base_path: Optional[str] = None, **kwargs):
+        super().__init__(**kwargs)
+        if base_path is None:
+            self.base_path = os.environ.get(
+                "DATASETS_CATALOG_BASEPATH", Storage.endpoint
+            )
+        else:
+            self.base_path = base_path
+
+    base_path: str = Field(default=None)
     datasets: List[DatasetMetadata] = []
 
-    @staticmethod
-    def load(**kwargs) -> "Catalog":
-        public_datasets_base_path = os.environ.get(
-            "DATASETS_CATALOG_BASEPATH", cfg.Storage.endpoint
-        )
-        fs = get_cloud_fs(public_datasets_base_path, **kwargs)
+    def load(self, **kwargs) -> "Catalog":
+        """Loads the catalog from the cloud storage path."""
+        fs = get_cloud_fs(self.base_path, **kwargs)
         if not fs:
             raise ValueError(
                 "Public datasets are only supported on cloud storage, with valid s3:// or gs:// paths"
             )
         collected_datasets = []
         try:
-            for f in fs.listdir(public_datasets_base_path):
+            for f in fs.listdir(self.base_path):
                 if f["type"] == "directory":
                     try:
                         prefix = "gs" if isinstance(fs, gcsfs.GCSFileSystem) else "s3"
@@ -86,20 +51,37 @@ class Catalog(BaseModel):
                             try:
                                 this_dataset = DatasetMetadata(**this_dataset_json)
                                 collected_datasets.append(this_dataset)
-                            except ValidationError as e:
+                            except ValidationError:
                                 warnings.warn(
                                     f"metadata file for dataset: {f} is not valid, skipping"
                                 )
-                                print(this_dataset_json)
-                                print(e)
                     except FileNotFoundError:
                         pass
-            return Catalog(datasets=collected_datasets)
+            self.datasets = collected_datasets
+            return self
         except SSLCertVerificationError:
             raise ValueError("There is an Issue with loading the public catalog")
 
     def list_datasets(self, as_df: bool) -> Union[List[str], pd.DataFrame]:
         if as_df:
-            return pd.DataFrame([ds.dict() for ds in self.datasets])
+            return pd.DataFrame([ds.model_dump() for ds in self.datasets])
         else:
             return [dataset.name for dataset in self.datasets]
+
+    def load_dataset(self, dataset_id: str, **kwargs) -> "Dataset":
+        """Loads the dataset from the cloud storage path."""
+        self.load(**kwargs)
+        for ds in self.datasets:
+            if ds.name == dataset_id:
+                return Dataset.from_catalog(dataset_id, **kwargs)
+        raise FileNotFoundError(f"Dataset {dataset_id} not found in catalog")
+
+    def save_dataset(
+        self,
+        dataset: "Dataset",
+        **kwargs,
+    ):
+        """
+        Saves the dataset to the public catalog.
+        """
+        DatasetFSWriter.write_dataset(self.base_path, dataset, **kwargs)

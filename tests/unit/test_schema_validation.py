@@ -4,8 +4,7 @@ import pytest
 import pandas as pd
 from pydantic import ValidationError
 
-from pinecone_datasets import Dataset
-from pinecone_datasets.catalog import DatasetMetadata, DenseModelMetadata
+from pinecone_datasets import Dataset, DatasetMetadata, DenseModelMetadata
 
 
 def test_datasets_schema_name_happy(tmpdir):
@@ -63,7 +62,7 @@ def test_datasets_schema_name_happy(tmpdir):
     )
 
     with open(dataset_path.join("metadata.json"), "w") as f:
-        json.dump(metadata.dict(), f)
+        json.dump(metadata.model_dump(), f)
 
     ds = Dataset.from_path(str(dataset_path))
     assert isinstance(ds, Dataset)
@@ -124,7 +123,7 @@ def test_datasets_schema_name_documents_missing_propery(tmpdir):
     )
 
     with open(dataset_path.join("metadata.json"), "w") as f:
-        json.dump(metadata.dict(), f)
+        json.dump(metadata.model_dump(), f)
 
     with pytest.raises(ValueError):
         ds = Dataset.from_path(str(dataset_path))
@@ -184,7 +183,7 @@ def test_datasets_schema_name_queries_missing_propery(tmpdir):
     )
 
     with open(dataset_path.join("metadata.json"), "w") as f:
-        json.dump(metadata.dict(), f)
+        json.dump(metadata.model_dump(), f)
 
     with pytest.raises(ValueError):
         ds = Dataset.from_path(str(dataset_path))

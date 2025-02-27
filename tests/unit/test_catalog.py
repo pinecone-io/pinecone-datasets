@@ -2,7 +2,7 @@ import requests
 import pytest
 
 from pinecone_datasets.catalog import Catalog
-from pinecone_datasets.catalog import DatasetMetadata, DenseModelMetadata
+from pinecone_datasets.dataset_metadata import DatasetMetadata, DenseModelMetadata
 
 from pydantic import ValidationError
 
@@ -12,7 +12,8 @@ def download_json_from_https(url):
 
 
 def test_catalog():
-    catalog = Catalog.load()
+    catalog = Catalog()
+    catalog.load()
 
     catalog_as_dict = download_json_from_https(
         "https://storage.googleapis.com/pinecone-datasets-dev/quora_all-MiniLM-L6-bm25/metadata.json"

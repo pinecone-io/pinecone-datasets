@@ -1,23 +1,21 @@
-import sys
+import logging
 import os
-import json
-import time
-import warnings
 from urllib.parse import urlparse
 from dataclasses import dataclass
 
 
 import pandas as pd
-import pyarrow.parquet as pq
-from pydantic import ValidationError
-from typing import Any, Generator, Iterator, List, Dict, Optional, Tuple, NamedTuple
+from typing import Any, Generator, Iterator, List, Dict, Optional, Tuple
 
-from pinecone_datasets import cfg
-from pinecone_datasets.catalog import DatasetMetadata
-from pinecone_datasets.fs import get_cloud_fs
-from pinecone_datasets.utils import deprecated
+from .cfg import Schema, Storage
+from .dataset_metadata import DatasetMetadata
+from .fs import get_cloud_fs
+from .utils import deprecated
+from .dataset_fswriter import DatasetFSWriter
+from .dataset_fsreader import DatasetFSReader
+from .index_writer import IndexWriter
 
-from pinecone import Pinecone, ServerlessSpec, PodSpec
+logger = logging.getLogger(__name__)
 
 
 class DatasetInitializationError(Exception):
@@ -84,7 +82,7 @@ class Dataset(object):
         catalog_base_path = (
             catalog_base_path
             if catalog_base_path
-            else os.environ.get("DATASETS_CATALOG_BASEPATH", cfg.Storage.endpoint)
+            else os.environ.get("DATASETS_CATALOG_BASEPATH", Storage.endpoint)
         )
         dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
         return cls(dataset_path=dataset_path, **kwargs)
@@ -116,10 +114,10 @@ class Dataset(object):
         """
         clazz = cls(dataset_path=None, **kwargs)
         clazz._documents = cls._read_pandas_dataframe(
-            documents, documents_column_mapping, cfg.Schema.Names.documents
+            documents, documents_column_mapping, Schema.Names.documents
         )
         clazz._queries = cls._read_pandas_dataframe(
-            queries, queries_column_mapping, cfg.Schema.Names.queries
+            queries, queries_column_mapping, Schema.Names.queries
         )
         clazz._metadata = metadata
         return clazz
@@ -182,7 +180,6 @@ class Dataset(object):
             ```
 
         """
-        self._config = cfg
         if dataset_path is not None:
             endpoint = urlparse(dataset_path)._replace(path="").geturl()
             self._fs = get_cloud_fs(endpoint, **kwargs)
@@ -199,103 +196,24 @@ class Dataset(object):
         self._metadata = None
         self._pinecone_client = None
 
+    @deprecated
+    def to_catalog(
+        self,
+        dataset_id: str,
+        catalog_base_path: str = "",
+        **kwargs,
+    ):
+        """
+        Saves the dataset to the public catalog.
+        """
+        raise Exception(
+            "This method is deprecated. Please use `Catalog.save_dataset` instead."
+        )
+
     def _is_datatype_exists(self, data_type: str) -> bool:
         if not self._fs:
             raise DatasetInitializationError()
         return self._fs.exists(os.path.join(self._dataset_path, data_type))
-
-    @staticmethod
-    def _convert_metadata_from_dict_to_json(metadata: Optional[dict]) -> str:
-        if pd.isna(metadata):
-            return None
-        if metadata and not isinstance(metadata, dict):
-            raise TypeError(
-                f"metadata must be a dict but its {type(metadata)} meta = {metadata}"
-            )
-        return json.dumps(metadata, ensure_ascii=False)
-
-    @staticmethod
-    def _convert_metadata_from_json_to_dict(metadata: Optional[str]) -> dict:
-        if metadata is None:
-            return None
-        if not isinstance(metadata, str):
-            if isinstance(metadata, dict):
-                return metadata
-            else:
-                raise TypeError("metadata must be a string or dict")
-        return json.loads(metadata)
-
-    def _safe_read_from_path(self, data_type: str) -> pd.DataFrame:
-        if not self._fs:
-            raise DatasetInitializationError()
-
-        read_path_str = os.path.join(self._dataset_path, data_type, "*.parquet")
-        read_path = self._fs.glob(read_path_str)
-        if self._is_datatype_exists(data_type):
-            dataset = pq.ParquetDataset(read_path, filesystem=self._fs)
-            dataset_schema_names = dataset.schema.names
-            columns_to_null = []
-            columns_not_null = []
-            for column_name, is_nullable, null_value in getattr(
-                self._config.Schema.Names, data_type
-            ):
-                if column_name not in dataset_schema_names and not is_nullable:
-                    raise ValueError(
-                        f"error, file is not matching Pinecone Datasets Schmea: {column_name} not found"
-                    )
-                elif column_name not in dataset_schema_names and is_nullable:
-                    columns_to_null.append((column_name, null_value))
-                else:
-                    columns_not_null.append(column_name)
-            try:
-                # TODO: use of the columns_not_null and columns_to_null is only a workaround for proper schema validation and versioning
-                df = dataset.read_pandas(columns=columns_not_null).to_pandas()
-
-                # metadta supposed to be a dict [if legacy] or string
-                if data_type == "documents":
-                    df["metadata"] = df["metadata"].apply(
-                        self._convert_metadata_from_json_to_dict
-                    )
-                elif data_type == "queries":
-                    df["filter"] = df["filter"].apply(
-                        self._convert_metadata_from_json_to_dict
-                    )
-
-                for column_name, null_value in columns_to_null:
-                    df[column_name] = null_value
-                return df
-            # TODO: add more specific error handling, explain what is wrong
-            except Exception as e:
-                print("error, no exception: {}".format(e), file=sys.stderr)
-                raise (e)
-        else:
-            warnings.warn(
-                "WARNING: No data found at: {}. Returning empty DF".format(
-                    read_path_str
-                ),
-                UserWarning,
-                stacklevel=0,
-            )
-            return pd.DataFrame(
-                columns=[
-                    col[0] for col in getattr(self._config.Schema.Names, data_type)
-                ]
-            )
-
-    def _load_metadata(self) -> DatasetMetadata:
-        if not self._fs:
-            raise DatasetInitializationError()
-
-        with self._fs.open(
-            os.path.join(self._dataset_path, "metadata.json"), "rb"
-        ) as f:
-            metadata = json.load(f)
-        try:
-            out = DatasetMetadata(**metadata)
-            return out
-        # TODO: add more specific error handling, explain what is wrong
-        except ValidationError as e:
-            raise e
 
     def __getitem__(self, key: str):
         if key in ["documents", "queries"]:
@@ -309,8 +227,28 @@ class Dataset(object):
     @property
     def documents(self) -> pd.DataFrame:
         if self._documents is None:
-            self._documents = self._safe_read_from_path("documents")
+            if not self._fs:
+                raise DatasetInitializationError()
+            self._documents = DatasetFSReader.read_documents(
+                self._fs, self._dataset_path
+            )
         return self._documents
+
+    @property
+    def queries(self) -> pd.DataFrame:
+        if self._queries is None:
+            if not self._fs:
+                raise DatasetInitializationError()
+            self._queries = DatasetFSReader.read_queries(self._fs, self._dataset_path)
+        return self._queries
+
+    @property
+    def metadata(self) -> DatasetMetadata:
+        if self._metadata is None:
+            if not self._fs:
+                raise DatasetInitializationError()
+            self._metadata = DatasetFSReader.read_metadata(self._fs, self._dataset_path)
+        return self._metadata
 
     def iter_documents(
         self, batch_size: int = 1, return_indexes=False
@@ -330,7 +268,7 @@ class Dataset(object):
         """
         if isinstance(batch_size, int) and batch_size > 0:
             return iter_pandas_dataframe_slices(
-                df=self.documents[self._config.Schema.documents_select_columns].dropna(
+                df=self.documents[Schema.documents_select_columns].dropna(
                     axis=1, how="all"
                 ),
                 batch_size=batch_size,
@@ -338,12 +276,6 @@ class Dataset(object):
             )
         else:
             raise ValueError("batch_size must be greater than 0")
-
-    @property
-    def queries(self) -> pd.DataFrame:
-        if self._queries is None:
-            self._queries = self._safe_read_from_path("queries")
-        return self._queries
 
     def iter_queries(self) -> Iterator[Dict[str, Any]]:
         """
@@ -357,15 +289,7 @@ class Dataset(object):
                 results = index.query(**query)
                 # do something with the results
         """
-        return iter_pandas_dataframe_single(
-            self.queries[self._config.Schema.queries_select_columns]
-        )
-
-    @property
-    def metadata(self) -> DatasetMetadata:
-        if self._metadata is None:
-            self._metadata = self._load_metadata()
-        return self._metadata
+        return iter_pandas_dataframe_single(self.queries[Schema.queries_select_columns])
 
     def head(self, n: int = 5) -> pd.DataFrame:
         return self.documents.head(n)
@@ -374,130 +298,7 @@ class Dataset(object):
         """
         Saves the dataset to a local or cloud storage path.
         """
-        fs = get_cloud_fs(dataset_path, **kwargs)
-
-        # save documents
-        documents_path = os.path.join(dataset_path, "documents")
-        fs.makedirs(documents_path, exist_ok=True)
-
-        documents_metadta_copy = self.documents["metadata"].copy()
-        try:
-            self.documents["metadata"] = self.documents["metadata"].apply(
-                self._convert_metadata_from_dict_to_json
-            )
-            self.documents.to_parquet(
-                os.path.join(documents_path, "part-0.parquet"),
-                engine="pyarrow",
-                index=False,
-                filesystem=fs,
-            )
-        finally:
-            self.documents["metadata"] = documents_metadta_copy
-        # save queries
-        if not self.queries.empty:
-            queries_path = os.path.join(dataset_path, "queries")
-            fs.makedirs(queries_path, exist_ok=True)
-            queries_filter_copy = self.queries["filter"].copy()
-            try:
-                self.queries["filter"] = self.queries["filter"].apply(
-                    self._convert_metadata_from_dict_to_json
-                )
-                self.queries.to_parquet(
-                    os.path.join(queries_path, "part-0.parquet"),
-                    engine="pyarrow",
-                    index=False,
-                    filesystem=fs,
-                )
-            finally:
-                self.queries["filter"] = queries_filter_copy
-        else:
-            warnings.warn("Queries are empty, not saving queries")
-
-        # save metadata
-        with fs.open(os.path.join(dataset_path, "metadata.json"), "w") as f:
-            json.dump(self.metadata.dict(), f)
-
-    def to_catalog(
-        self,
-        dataset_id: str,
-        catalog_base_path: str = "",
-        **kwargs,
-    ):
-        """
-        Saves the dataset to the public catalog.
-        """
-
-        # TODO: duplicated code
-
-        catalog_base_path = (
-            catalog_base_path
-            if catalog_base_path
-            else os.environ.get("DATASETS_CATALOG_BASEPATH", cfg.Storage.endpoint)
-        )
-        dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
-        self.to_path(dataset_path, **kwargs)
-
-    def _upsert_to_index(
-        self, index_name: str, namespace: str, batch_size: int, show_progress: bool
-    ):
-        pinecone_index = self._pinecone_client.Index(index_name)
-
-        res = pinecone_index.upsert_from_dataframe(
-            self.documents[self._config.Schema.documents_select_columns].dropna(
-                axis=1, how="all"
-            ),
-            namespace=namespace,
-            batch_size=batch_size,
-            show_progress=show_progress,
-        )
-        return {"upserted_count": res.upserted_count}
-
-    def _set_pinecone_index(
-        self,
-        api_key: Optional[str] = None,
-        **kwargs,
-    ) -> None:
-        self._pinecone_client = Pinecone(api_key=api_key, **kwargs)
-
-    def _get_index_list(self) -> List[str]:
-        return self._pinecone_client.list_indexes().names()
-
-    def _create_index(
-        self,
-        index_name: str,
-        api_key: Optional[str] = None,
-        spec: Optional[NamedTuple] = None,
-        **kwargs,
-    ) -> bool:
-        self._set_pinecone_index(api_key=api_key)
-        pinecone_index_list = self._get_index_list()
-
-        if index_name in pinecone_index_list:
-            raise ValueError(
-                f"index {index_name} already exists, Pinecone Datasets can only be upserted to a new indexe"
-            )
-        else:
-            try:
-                self._pinecone_client.create_index(
-                    name=index_name,
-                    dimension=self.metadata.dense_model.dimension,
-                    spec=spec,
-                    **kwargs,
-                )
-                self._wait_for_index_creation(index_name)
-                return True
-            except Exception as e:
-                print(f"error creating index: {e}")
-                return False
-
-    def _wait_for_index_creation(self, index_name: str, timeout: int = 60):
-        for _ in range(timeout):
-            try:
-                self._pinecone_client.Index(name=index_name).describe_index_stats()
-                return
-            except Exception as e:
-                time.sleep(1)
-        raise TimeoutError(f"Index creation timed out after {timeout} seconds")
+        DatasetFSWriter.write_dataset(dataset_path, self, **kwargs)
 
     @deprecated
     def to_pinecone_index(
@@ -551,24 +352,36 @@ class Dataset(object):
             result = dataset.to_pinecone_index(index_name="my_index")
             ```
         """
-        serverless = serverless or os.environ.get("SERVERLESS", False)
-        if serverless:
-            spec = ServerlessSpec(
-                cloud=cloud or os.getenv("PINECONE_CLOUD", "aws"),
-                region=region or os.getenv("PINECONE_REGION", "us-west2"),
-            )
-        else:
-            spec = PodSpec(
-                environment=environment or os.environ["PINECONE_ENVIRONMENT"],
-            )
-        if should_create_index:
-            if not self._create_index(index_name, api_key=api_key, spec=spec, **kwargs):
-                raise RuntimeError("index creation failed")
-        else:
-            self._set_pinecone_index(api_key=api_key, **kwargs)
+        index_writer = IndexWriter(api_key=api_key, **kwargs)
 
-        return self._upsert_to_index(
+        if should_create_index:
+            if environment is not None and (cloud is not None or region is not None):
+                raise ValueError(
+                    "environment, cloud, and region should not all be provided; environment is used with pod-based indexes while cloud and region are used with serverless indexes"
+                )
+
+            is_serverless = (
+                serverless
+                or os.environ.get("SERVERLESS", False)
+                or (cloud is not None and region is not None)
+            )
+            if is_serverless:
+                index_writer.create_serverless_index(
+                    index_name=index_name,
+                    dimension=self.metadata.dense_model.dimension,
+                    cloud=cloud or os.getenv("PINECONE_CLOUD", "aws"),
+                    region=region or os.getenv("PINECONE_REGION", "us-west2"),
+                )
+            else:
+                index_writer.create_pod_index(
+                    index_name=index_name,
+                    dimension=self.metadata.dense_model.dimension,
+                    environment=environment or os.environ["PINECONE_ENVIRONMENT"],
+                )
+
+        return index_writer.upsert_to_index(
             index_name=index_name,
+            df=self.documents,
             namespace=namespace,
             batch_size=batch_size,
             show_progress=show_progress,
