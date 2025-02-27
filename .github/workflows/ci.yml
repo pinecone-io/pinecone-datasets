@@ -59,20 +59,9 @@ jobs:
     - name: install dependencies
       run: poetry install --with dev --all-extras
 
-    - name: Write GOOGLE_APPLICATION_CREDENTIALS to a file
-      id: prepare-google-credentials
-      shell: bash
-      run: |
-        secrets_file="$(mktemp)"
-        echo "$GCS_SERVICE_ACCOUNT_CREDS_BASE64" | base64 -d > $secrets_file
-        echo "google_credentials_file=$secrets_file" >> $GITHUB_OUTPUT
-      env:
-        GCS_SERVICE_ACCOUNT_CREDS_BASE64: '${{ secrets.GCS_SERVICE_ACCOUNT_CREDS_BASE64 }}'
-
     - name: Run pytest (unit tests)
       env:
         PY_VERSION: ${{ matrix.python-version }}
-        GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.prepare-google-credentials.outputs.google_credentials_file }}
         # AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         # AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       run: poetry run pytest -n 4 --html=report.html --cov pinecone_datasets tests/unit
@@ -84,5 +73,17 @@ jobs:
         name: dataset-pytest-report-py${{ matrix.python-version }}
         path: report.html
 
+    - name: Write google service account credentials to a file
+      id: prepare-google-credentials
+      shell: bash
+      run: |
+        secrets_file="$(mktemp)"
+        echo "$GCS_SERVICE_ACCOUNT_CREDS_BASE64" | base64 -d > $secrets_file
+        echo "google_credentials_file=$secrets_file" >> $GITHUB_OUTPUT
+      env:
+        GCS_SERVICE_ACCOUNT_CREDS_BASE64: '${{ secrets.GCS_SERVICE_ACCOUNT_CREDS_BASE64 }}'
+
     - name: Run pytest (integration tests)
       run: poetry run pytest tests/integration
+      env:
+        GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.prepare-google-credentials.outputs.google_credentials_file }}
