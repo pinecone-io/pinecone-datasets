@@ -64,8 +64,10 @@ jobs:
       shell: bash
       run: |
         secrets_file="$(mktemp)"
-        echo ${{ secrets.GCS_SERVICE_ACCOUNT_CREDS_JSON }} > $secrets_file
+        echo "$GCS_SERVICE_ACCOUNT_CREDS_BASE64" | base64 -d > $secrets_file
         echo "google_credentials_file=$secrets_file" >> $GITHUB_OUTPUT
+      env:
+        GCS_SERVICE_ACCOUNT_CREDS_BASE64: '${{ secrets.GCS_SERVICE_ACCOUNT_CREDS_BASE64 }}'
 
     - name: Run pytest (unit tests)
       env:
