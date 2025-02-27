@@ -3,8 +3,7 @@ from datetime import datetime
 import pandas as pd
 from pandas.testing import assert_frame_equal as pd_assert_frame_equal
 
-from pinecone_datasets import Dataset, list_datasets
-from pinecone_datasets.catalog import DatasetMetadata, DenseModelMetadata
+from pinecone_datasets import Dataset, list_datasets, DatasetMetadata, DenseModelMetadata
 import os
 
 GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")

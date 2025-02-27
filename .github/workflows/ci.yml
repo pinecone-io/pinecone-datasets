@@ -58,12 +58,21 @@ jobs:
         version: 1.5.0
     - name: install dependencies
       run: poetry install --with dev --all-extras
-        
+
+    - name: Write GOOGLE_APPLICATION_CREDENTIALS to a file
+      id: prepare-google-credentials
+      shell: bash
+      run: |
+        secrets_file="$(mktemp)"
+        echo ${{ secrets.GCS_SERVICE_ACCOUNT_CREDS_JSON }} > $secrets_file
+        echo "google_credentials_file=$secrets_file" >> $GITHUB_OUTPUT
+
     - name: Run pytest (unit tests)
       env:
         PY_VERSION: ${{ matrix.python-version }}
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.prepare-google-credentials.outputs.google_credentials_file }}
+        # AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        # AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       run: poetry run pytest -n 4 --html=report.html --cov pinecone_datasets tests/unit
     
     - name: upload pytest report.html
