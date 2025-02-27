@@ -5,6 +5,7 @@ from pandas.testing import assert_frame_equal as pd_assert_frame_equal
 
 from pinecone_datasets import (
     Dataset,
+    Catalog,
     list_datasets,
     DatasetMetadata,
     DenseModelMetadata,
@@ -100,10 +101,12 @@ class TestSaveDatasetToGCS:
             ),
         )
         ds = Dataset.from_pandas(documents=d, queries=q, metadata=metadata)
-        ds.to_catalog(
-            catalog_base_path=catalog_base_path,
+        catalog = Catalog(
+            base_path=catalog_base_path,
+        )
+        catalog.save_dataset(
             dataset_id=dataset_id,
-            endpoint_url="https://storage.googleapis.com",
+            dataset=ds,
             token=GOOGLE_APPLICATION_CREDENTIALS,
         )
 
