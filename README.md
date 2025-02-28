@@ -168,7 +168,6 @@ dataset.iter_documents(batch_size=n)
 
 # Dict Iterator, where every dict has ("vector", "sparse_vector", "filter", "top_k")
 dataset.iter_queries()
-
 ```
 
 ### The 'blob' column
@@ -217,29 +216,40 @@ dataset = Dataset.from_pandas(documents, queries, metadata)
 dataset.to_path("s3://my-bucket/my-subdir/my-dataset")
 ```
 
-### upserting to Index
-
-When upserting a Dataset to an Index, only the document data will be upserted to the index. The queries data will be ignored. 
-
-TODO: add example for API Key adn Environment Variables
+### Upserting to Index
 
 ```python
-ds = load_dataset("dataset_name")
+from pinecone import Pinecone, ServerlessSpec
+from pinecone_datasets import load_dataset, list_datasets
 
-ds.to_pinecone_index("index_name")
+# Instantiate a Pinecone client using API key from app.pinecone.io
+pc = Pinecone(api_key='key')
+
+# Create a Pinecone index
+index_config = pc.create_index(
+    name="demo-index",
+    dimension=dataset.metadata.dense_model.dimension,
+    spec=ServerlessSpec(cloud="aws", region="us-east1")
+)
+
+# Instantiate an index client
+index = pc.Index(host=index_config.host)
+
+# See what datasets are available
+for ds in list_datasets():
+    print(ds)
+
+# Download embeddings data 
+dataset = load_dataset(dataset_name)
+
+# Upsert data from the dataset
+index.upsert_from_dataframe(df=dataset)
 ```
-
-the `to_pinecone_index` function also accepts additional parameters:
-
-* `batch_size` for controlling the upserting process
-* `api_key` for passing your API key, otherwise you can 
-* `kwargs` - for passing additional parameters to the index creation process
-
 
 
 ## For developers
 
-This project is using poetry for dependency managemet. supported python version are 3.9+. To start developing, on project root directory run:
+This project is using poetry for dependency managemet. To start developing, on project root directory run:
 
 ```bash
 poetry install --with dev
@@ -248,5 +258,5 @@ poetry install --with dev
 To run test locally run 
 
 ```bash
-poetry run pytest --cov pinecone_datasets
+poetry run pytest test/unit --cov pinecone_datasets
 ```
