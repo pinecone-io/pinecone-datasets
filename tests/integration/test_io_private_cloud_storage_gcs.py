@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pandas as pd
+import random
 from pandas.testing import assert_frame_equal as pd_assert_frame_equal
 
 from pinecone_datasets import (
@@ -56,11 +57,11 @@ q = pd.DataFrame(
 
 
 class TestSaveDatasetToGCS:
-    def test_io_cloud_storage_path(self):
-        dataset_name = "test_io_dataset"
+    def test_io_cloud_storage(self):
+        dataset_name = "test_io_dataset_" + str(random.randint(0, 1000000))
         metadata = DatasetMetadata(
             name=dataset_name,
-            created_at="2021-01-01 00:00:00.000000",
+            created_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
             documents=2,
             queries=2,
             dense_model=DenseModelMetadata(
@@ -69,58 +70,13 @@ class TestSaveDatasetToGCS:
             ),
         )
         ds = Dataset.from_pandas(documents=d, queries=q, metadata=metadata)
-        dataset_path = f"gs://pinecone-datasets-test/unittests/{dataset_name}/{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-        ds.to_path(
-            dataset_path,
-            endpoint_url="https://storage.googleapis.com",
-            token=GOOGLE_APPLICATION_CREDENTIALS,
-        )
+        catalog = Catalog(base_path="gs://pinecone-datasets-test/catalog")
+        catalog.save_dataset(dataset=ds)
 
-        loaded_ds = Dataset.from_path(
-            dataset_path,
-            endpoint_url="https://storage.googleapis.com",
-            token=GOOGLE_APPLICATION_CREDENTIALS,
-        )
-        assert loaded_ds.metadata == metadata
-        pd_assert_frame_equal(loaded_ds.documents, ds.documents)
-        pd_assert_frame_equal(loaded_ds.queries, ds.queries)
+        loaded_ds = catalog.load_dataset(dataset_name)
+        print(catalog.list_datasets(as_df=True))
 
-    def test_io_cloud_storage_catalog(self):
-        dataset_name = "test_io_dataset"
-        dataset_id = dataset_name + "_" + datetime.now().strftime("%Y%m%d%H%M%S")
-        catalog_base_path = f"gs://pinecone-datasets-test/unittests/catalog/"
-        metadata = DatasetMetadata(
-            name=dataset_name,
-            created_at="2021-01-01 00:00:00.000000",
-            documents=2,
-            queries=2,
-            dense_model=DenseModelMetadata(
-                name="ada2",
-                dimension=2,
-            ),
-        )
-        ds = Dataset.from_pandas(documents=d, queries=q, metadata=metadata)
-        catalog = Catalog(
-            base_path=catalog_base_path,
-        )
-        catalog.save_dataset(
-            dataset_id=dataset_id,
-            dataset=ds,
-            token=GOOGLE_APPLICATION_CREDENTIALS,
-        )
-
-        # Check that the dataset is in the catalog
-        os.environ["DATASETS_CATALOG_BASEPATH"] = catalog_base_path
-        catalog = list_datasets(as_df=True, token=GOOGLE_APPLICATION_CREDENTIALS)
-        assert dataset_id in catalog["name"].values
-
-        loaded_ds = Dataset.from_catalog(
-            dataset_id=dataset_id,
-            catalog_base_path=catalog_base_path,
-            endpoint_url="https://storage.googleapis.com",
-            token=GOOGLE_APPLICATION_CREDENTIALS,
-        )
         assert loaded_ds.metadata == metadata
         pd_assert_frame_equal(loaded_ds.documents, ds.documents)
         pd_assert_frame_equal(loaded_ds.queries, ds.queries)

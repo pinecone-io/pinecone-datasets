@@ -11,7 +11,6 @@ from .cfg import Schema, Storage
 from .dataset_metadata import DatasetMetadata
 from .fs import get_cloud_fs
 from .utils import deprecated
-from .dataset_fswriter import DatasetFSWriter
 from .dataset_fsreader import DatasetFSReader
 
 logger = logging.getLogger(__name__)
@@ -27,13 +26,6 @@ class DatasetInitializationError(Exception):
     def __init__(self, message=long_message):
         self.message = message
         super().__init__(self.message)
-
-
-# TODO: import from Client
-@dataclass
-class UpsertResponse:
-    upserted_count: int
-
 
 def iter_pandas_dataframe_slices(
     df: pd.DataFrame, batch_size, return_indexes
@@ -63,27 +55,6 @@ class Dataset(object):
         Returns:
             Dataset: a Dataset object
         """
-        return cls(dataset_path=dataset_path, **kwargs)
-
-    @classmethod
-    def from_catalog(cls, dataset_id, catalog_base_path: str = "", **kwargs):
-        """
-        Load a dataset from Pinecone's Datasets catalog, or from your own endpoint.
-
-        Args:
-            dataset_id (str): the id of the dataset to load within a catalog
-            catalog_base_path (str): the catalog's base path. Defaults to DATASETS_CATALOG_BASEPATH environment variable.
-                                     If neither are set, will use Pinecone's public catalog.
-
-        Returns:
-            Dataset: a Dataset object
-        """
-        catalog_base_path = (
-            catalog_base_path
-            if catalog_base_path
-            else os.environ.get("DATASETS_CATALOG_BASEPATH", Storage.endpoint)
-        )
-        dataset_path = os.path.join(catalog_base_path, f"{dataset_id}")
         return cls(dataset_path=dataset_path, **kwargs)
 
     @classmethod
@@ -185,7 +156,7 @@ class Dataset(object):
             self._dataset_path = dataset_path
             if not self._fs.exists(self._dataset_path):
                 raise FileNotFoundError(
-                    "Dataset does not exist. Please check the path or dataset_id"
+                    f"Dataset does not exist at path {self._dataset_path}"
                 )
         else:
             self._fs = None
@@ -193,21 +164,6 @@ class Dataset(object):
         self._documents = None
         self._queries = None
         self._metadata = None
-        self._pinecone_client = None
-
-    @deprecated
-    def to_catalog(
-        self,
-        dataset_id: str,
-        catalog_base_path: str = "",
-        **kwargs,
-    ):
-        """
-        Saves the dataset to the public catalog.
-        """
-        raise Exception(
-            "This method is deprecated. Please use `Catalog.save_dataset` instead."
-        )
 
     def _is_datatype_exists(self, data_type: str) -> bool:
         if not self._fs:
@@ -292,9 +248,32 @@ class Dataset(object):
 
     def head(self, n: int = 5) -> pd.DataFrame:
         return self.documents.head(n)
-
-    def to_path(self, dataset_path: str, **kwargs):
+    
+    @deprecated
+    @classmethod
+    def from_catalog(cls, dataset_id, catalog_base_path: str = "", **kwargs):
         """
-        Saves the dataset to a local or cloud storage path.
+        DEPRECATED: This method has been removed. Please use `Catalog.load_dataset` instead.
         """
-        DatasetFSWriter.write_dataset(dataset_path, self, **kwargs)
+        raise Exception("This method has been removed. Please use `Catalog.load_dataset` instead.")
+    
+    @deprecated
+    def to_catalog(
+        self,
+        dataset_id: str,
+        catalog_base_path: str = "",
+        **kwargs,
+    ):
+        """
+        DEPRECATED: This method has been removed. Please use `Catalog.save_dataset` instead.
+        """
+        raise Exception(
+            "This method has been removed. Please use `Catalog.save_dataset` instead."
+        )
+    
+    @deprecated
+    def to_pinecone_index(self, *args, **kwargs):
+        """
+        DEPRECATED: This method has been removed. Please use the `pinecone.Index.upsert` method instead from the `pinecone` SDK package.
+        """
+        raise Exception("This method has been removed. Please use the `pinecone.Index.upsert` method instead from the `pinecone` SDK package.")

@@ -49,7 +49,6 @@ q = pd.DataFrame(
 class TestLocalIO:
     def test_io_write_to_local(self, tmpdir):
         dataset_name = "test_io_dataset"
-        dataset_path = tmpdir.mkdir(dataset_name)
         metadata = DatasetMetadata(
             name=dataset_name,
             created_at="2021-01-01 00:00:00.000000",
@@ -61,17 +60,18 @@ class TestLocalIO:
             ),
         )
         ds = Dataset.from_pandas(documents=d, queries=q, metadata=metadata)
-        ds.to_path(str(dataset_path))
-        print(str(dataset_path))
+        
+        catalog_path = tmpdir.mkdir("catalog")
+        catalog = Catalog(base_path=str(catalog_path))
+        catalog.save_dataset(ds)
 
-        loaded_ds = Dataset.from_path(str(dataset_path))
+        loaded_ds = catalog.load_dataset(dataset_name)
         assert loaded_ds.metadata == metadata
         pd_assert_frame_equal(loaded_ds.documents, ds.documents)
         pd_assert_frame_equal(loaded_ds.queries, ds.queries)
 
     def test_io_no_queries(self, tmpdir):
         dataset_name = "test_io_dataset_no_q"
-        dataset_path = tmpdir.mkdir(dataset_name)
         metadata = DatasetMetadata(
             name=dataset_name,
             created_at="2021-01-01 00:00:00.000000",
@@ -83,9 +83,12 @@ class TestLocalIO:
             ),
         )
         ds = Dataset.from_pandas(documents=d, queries=None, metadata=metadata)
-        ds.to_path(str(dataset_path))
 
-        loaded_ds = Dataset.from_path(str(dataset_path))
+        catalog_path = tmpdir.mkdir("catalog")
+        catalog = Catalog(base_path=str(catalog_path))
+        catalog.save_dataset(ds)
+
+        loaded_ds = catalog.load_dataset(dataset_name)
         assert loaded_ds.metadata == metadata
         pd_assert_frame_equal(loaded_ds.documents, ds.documents)
         assert loaded_ds.queries.empty
@@ -94,13 +97,13 @@ class TestLocalIO:
         public_catalog = Catalog()
         ds = public_catalog.load_dataset("langchain-python-docs-text-embedding-ada-002")
 
-        local_catalog_path = tmpdir.mkdir("local_catalog")
+        local_catalog_path = tmpdir.mkdir("catalog")
         local_catalog = Catalog(base_path=str(local_catalog_path))
         local_catalog.save_dataset(ds)
 
         logger.debug(f"wrote data to local_catalog_path: {str(local_catalog_path)}")
 
-        loaded_ds = Dataset.from_path(str(local_catalog_path))
+        loaded_ds = local_catalog.load_dataset(ds.metadata.name)
         # Assert frames have the same number of rows
         assert loaded_ds.documents.shape[0] == ds.documents.shape[0]
         assert loaded_ds.queries.shape[0] == ds.queries.shape[0]

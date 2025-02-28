@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class DatasetFSReader:
     @staticmethod
     def read_documents(fs: CloudOrLocalFS, dataset_path: str) -> pd.DataFrame:
-        logger.info(f"reading documents from {dataset_path}")
+        logger.debug(f"reading documents from {dataset_path}")
         df = DatasetFSReader._safe_read_from_path(fs, dataset_path, "documents")
 
         # metadata supposed to be a dict [if legacy] or string
@@ -30,7 +30,7 @@ class DatasetFSReader:
 
     @staticmethod
     def read_queries(fs: CloudOrLocalFS, dataset_path: str) -> pd.DataFrame:
-        logger.info(f"reading queries from {dataset_path}")
+        logger.debug(f"reading queries from {dataset_path}")
         df = DatasetFSReader._safe_read_from_path(fs, dataset_path, "queries")
 
         # filter supposed to be a dict [if legacy] or string
@@ -42,7 +42,7 @@ class DatasetFSReader:
 
     @staticmethod
     def read_metadata(fs: CloudOrLocalFS, dataset_path: str) -> DatasetMetadata:
-        logger.info(f"reading metadata from {dataset_path}")
+        logger.debug(f"reading metadata from {dataset_path}")
         with fs.open(os.path.join(dataset_path, "metadata.json"), "rb") as f:
             metadata = json.load(f)
         return DatasetMetadata(**metadata)
