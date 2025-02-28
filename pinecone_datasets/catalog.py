@@ -61,7 +61,6 @@ class Catalog(BaseModel):
 
         self.datasets = collected_datasets
         logger.info(f"Loaded {len(self.datasets)} datasets from {self.base_path}")
-        logger.debug(f"Datasets in {self.base_path}: {self.list_datasets(as_df=False)}")
         return self
 
     def list_datasets(self, as_df: bool) -> Union[List[str], "pd.DataFrame"]:
