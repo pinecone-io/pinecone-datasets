@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pinecone-datasets"
-version = "1.0.0.dev3"
+version = "1.0.0"
 description = "Load datasets to explore Pinecone"
 authors = ["Pinecone Support <support@pinecone.io>"]
 maintainers = [
