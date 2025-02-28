@@ -47,6 +47,10 @@ q = pd.DataFrame(
 
 
 class TestLocalIO:
+    def test_empty_catalog(self, tmpdir):
+        catalog = Catalog(base_path=str(tmpdir.mkdir("catalog")))
+        assert catalog.list_datasets(as_df=False) == []
+
     def test_io_write_to_local(self, tmpdir):
         dataset_name = "test_io_dataset"
         metadata = DatasetMetadata(
