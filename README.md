@@ -161,7 +161,6 @@ query_df: pd.DataFrame = dataset.queries
 
 One of the main use cases for Pinecone Datasets is iterating over a dataset. This is useful for upserting a dataset to an index, or for benchmarking.
 
-
 ```python
 
 # List Iterator, where every list of size N Dicts with ("id", "values", "sparse_values", "metadata")

@@ -4,8 +4,12 @@ import warnings
 import logging
 
 from .fs import get_cloud_fs, CloudOrLocalFS
-from typing import Optional
-import pandas as pd
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import pandas as pd
+else:
+    pd = None
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +83,8 @@ class DatasetFSWriter:
 
     @staticmethod
     def _convert_metadata_from_dict_to_json(metadata: Optional[dict]) -> str:
+        import pandas as pd
+
         if pd.isna(metadata):
             return None
         if metadata and not isinstance(metadata, dict):

@@ -1,21 +1,26 @@
 import logging
 from urllib.parse import urlparse
-
-
-import pandas as pd
 from typing import Any, Generator, Iterator, List, Dict, Optional, Tuple
 
 from .cfg import Schema
 from .dataset_metadata import DatasetMetadata
 from .fs import get_cloud_fs
 from .utils import deprecated
-from .dataset_fsreader import DatasetFSReader
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import pandas as pd
+    from .dataset_fsreader import DatasetFSReader
+else:
+    pd = None  # Placeholder for runtime
+    DatasetFSReader = None  # Placeholder for runtime
 
 logger = logging.getLogger(__name__)
 
 
 def iter_pandas_dataframe_slices(
-    df: pd.DataFrame, batch_size, return_indexes
+    df: "pd.DataFrame", batch_size, return_indexes
 ) -> Generator[List[Dict[str, Any]], None, None]:
     for i in range(0, len(df), batch_size):
         if return_indexes:
@@ -25,7 +30,7 @@ def iter_pandas_dataframe_slices(
 
 
 def iter_pandas_dataframe_single(
-    df: pd.DataFrame,
+    df: "pd.DataFrame",
 ) -> Generator[Dict[str, Any], None, None]:
     for i in range(0, len(df), 1):
         yield df.iloc[i : i + 1].to_dict(orient="records")[0]
@@ -47,10 +52,10 @@ class Dataset:
     @classmethod
     def from_pandas(
         cls,
-        documents: pd.DataFrame,
+        documents: "pd.DataFrame",
         metadata: DatasetMetadata,
         documents_column_mapping: Optional[Dict] = None,
-        queries: Optional[pd.DataFrame] = None,
+        queries: Optional["pd.DataFrame"] = None,
         queries_column_mapping: Optional[Dict] = None,
         **kwargs,
     ) -> "Dataset":
@@ -81,10 +86,10 @@ class Dataset:
 
     @staticmethod
     def _read_pandas_dataframe(
-        df: pd.DataFrame,
+        df: "pd.DataFrame",
         column_mapping: Dict[str, str],
         schema: List[Tuple[str, bool, Any]],
-    ) -> pd.DataFrame:
+    ) -> "pd.DataFrame":
         """
         Reads a pandas DataFrame and validates it against a schema.
 
@@ -96,6 +101,8 @@ class Dataset:
         Returns:
             pd.DataFrame: the validated, renamed DataFrame
         """
+        import pandas as pd
+
         if df is None or df.empty:
             return pd.DataFrame(columns=[column_name for column_name, _, _ in schema])
         else:
@@ -162,22 +169,28 @@ class Dataset:
         return self.documents.shape[0]
 
     @property
-    def documents(self) -> pd.DataFrame:
+    def documents(self) -> "pd.DataFrame":
         if self._documents is None and self._dataset_path is not None:
+            from .dataset_fsreader import DatasetFSReader
+
             self._documents = DatasetFSReader.read_documents(
                 self._fs, self._dataset_path
             )
         return self._documents
 
     @property
-    def queries(self) -> pd.DataFrame:
+    def queries(self) -> "pd.DataFrame":
         if self._queries is None and self._dataset_path is not None:
+            from .dataset_fsreader import DatasetFSReader
+
             self._queries = DatasetFSReader.read_queries(self._fs, self._dataset_path)
         return self._queries
 
     @property
     def metadata(self) -> DatasetMetadata:
         if self._metadata is None and self._dataset_path is not None:
+            from .dataset_fsreader import DatasetFSReader
+
             self._metadata = DatasetFSReader.read_metadata(self._fs, self._dataset_path)
         return self._metadata
 
@@ -222,7 +235,7 @@ class Dataset:
         """
         return iter_pandas_dataframe_single(self.queries[Schema.queries_select_columns])
 
-    def head(self, n: int = 5) -> pd.DataFrame:
+    def head(self, n: int = 5) -> "pd.DataFrame":
         return self.documents.head(n)
 
     @deprecated

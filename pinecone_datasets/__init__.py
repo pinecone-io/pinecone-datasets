@@ -5,7 +5,7 @@
 __version__ = "1.0.0.dev2"
 
 
-from .dataset import Dataset
 from .public import list_datasets, load_dataset
 from .dataset_metadata import DatasetMetadata, DenseModelMetadata
 from .catalog import Catalog
+from .dataset import Dataset
