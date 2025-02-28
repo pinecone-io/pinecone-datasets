@@ -2,7 +2,7 @@ import pytest
 import os
 
 from pinecone_datasets import list_datasets, load_dataset, Dataset
-from tests.system.test_public_datasets import deep_list_cmp
+from tests.utils.test_public_datasets import deep_list_cmp
 
 
 @pytest.mark.skip(reason="Need to figure out credentials to run these tests")

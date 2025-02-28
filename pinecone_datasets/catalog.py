@@ -19,6 +19,7 @@ from .dataset_metadata import DatasetMetadata
 
 logger = logging.getLogger(__name__)
 
+
 class Catalog(BaseModel):
     def __init__(self, base_path: Optional[str] = None, **kwargs):
         super().__init__(**kwargs)
@@ -69,7 +70,9 @@ class Catalog(BaseModel):
                         pass
             self.datasets = collected_datasets
             logger.info(f"Loaded {len(self.datasets)} datasets from {self.base_path}")
-            logger.debug(f"Datasets in {self.base_path}: {self.list_datasets(as_df=False)}")
+            logger.debug(
+                f"Datasets in {self.base_path}: {self.list_datasets(as_df=False)}"
+            )
             return self
         except SSLCertVerificationError:
             raise ValueError("There is an Issue with loading the public catalog")
@@ -89,7 +92,9 @@ class Catalog(BaseModel):
                 ds_path = os.path.join(self.base_path, dataset_id)
                 logger.info(f"Loading dataset {dataset_id} from {ds_path}")
                 return Dataset.from_path(dataset_path=ds_path, **kwargs)
-        raise FileNotFoundError(f"Dataset {dataset_id} not found in catalog at {self.base_path}")
+        raise FileNotFoundError(
+            f"Dataset {dataset_id} not found in catalog at {self.base_path}"
+        )
 
     def save_dataset(
         self,

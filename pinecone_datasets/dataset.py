@@ -1,13 +1,11 @@
 import logging
-import os
 from urllib.parse import urlparse
-from dataclasses import dataclass
 
 
 import pandas as pd
 from typing import Any, Generator, Iterator, List, Dict, Optional, Tuple
 
-from .cfg import Schema, Storage
+from .cfg import Schema
 from .dataset_metadata import DatasetMetadata
 from .fs import get_cloud_fs
 from .utils import deprecated
@@ -15,17 +13,6 @@ from .dataset_fsreader import DatasetFSReader
 
 logger = logging.getLogger(__name__)
 
-
-class DatasetInitializationError(Exception):
-    long_message = """
-    This dataset was not initialized from path, but from memory, e.g. Dataset.from_pandas(...)
-    Therefore this dataset cannot be reloaded from path, or use methods that require a path.
-    If you want to reload a dataset from path, please use the `from_path` method and pass a valid path.
-    """
-
-    def __init__(self, message=long_message):
-        self.message = message
-        super().__init__(self.message)
 
 def iter_pandas_dataframe_slices(
     df: pd.DataFrame, batch_size, return_indexes
@@ -44,7 +31,7 @@ def iter_pandas_dataframe_single(
         yield df.iloc[i : i + 1].to_dict(orient="records")[0]
 
 
-class Dataset(object):
+class Dataset:
     @classmethod
     def from_path(cls, dataset_path, **kwargs):
         """
@@ -82,15 +69,15 @@ class Dataset(object):
         Returns:
             Dataset: a Dataset object
         """
-        clazz = cls(dataset_path=None, **kwargs)
-        clazz._documents = cls._read_pandas_dataframe(
+        instance = cls(dataset_path=None, **kwargs)
+        instance._documents = cls._read_pandas_dataframe(
             documents, documents_column_mapping, Schema.Names.documents
         )
-        clazz._queries = cls._read_pandas_dataframe(
+        instance._queries = cls._read_pandas_dataframe(
             queries, queries_column_mapping, Schema.Names.queries
         )
-        clazz._metadata = metadata
-        return clazz
+        instance._metadata = metadata
+        return instance
 
     @staticmethod
     def _read_pandas_dataframe(
@@ -159,16 +146,11 @@ class Dataset(object):
                     f"Dataset does not exist at path {self._dataset_path}"
                 )
         else:
-            self._fs = None
             self._dataset_path = None
+            self._fs = None
         self._documents = None
         self._queries = None
         self._metadata = None
-
-    def _is_datatype_exists(self, data_type: str) -> bool:
-        if not self._fs:
-            raise DatasetInitializationError()
-        return self._fs.exists(os.path.join(self._dataset_path, data_type))
 
     def __getitem__(self, key: str):
         if key in ["documents", "queries"]:
@@ -181,9 +163,7 @@ class Dataset(object):
 
     @property
     def documents(self) -> pd.DataFrame:
-        if self._documents is None:
-            if not self._fs:
-                raise DatasetInitializationError()
+        if self._documents is None and self._dataset_path is not None:
             self._documents = DatasetFSReader.read_documents(
                 self._fs, self._dataset_path
             )
@@ -191,17 +171,13 @@ class Dataset(object):
 
     @property
     def queries(self) -> pd.DataFrame:
-        if self._queries is None:
-            if not self._fs:
-                raise DatasetInitializationError()
+        if self._queries is None and self._dataset_path is not None:
             self._queries = DatasetFSReader.read_queries(self._fs, self._dataset_path)
         return self._queries
 
     @property
     def metadata(self) -> DatasetMetadata:
-        if self._metadata is None:
-            if not self._fs:
-                raise DatasetInitializationError()
+        if self._metadata is None and self._dataset_path is not None:
             self._metadata = DatasetFSReader.read_metadata(self._fs, self._dataset_path)
         return self._metadata
 
@@ -248,15 +224,17 @@ class Dataset(object):
 
     def head(self, n: int = 5) -> pd.DataFrame:
         return self.documents.head(n)
-    
+
     @deprecated
     @classmethod
     def from_catalog(cls, dataset_id, catalog_base_path: str = "", **kwargs):
         """
         DEPRECATED: This method has been removed. Please use `Catalog.load_dataset` instead.
         """
-        raise Exception("This method has been removed. Please use `Catalog.load_dataset` instead.")
-    
+        raise Exception(
+            "This method has been removed. Please use `Catalog.load_dataset` instead."
+        )
+
     @deprecated
     def to_catalog(
         self,
@@ -270,10 +248,12 @@ class Dataset(object):
         raise Exception(
             "This method has been removed. Please use `Catalog.save_dataset` instead."
         )
-    
+
     @deprecated
     def to_pinecone_index(self, *args, **kwargs):
         """
         DEPRECATED: This method has been removed. Please use the `pinecone.Index.upsert` method instead from the `pinecone` SDK package.
         """
-        raise Exception("This method has been removed. Please use the `pinecone.Index.upsert` method instead from the `pinecone` SDK package.")
+        raise Exception(
+            "This method has been removed. Please use the `pinecone.Index.upsert` method instead from the `pinecone` SDK package."
+        )

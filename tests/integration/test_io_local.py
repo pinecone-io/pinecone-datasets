@@ -60,7 +60,9 @@ class TestLocalIO:
             ),
         )
         ds = Dataset.from_pandas(documents=d, queries=q, metadata=metadata)
-        
+        assert ds._fs is None
+        assert ds._dataset_path is None
+
         catalog_path = tmpdir.mkdir("catalog")
         catalog = Catalog(base_path=str(catalog_path))
         catalog.save_dataset(ds)
@@ -69,6 +71,8 @@ class TestLocalIO:
         assert loaded_ds.metadata == metadata
         pd_assert_frame_equal(loaded_ds.documents, ds.documents)
         pd_assert_frame_equal(loaded_ds.queries, ds.queries)
+        assert loaded_ds._fs is not None
+        assert loaded_ds._dataset_path is not None
 
     def test_io_no_queries(self, tmpdir):
         dataset_name = "test_io_dataset_no_q"
@@ -83,6 +87,8 @@ class TestLocalIO:
             ),
         )
         ds = Dataset.from_pandas(documents=d, queries=None, metadata=metadata)
+        assert ds._fs is None
+        assert ds._dataset_path is None
 
         catalog_path = tmpdir.mkdir("catalog")
         catalog = Catalog(base_path=str(catalog_path))
@@ -92,6 +98,8 @@ class TestLocalIO:
         assert loaded_ds.metadata == metadata
         pd_assert_frame_equal(loaded_ds.documents, ds.documents)
         assert loaded_ds.queries.empty
+        assert loaded_ds._fs is not None
+        assert loaded_ds._dataset_path is not None
 
     def test_load_from_cloud_and_save_to_local(self, tmpdir):
         public_catalog = Catalog()
