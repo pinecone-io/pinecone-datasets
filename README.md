@@ -6,7 +6,7 @@
 pip install pinecone-datasets
 ```
 
-### Loading Pinecone Public Datasets (catalog)
+### Loading public datasets
 
 Pinecone hosts a public datasets catalog, you can load a dataset by name using `list_datasets` and `load_dataset` functions. This will use the default catalog endpoint (currently GCS) to list and load datasets.
 
@@ -51,7 +51,7 @@ query_df: pd.DataFrame = dataset.queries
 ```
 
 
-## Usage - Iterating
+## Usage - Iterating over documents
 
 The `Dataset` class has helpers for iterating over your dataset. This is useful for upserting a dataset to an index, or for benchmarking.
 
@@ -72,6 +72,13 @@ To upsert data to the index, you should install the [Pinecone SDK](https://githu
 from pinecone import Pinecone, ServerlessSpec
 from pinecone_datasets import load_dataset, list_datasets
 
+# See what datasets are available
+for ds in list_datasets():
+    print(ds)
+
+# Download embeddings data 
+dataset = load_dataset(dataset_name)
+
 # Instantiate a Pinecone client using API key from app.pinecone.io
 pc = Pinecone(api_key='key')
 
@@ -84,13 +91,6 @@ index_config = pc.create_index(
 
 # Instantiate an index client
 index = pc.Index(host=index_config.host)
-
-# See what datasets are available
-for ds in list_datasets():
-    print(ds)
-
-# Download embeddings data 
-dataset = load_dataset(dataset_name)
 
 # Upsert data from the dataset
 index.upsert_from_dataframe(df=dataset.documents)
