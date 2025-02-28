@@ -1,7 +1,9 @@
 import pandas as pd
 import numpy as np
 import pytest
-from pinecone_datasets import Dataset
+from pinecone_datasets.dataset_fsreader import DatasetFSReader
+from pinecone_datasets.dataset_fswriter import DatasetFSWriter
+from pinecone_datasets.dataset import Dataset
 
 
 def test_read_pandas_dataframe(tmpdir):
@@ -57,37 +59,37 @@ def test_read_pandas_dataframe(tmpdir):
 def test_convert_metadata_from_dict_to_json():
     d1 = {"a": 1, "b": 2}
     s1 = '{"a": 1, "b": 2}'
-    assert Dataset._convert_metadata_from_dict_to_json(d1) == s1
+    assert DatasetFSWriter._convert_metadata_from_dict_to_json(d1) == s1
     assert (
-        Dataset._convert_metadata_from_json_to_dict(
-            Dataset._convert_metadata_from_dict_to_json(d1)
+        DatasetFSReader._convert_metadata_from_json_to_dict(
+            DatasetFSWriter._convert_metadata_from_dict_to_json(d1)
         )
         == d1
     )
 
     d2 = {"a": 1, "b": None}
     s2 = '{"a": 1, "b": null}'
-    assert Dataset._convert_metadata_from_dict_to_json(d2) == s2
+    assert DatasetFSWriter._convert_metadata_from_dict_to_json(d2) == s2
     assert (
-        Dataset._convert_metadata_from_json_to_dict(
-            Dataset._convert_metadata_from_dict_to_json(d2)
+        DatasetFSReader._convert_metadata_from_json_to_dict(
+            DatasetFSWriter._convert_metadata_from_dict_to_json(d2)
         )
         == d2
     )
 
     d3 = None
     s3 = None
-    assert Dataset._convert_metadata_from_dict_to_json(d3) == s3
+    assert DatasetFSWriter._convert_metadata_from_dict_to_json(d3) == s3
     assert (
-        Dataset._convert_metadata_from_json_to_dict(
-            Dataset._convert_metadata_from_dict_to_json(d3)
+        DatasetFSReader._convert_metadata_from_json_to_dict(
+            DatasetFSWriter._convert_metadata_from_dict_to_json(d3)
         )
         == d3
     )
 
     d4 = {"a": 1, "b": np.nan}
     s4 = '{"a": 1, "b": NaN}'
-    assert Dataset._convert_metadata_from_dict_to_json(d4) == s4
+    assert DatasetFSWriter._convert_metadata_from_dict_to_json(d4) == s4
 
     # TODO WTF?
     # print({"a": 1, "b": np.nan})

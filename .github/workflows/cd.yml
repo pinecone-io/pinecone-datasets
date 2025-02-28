@@ -3,6 +3,7 @@ name: CD
 on:
   workflow_dispatch:
 
+
 jobs:
 
   release:
@@ -17,7 +18,7 @@ jobs:
     - name: Install Poetry
       uses: snok/install-poetry@v1
       with:
-        version: 1.3.2
+        version: 1.5.0
 
     - name: Set Version
       run: echo "VERSION=$(poetry version -s)" >> $GITHUB_ENV

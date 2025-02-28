@@ -1,7 +1,7 @@
 from .dataset import Dataset
 from .catalog import Catalog
-from . import cfg
 
+global catalog
 catalog = None
 
 
@@ -27,7 +27,8 @@ def list_datasets(as_df=False, **kwargs) -> list:
 
     """
     global catalog
-    catalog = Catalog.load(**kwargs)
+    if catalog is None:
+        catalog = Catalog()
     return catalog.list_datasets(as_df=as_df)
 
 
@@ -49,11 +50,7 @@ def load_dataset(dataset_id: str, **kwargs) -> Dataset:
         dataset = load_dataset("dataset_name")
         ```
     """
-    if not catalog:
-        lst = list_datasets(as_df=False)
-    else:
-        lst = catalog.list_datasets(as_df=False)
-    if dataset_id not in lst:
-        raise FileNotFoundError(f"Dataset {dataset_id} not found in catalog")
-    else:
-        return Dataset.from_catalog(dataset_id, **kwargs)
+    global catalog
+    if catalog is None:
+        catalog = Catalog()
+    return catalog.load_dataset(dataset_id=dataset_id, **kwargs)
