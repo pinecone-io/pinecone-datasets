@@ -1,13 +1,13 @@
-import sys
+
 import os
 import json
 import logging
 import warnings
-from typing import Literal, Dict, Optional
+from typing import Literal, Optional
 
 import pandas as pd
 import pyarrow.parquet as pq
-from typing import Any, Generator, Iterator, List, Dict, Optional, Tuple, NamedTuple
+from .tqdm import tqdm
 
 from .cfg import Schema
 from .dataset_metadata import DatasetMetadata
@@ -75,33 +75,39 @@ class DatasetFSReader:
         read_path_str = os.path.join(dataset_path, data_type, "*.parquet")
         read_path = fs.glob(read_path_str)
         if DatasetFSReader._does_datatype_exist(fs, dataset_path, data_type):
-            dataset = pq.ParquetDataset(read_path, filesystem=fs)
-            dataset_schema_names = dataset.schema.names
+            # First, collect all the dataframes
+            dfs = []
+            for path in tqdm(read_path, desc=f"Loading {data_type} parquet files"):
+                piece = pq.read_pandas(path, filesystem=fs)
+                df_piece = piece.to_pandas()
+                dfs.append(df_piece)
+            
+            if not dfs:
+                raise ValueError(f"No parquet files found in {read_path_str}")
+                
+            # Combine all dataframes
+            df = pd.concat(dfs, ignore_index=True)
+            
+            # Validate schema
+            dataset_schema_names = df.columns.tolist()
             columns_to_null = []
             columns_not_null = []
-            for column_name, is_nullable, null_value in getattr(
-                Schema.Names, data_type
-            ):
+            for column_name, is_nullable, null_value in getattr(Schema.Names, data_type):
                 if column_name not in dataset_schema_names and not is_nullable:
                     raise ValueError(
-                        f"error, file is not matching Pinecone Datasets Schmea: {column_name} not found"
+                        f"error, file is not matching Pinecone Datasets Schema: {column_name} not found"
                     )
                 elif column_name not in dataset_schema_names and is_nullable:
                     columns_to_null.append((column_name, null_value))
                 else:
                     columns_not_null.append(column_name)
-            try:
-                # TODO: use of the columns_not_null and columns_to_null is only a workaround for proper schema validation and versioning
-                df = dataset.read_pandas(columns=columns_not_null).to_pandas()
 
-                for column_name, null_value in columns_to_null:
-                    df[column_name] = null_value
-                return df
+            # Add null columns if needed
+            for column_name, null_value in columns_to_null:
+                df[column_name] = null_value
+            
+            return df[columns_not_null + [col for col, _ in columns_to_null]]
 
-            # TODO: add more specific error handling, explain what is wrong
-            except Exception as e:
-                print("error, no exception: {}".format(e), file=sys.stderr)
-                raise (e)
         else:
             warnings.warn(
                 "WARNING: No data found at: {}. Returning empty dataframe".format(
