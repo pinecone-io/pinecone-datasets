@@ -2,7 +2,7 @@
 .. include:: ../README.md
 """
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 
 from .public import list_datasets, load_dataset
