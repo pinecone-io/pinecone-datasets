@@ -6,6 +6,7 @@ try:
     # Suppress the specific tqdm warning about IProgress
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning, module="tqdm")
+        warnings.filterwarnings("ignore", message="IProgress not found.*")
         from tqdm.auto import tqdm
 except ImportError:
     # Fallback: define a dummy tqdm that supports the same interface.

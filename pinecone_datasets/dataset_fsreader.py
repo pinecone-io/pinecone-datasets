@@ -1,4 +1,3 @@
-
 import os
 import json
 import logging
@@ -81,18 +80,20 @@ class DatasetFSReader:
                 piece = pq.read_pandas(path, filesystem=fs)
                 df_piece = piece.to_pandas()
                 dfs.append(df_piece)
-            
+
             if not dfs:
                 raise ValueError(f"No parquet files found in {read_path_str}")
-                
+
             # Combine all dataframes
             df = pd.concat(dfs, ignore_index=True)
-            
+
             # Validate schema
             dataset_schema_names = df.columns.tolist()
             columns_to_null = []
             columns_not_null = []
-            for column_name, is_nullable, null_value in getattr(Schema.Names, data_type):
+            for column_name, is_nullable, null_value in getattr(
+                Schema.Names, data_type
+            ):
                 if column_name not in dataset_schema_names and not is_nullable:
                     raise ValueError(
                         f"error, file is not matching Pinecone Datasets Schema: {column_name} not found"
@@ -105,7 +106,7 @@ class DatasetFSReader:
             # Add null columns if needed
             for column_name, null_value in columns_to_null:
                 df[column_name] = null_value
-            
+
             return df[columns_not_null + [col for col, _ in columns_to_null]]
 
         else:
