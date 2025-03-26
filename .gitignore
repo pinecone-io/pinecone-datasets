@@ -9,3 +9,8 @@ scratchpad.ipynb
 .pytest_cache/
 .coverage
 poetry.lock
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
