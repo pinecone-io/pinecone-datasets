@@ -1,4 +1,5 @@
 import os
+import posixpath
 import json
 import logging
 import warnings
@@ -63,7 +64,8 @@ class DatasetFSReader:
         dataset_path: str,
         data_type: Literal["documents", "queries"],
     ) -> bool:
-        return fs.exists(os.path.join(dataset_path, data_type))
+        path = posixpath.join(dataset_path, data_type)
+        return fs.exists(path)
 
     @staticmethod
     def _safe_read_from_path(
@@ -71,7 +73,7 @@ class DatasetFSReader:
         dataset_path: str,
         data_type: Literal["documents", "queries"],
     ) -> pd.DataFrame:
-        read_path_str = os.path.join(dataset_path, data_type, "*.parquet")
+        read_path_str = posixpath.join(dataset_path, data_type, "*.parquet")
         read_path = fs.glob(read_path_str)
         if DatasetFSReader._does_datatype_exist(fs, dataset_path, data_type):
             # First, collect all the dataframes
