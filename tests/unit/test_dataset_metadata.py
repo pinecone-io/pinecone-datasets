@@ -5,7 +5,7 @@ from pinecone_datasets.dataset_metadata import DatasetMetadata, DenseModelMetada
 from pydantic import ValidationError
 
 
-def test_metadta_fields_minimal():
+def test_metadata_fields_minimal():
     try:
         meta = DatasetMetadata(
             name="test",
