@@ -30,8 +30,11 @@ jobs:
     - name: install dependencies
       run: poetry install --with dev --all-extras
     
-    - name: Run Black Check
-      run: poetry run black --check .
+    - name: Run ruff format check
+      run: poetry run ruff format --check .
+    
+    - name: Run ruff lint check
+      run: poetry run ruff check .
     
     - name: Run mypy check
       run: poetry run mypy .

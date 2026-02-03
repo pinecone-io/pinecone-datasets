@@ -1,16 +1,16 @@
-import warnings
-import os
 import json
-from typing import List, Optional, Union, TYPE_CHECKING
-
 import logging
-from pydantic import BaseModel, ValidationError, Field
+import os
+import warnings
+from typing import TYPE_CHECKING, Optional, Union
+
+from pydantic import BaseModel, Field, ValidationError
 
 from .cfg import Storage
-from .fs import get_cloud_fs
 from .dataset import Dataset
 from .dataset_fswriter import DatasetFSWriter
 from .dataset_metadata import DatasetMetadata
+from .fs import get_cloud_fs
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -32,7 +32,7 @@ class Catalog(BaseModel):
             self.base_path = base_path
 
     base_path: str = Field(default=None)
-    datasets: List[DatasetMetadata] = Field(default_factory=list)
+    datasets: list[DatasetMetadata] = Field(default_factory=list)
 
     def load(self, **kwargs) -> "Catalog":
         """Loads metadata about all datasets from the catalog."""
@@ -63,7 +63,7 @@ class Catalog(BaseModel):
         logger.info(f"Loaded {len(self.datasets)} datasets from {self.base_path}")
         return self
 
-    def list_datasets(self, as_df: bool) -> Union[List[str], "pd.DataFrame"]:
+    def list_datasets(self, as_df: bool) -> Union[list[str], "pd.DataFrame"]:
         """Lists all datasets in the catalog."""
         if self.datasets is None or len(self.datasets) == 0:
             self.load()

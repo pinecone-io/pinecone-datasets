@@ -1,13 +1,12 @@
 import pytest
+from pydantic import ValidationError
 
 from pinecone_datasets.dataset_metadata import DatasetMetadata, DenseModelMetadata
-
-from pydantic import ValidationError
 
 
 def test_metadata_fields_minimal():
     try:
-        meta = DatasetMetadata(
+        DatasetMetadata(
             name="test",
             documents=1,
             created_at="2021-01-01 00:00:00.000000",
@@ -23,7 +22,7 @@ def test_metadata_fields_minimal():
 
 def test_validation_error_mandatory_field():
     with pytest.raises(ValidationError):
-        meta = DatasetMetadata(
+        DatasetMetadata(
             documents=1,
             queries=1,
             dense_model=DenseModelMetadata(
@@ -35,7 +34,7 @@ def test_validation_error_mandatory_field():
 
 def test_validation_error_optional_field():
     with pytest.raises(ValidationError):
-        meta = DatasetMetadata(
+        DatasetMetadata(
             name="test",
             documents=1,
             queries=1,

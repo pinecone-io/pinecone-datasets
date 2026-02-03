@@ -7,15 +7,15 @@ def is_dicts_equal(d1, d2):
 
 def deep_list_cmp(l1, l2):
     same = True
-    for l, r in zip(l1, l2):
-        same = same and l == r
+    for left, right in zip(l1, l2):
+        same = same and left == right
     return same
 
 
 def approx_deep_list_cmp(l1, l2):
     same = True
-    for l, r in zip(l1, l2):
-        same = same and np.isclose(l, r)
+    for left, right in zip(l1, l2):
+        same = same and np.isclose(left, right)
     return same
 
 

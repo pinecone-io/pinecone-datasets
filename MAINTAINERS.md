@@ -170,3 +170,31 @@ To run test locally run
 ```bash
 poetry run pytest test/unit --cov pinecone_datasets
 ```
+
+## Code formatting and linting
+
+This project uses [ruff](https://github.com/astral-sh/ruff) for code formatting and linting. Ruff is a fast, modern Python linter and formatter written in Rust.
+
+To format code:
+
+```bash
+poetry run ruff format .
+```
+
+To check code formatting without making changes:
+
+```bash
+poetry run ruff format --check .
+```
+
+To run linting checks:
+
+```bash
+poetry run ruff check .
+```
+
+To automatically fix linting issues:
+
+```bash
+poetry run ruff check --fix .
+```
