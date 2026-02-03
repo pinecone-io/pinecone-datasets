@@ -29,25 +29,25 @@ class TestFSErrorPaths:
 
     def test_get_cloud_fs_s3_import_error(self):
         """Test error when s3fs module cannot be imported"""
-        with patch('pinecone_datasets.fs.import_module') as mock_import:
+        with patch("pinecone_datasets.fs.import_module") as mock_import:
             mock_import.side_effect = ImportError("No module named 's3fs'")
-            
+
             with pytest.raises(ImportError):
                 get_cloud_fs("s3://test-bucket")
 
     def test_get_cloud_fs_gcs_import_error(self):
         """Test error when gcsfs module cannot be imported"""
-        with patch('pinecone_datasets.fs.import_module') as mock_import:
+        with patch("pinecone_datasets.fs.import_module") as mock_import:
             mock_import.side_effect = ImportError("No module named 'gcsfs'")
-            
+
             with pytest.raises(ImportError):
                 get_cloud_fs("gs://test-bucket")
 
     def test_get_cloud_fs_local_import_error(self):
         """Test error when local filesystem module cannot be imported"""
-        with patch('pinecone_datasets.fs.import_module') as mock_import:
+        with patch("pinecone_datasets.fs.import_module") as mock_import:
             mock_import.side_effect = ImportError("No module named 'fsspec'")
-            
+
             with pytest.raises(ImportError):
                 get_cloud_fs("/local/path")
 
@@ -88,6 +88,7 @@ class TestFSErrorPaths:
     def test_get_cloud_fs_gcs_anon_parameter(self):
         """Test GCS filesystem with anon parameter for public bucket"""
         from pinecone_datasets import cfg
+
         # Using the public bucket should set token to "anon"
         fs = get_cloud_fs(cfg.Storage.endpoint)
         assert fs is not None
@@ -99,7 +100,9 @@ class TestFSErrorPaths:
 
     def test_get_cloud_fs_with_custom_kwargs_gcs(self):
         """Test GCS filesystem with custom kwargs"""
-        fs = get_cloud_fs("gs://test-bucket", endpoint_url="https://custom.gcs.endpoint")
+        fs = get_cloud_fs(
+            "gs://test-bucket", endpoint_url="https://custom.gcs.endpoint"
+        )
         assert fs is not None
 
     def test_get_cloud_fs_unsupported_protocol(self):
@@ -130,31 +133,37 @@ class TestFSErrorPaths:
 
     def test_get_cloud_fs_s3_creation_failure(self):
         """Test S3 filesystem creation failure"""
-        with patch('pinecone_datasets.fs.import_module') as mock_import:
+        with patch("pinecone_datasets.fs.import_module") as mock_import:
             mock_s3fs = Mock()
-            mock_s3fs.S3FileSystem.side_effect = Exception("Failed to create filesystem")
+            mock_s3fs.S3FileSystem.side_effect = Exception(
+                "Failed to create filesystem"
+            )
             mock_import.return_value = mock_s3fs
-            
+
             with pytest.raises(Exception, match="Failed to create filesystem"):
                 get_cloud_fs("s3://test-bucket")
 
     def test_get_cloud_fs_gcs_creation_failure(self):
         """Test GCS filesystem creation failure"""
-        with patch('pinecone_datasets.fs.import_module') as mock_import:
+        with patch("pinecone_datasets.fs.import_module") as mock_import:
             mock_gcsfs = Mock()
-            mock_gcsfs.GCSFileSystem.side_effect = Exception("Failed to create filesystem")
+            mock_gcsfs.GCSFileSystem.side_effect = Exception(
+                "Failed to create filesystem"
+            )
             mock_import.return_value = mock_gcsfs
-            
+
             with pytest.raises(Exception, match="Failed to create filesystem"):
                 get_cloud_fs("gs://test-bucket")
 
     def test_get_cloud_fs_local_creation_failure(self):
         """Test local filesystem creation failure"""
-        with patch('pinecone_datasets.fs.import_module') as mock_import:
+        with patch("pinecone_datasets.fs.import_module") as mock_import:
             mock_local = Mock()
-            mock_local.LocalFileSystem.side_effect = Exception("Failed to create filesystem")
+            mock_local.LocalFileSystem.side_effect = Exception(
+                "Failed to create filesystem"
+            )
             mock_import.return_value = mock_local
-            
+
             with pytest.raises(Exception, match="Failed to create filesystem"):
                 get_cloud_fs("/local/path")
 
@@ -259,21 +268,16 @@ class TestFSErrorPaths:
     def test_get_cloud_fs_concurrent_creation(self):
         """Test creating multiple filesystems concurrently"""
         import concurrent.futures
-        
+
         def create_fs(path):
             return get_cloud_fs(path)
-        
-        paths = [
-            "s3://bucket1",
-            "gs://bucket2",
-            "/local/path",
-            "s3://bucket3"
-        ]
-        
+
+        paths = ["s3://bucket1", "gs://bucket2", "/local/path", "s3://bucket3"]
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             futures = [executor.submit(create_fs, path) for path in paths]
             results = [f.result() for f in concurrent.futures.as_completed(futures)]
-        
+
         assert all(fs is not None for fs in results)
 
     def test_get_cloud_fs_memory_pressure(self):
@@ -283,6 +287,6 @@ class TestFSErrorPaths:
         for i in range(100):
             fs = get_cloud_fs(f"/local/path/{i}")
             filesystems.append(fs)
-        
+
         assert len(filesystems) == 100
         assert all(fs is not None for fs in filesystems)
