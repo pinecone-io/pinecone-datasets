@@ -10,6 +10,7 @@ jobs:
     permissions:
       contents: write
       id-token: write  # Required for Trusted Publishing (OIDC)
+      attestations: write  # Required for generating attestations
 
     name: Release
     runs-on: ubuntu-latest
