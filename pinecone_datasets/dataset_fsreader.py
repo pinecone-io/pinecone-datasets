@@ -81,13 +81,13 @@ class DatasetFSReader:
     ) -> Tuple[int, pd.DataFrame]:
         """
         Download (if needed) and read a single parquet file.
-        
+
         Args:
             path: Path to the parquet file
             fs: Filesystem object
             use_cache: Whether to use caching for this file
             protocol: Protocol prefix (gs:// or s3://) if applicable
-            
+
         Returns:
             Tuple of (file_index, dataframe) where file_index is from the path
         """
@@ -103,7 +103,7 @@ class DatasetFSReader:
         else:
             # Read directly from filesystem
             piece = pq.read_pandas(path, filesystem=fs)
-        
+
         df_piece = piece.to_pandas()
         # Extract index from path for proper ordering (handles paths like "documents/0000.parquet")
         try:
@@ -112,7 +112,7 @@ class DatasetFSReader:
         except (ValueError, AttributeError):
             # If we can't extract an index, use hash of path for consistent ordering
             file_index = hash(path)
-        
+
         return (file_index, df_piece)
 
     @staticmethod
@@ -140,10 +140,12 @@ class DatasetFSReader:
 
             # Collect all dataframes using parallel downloads
             num_files = len(read_path)
-            max_workers = min(Cache.max_parallel_downloads, num_files) if num_files > 1 else 1
-            
+            max_workers = (
+                min(Cache.max_parallel_downloads, num_files) if num_files > 1 else 1
+            )
+
             dfs_with_index = []
-            
+
             if max_workers == 1:
                 # Serial processing for single file or when max_workers=1
                 for path in tqdm(read_path, desc=f"Loading {data_type}"):
@@ -165,7 +167,7 @@ class DatasetFSReader:
                         ): path
                         for path in read_path
                     }
-                    
+
                     # Collect results as they complete with progress bar
                     with tqdm(total=num_files, desc=f"Loading {data_type}") as pbar:
                         for future in as_completed(future_to_path):
@@ -178,7 +180,7 @@ class DatasetFSReader:
                                 raise
                             finally:
                                 pbar.update(1)
-            
+
             # Sort by file index to maintain consistent ordering
             dfs_with_index.sort(key=lambda x: x[0])
             dfs = [df for _, df in dfs_with_index]

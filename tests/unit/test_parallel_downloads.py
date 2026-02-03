@@ -1,6 +1,7 @@
 """
 Unit tests for parallel download functionality.
 """
+
 import os
 import tempfile
 from pathlib import Path
@@ -140,7 +141,9 @@ class TestParallelDownloads:
             # Read with parallel processing disabled
             cfg.Cache.max_parallel_downloads = 1
             result_df = DatasetFSReader._safe_read_from_path(
-                fs=fs, dataset_path=str(Path(tmpdir) / "test-dataset"), data_type="documents"
+                fs=fs,
+                dataset_path=str(Path(tmpdir) / "test-dataset"),
+                data_type="documents",
             )
 
             # Verify order
@@ -180,7 +183,9 @@ class TestParallelDownloads:
             # Read with parallel processing enabled
             cfg.Cache.max_parallel_downloads = 3
             result_df = DatasetFSReader._safe_read_from_path(
-                fs=fs, dataset_path=str(Path(tmpdir) / "test-dataset"), data_type="documents"
+                fs=fs,
+                dataset_path=str(Path(tmpdir) / "test-dataset"),
+                data_type="documents",
             )
 
             # Verify all data is present and in correct order
@@ -215,7 +220,9 @@ class TestParallelDownloads:
             # Even with high max_workers, should use serial for single file
             cfg.Cache.max_parallel_downloads = 10
             result_df = DatasetFSReader._safe_read_from_path(
-                fs=fs, dataset_path=str(Path(tmpdir) / "test-dataset"), data_type="documents"
+                fs=fs,
+                dataset_path=str(Path(tmpdir) / "test-dataset"),
+                data_type="documents",
             )
 
             assert len(result_df) == 1
@@ -250,7 +257,9 @@ class TestParallelDownloads:
             cfg.Cache.max_parallel_downloads = 2
 
             result_df = DatasetFSReader._safe_read_from_path(
-                fs=fs, dataset_path=str(Path(tmpdir) / "test-dataset"), data_type="documents"
+                fs=fs,
+                dataset_path=str(Path(tmpdir) / "test-dataset"),
+                data_type="documents",
             )
 
             # Verify all files were processed
