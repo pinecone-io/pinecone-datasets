@@ -8,12 +8,7 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal as pd_assert_frame_equal
 
-from pinecone_datasets import (
-    Catalog,
-    cache_info,
-    clear_cache,
-    set_cache_dir,
-)
+from pinecone_datasets import Catalog, cache_info, clear_cache
 from pinecone_datasets.cache import CacheManager
 from pinecone_datasets.fs import get_cached_path, get_cloud_fs, should_use_cache
 
