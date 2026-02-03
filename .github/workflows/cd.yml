@@ -9,6 +9,8 @@ jobs:
   release:
     permissions:
       contents: write
+      id-token: write  # Required for Trusted Publishing (OIDC)
+      attestations: write  # Required for generating attestations
 
     name: Release
     runs-on: ubuntu-latest
@@ -34,10 +36,12 @@ jobs:
 #            sha: context.sha
 #          })
 
-    - name: Build and publish to pypi
-      run: |
-        poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
-        poetry publish --build
+    - name: Build package
+      run: poetry build
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      # Uses Trusted Publishing (OIDC) - no token required
 
     - name: Create GH release
       uses: ncipollo/release-action@v1
