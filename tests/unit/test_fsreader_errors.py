@@ -255,12 +255,16 @@ class TestFSReaderErrorPaths:
         mock_fs.glob.return_value = ["gs://bucket/dataset/documents/part-0.parquet"]
         mock_fs.exists.return_value = True
 
-        # Simulate network error
+        # Simulate network error by patching at the read level
         with patch("pyarrow.parquet.read_pandas") as mock_read:
             mock_read.side_effect = OSError("Network connection failed")
-
-            with pytest.raises(OSError):
-                DatasetFSReader.read_documents(mock_fs, "gs://bucket/dataset")
+            # Patch get_cached_path to bypass caching for this test
+            with patch(
+                "pinecone_datasets.dataset_fsreader.get_cached_path",
+                side_effect=lambda p, fs: p,
+            ):
+                with pytest.raises(OSError):
+                    DatasetFSReader.read_documents(mock_fs, "gs://bucket/dataset")
 
     def test_read_metadata_network_error(self):
         """Test reading metadata with simulated network error"""
