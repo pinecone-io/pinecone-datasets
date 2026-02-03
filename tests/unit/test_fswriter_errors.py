@@ -1,11 +1,12 @@
-import pytest
 import json
 import os
-import pandas as pd
-from unittest.mock import Mock, patch, MagicMock
 
-from pinecone_datasets.dataset_fswriter import DatasetFSWriter
+import pandas as pd
+import pytest
+from unittest.mock import Mock, patch
+
 from pinecone_datasets import Dataset, DatasetMetadata, DenseModelMetadata
+from pinecone_datasets.dataset_fswriter import DatasetFSWriter
 
 
 class TestFSWriterErrorPaths:
@@ -130,9 +131,9 @@ class TestFSWriterErrorPaths:
             "pinecone_datasets.dataset_fswriter.get_cloud_fs", return_value=mock_fs
         ):
             with patch.object(
-                pd.DataFrame, "to_parquet", side_effect=IOError("Network error")
+                pd.DataFrame, "to_parquet", side_effect=OSError("Network error")
             ):
-                with pytest.raises(IOError):
+                with pytest.raises(OSError):
                     DatasetFSWriter.write_dataset(dataset_path, dataset)
 
     def test_write_metadata_invalid_json_serialization(self, tmpdir):
@@ -317,8 +318,8 @@ class TestFSWriterErrorPaths:
             "pinecone_datasets.dataset_fswriter.get_cloud_fs",
             return_value=LocalFileSystem(),
         ):
-            with patch("builtins.open", side_effect=IOError("Cannot open file")):
-                with pytest.raises(IOError):
+            with patch("builtins.open", side_effect=OSError("Cannot open file")):
+                with pytest.raises(OSError):
                     DatasetFSWriter.write_dataset(dataset_path, dataset)
 
     def test_write_documents_with_none_metadata(self, tmpdir):
@@ -416,11 +417,11 @@ class TestFSWriterErrorPaths:
             "pinecone_datasets.dataset_fswriter.get_cloud_fs", return_value=mock_fs
         ):
             with patch.object(
-                pd.DataFrame, "to_parquet", side_effect=IOError("Write failed")
+                pd.DataFrame, "to_parquet", side_effect=OSError("Write failed")
             ):
                 try:
                     DatasetFSWriter.write_dataset(dataset_path, dataset)
-                except IOError:
+                except OSError:
                     pass
 
         # Verify original metadata is preserved
@@ -460,11 +461,11 @@ class TestFSWriterErrorPaths:
             "pinecone_datasets.dataset_fswriter.get_cloud_fs", return_value=mock_fs
         ):
             with patch.object(
-                pd.DataFrame, "to_parquet", side_effect=IOError("Write failed")
+                pd.DataFrame, "to_parquet", side_effect=OSError("Write failed")
             ):
                 try:
                     DatasetFSWriter.write_dataset(dataset_path, dataset)
-                except IOError:
+                except OSError:
                     pass
 
         # Verify original filter is preserved

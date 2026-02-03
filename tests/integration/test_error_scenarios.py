@@ -1,10 +1,10 @@
 import concurrent.futures
 import json
 import os
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
-from unittest.mock import patch
 
 from pinecone_datasets import Catalog, Dataset, DatasetMetadata, DenseModelMetadata
 from pinecone_datasets.dataset_fsreader import DatasetFSReader
@@ -277,7 +277,7 @@ class TestIntegrationErrorScenarios:
         with patch.object(
             DatasetFSWriter, "_write_metadata", side_effect=failing_write_metadata
         ):
-            with pytest.raises(IOError):
+            with pytest.raises(OSError):
                 catalog.save_dataset(dataset)
 
         # Dataset directory should exist but be incomplete
@@ -408,7 +408,7 @@ class TestIntegrationErrorScenarios:
         def flaky_open(*args, **kwargs):
             call_count[0] += 1
             if call_count[0] < 3:
-                raise IOError("Network error")
+                raise OSError("Network error")
             # Use real implementation
             from fsspec.implementations.local import LocalFileSystem
 
@@ -421,11 +421,11 @@ class TestIntegrationErrorScenarios:
         # Mock open to be flaky
         with patch.object(fs, "open", side_effect=flaky_open):
             # First attempt should fail
-            with pytest.raises(IOError):
+            with pytest.raises(OSError):
                 DatasetFSReader.read_metadata(fs, dataset_path)
 
             # Second attempt should also fail
-            with pytest.raises(IOError):
+            with pytest.raises(OSError):
                 DatasetFSReader.read_metadata(fs, dataset_path)
 
     def test_dataset_schema_evolution(self, tmpdir):
@@ -527,8 +527,8 @@ class TestIntegrationErrorScenarios:
             "pinecone_datasets.dataset_fswriter.get_cloud_fs",
             return_value=LocalFileSystem(),
         ):
-            with patch("builtins.open", side_effect=IOError("Simulated error")):
-                with pytest.raises(IOError):
+            with patch("builtins.open", side_effect=OSError("Simulated error")):
+                with pytest.raises(OSError):
                     DatasetFSWriter.write_dataset(dataset_path, dataset)
 
         # Original dataset should still be intact

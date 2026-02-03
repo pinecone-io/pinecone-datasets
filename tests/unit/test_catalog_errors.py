@@ -1,9 +1,9 @@
 import json
 import os
+from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
-from unittest.mock import Mock, patch
 
 from pinecone_datasets import Dataset, DatasetMetadata, DenseModelMetadata
 from pinecone_datasets.catalog import Catalog

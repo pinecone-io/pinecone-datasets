@@ -1,10 +1,11 @@
-import pytest
 import json
 import os
+from unittest.mock import Mock, patch
+
 import pandas as pd
-from unittest.mock import Mock, patch, MagicMock
-import pyarrow.parquet as pq
 import pyarrow as pa
+import pyarrow.parquet as pq
+import pytest
 
 from pinecone_datasets.dataset_fsreader import DatasetFSReader
 from pinecone_datasets.dataset_metadata import DatasetMetadata
