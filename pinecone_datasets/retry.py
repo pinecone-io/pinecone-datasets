@@ -19,7 +19,9 @@ class RetryConfig:
     @staticmethod
     def is_enabled() -> bool:
         """Check if retry is enabled via environment variable."""
-        return os.environ.get("PINECONE_DATASETS_DISABLE_RETRY", "false").lower() not in (
+        return os.environ.get(
+            "PINECONE_DATASETS_DISABLE_RETRY", "false"
+        ).lower() not in (
             "true",
             "1",
             "yes",
@@ -129,6 +131,7 @@ def create_cloud_storage_retry_decorator() -> Callable:
     config = RetryConfig()
 
     if not config.is_enabled():
+
         def no_retry(func):
             return func
 
