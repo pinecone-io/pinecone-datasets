@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from .fs import CloudOrLocalFS
+from .tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +193,7 @@ class CacheManager:
         etag: Optional[str] = None,
     ) -> None:
         """
-        Download a file from remote storage with resume support.
+        Download a file from remote storage with resume support and progress feedback.
 
         Args:
             remote_url: Remote file URL
@@ -211,30 +212,47 @@ class CacheManager:
         )
         metadata_path = self._get_metadata_path(base_path)
 
+        # Get filename for progress bar description
+        filename = os.path.basename(remote_url)
+
         logger.debug(
             f"Downloading {remote_url} to {output_path} (starting at byte {start_byte})"
         )
 
-        with fs.open(remote_url, "rb") as remote:
-            if start_byte > 0:
-                remote.seek(start_byte)
+        # Create progress bar for download
+        with tqdm(
+            total=file_size,
+            initial=start_byte,
+            unit="B",
+            unit_scale=True,
+            unit_divisor=1024,
+            desc=f"Downloading {filename}",
+        ) as pbar:
+            with fs.open(remote_url, "rb") as remote:
+                if start_byte > 0:
+                    remote.seek(start_byte)
 
-            with open(output_path, mode) as local:
-                bytes_written = start_byte
-                chunk_size = 1024 * 1024  # 1MB chunks
+                with open(output_path, mode) as local:
+                    bytes_written = start_byte
+                    chunk_size = 1024 * 1024  # 1MB chunks
 
-                while True:
-                    chunk = remote.read(chunk_size)
-                    if not chunk:
-                        break
-                    local.write(chunk)
-                    bytes_written += len(chunk)
+                    while True:
+                        chunk = remote.read(chunk_size)
+                        if not chunk:
+                            break
+                        local.write(chunk)
+                        bytes_written += len(chunk)
+                        pbar.update(len(chunk))
 
-                    # Update metadata every 10MB for crash recovery
-                    if bytes_written % (10 * 1024 * 1024) < chunk_size:
-                        self._write_metadata(
-                            metadata_path, remote_url, file_size, bytes_written, etag
-                        )
+                        # Update metadata every 10MB for crash recovery
+                        if bytes_written % (10 * 1024 * 1024) < chunk_size:
+                            self._write_metadata(
+                                metadata_path,
+                                remote_url,
+                                file_size,
+                                bytes_written,
+                                etag,
+                            )
 
     def get_cached_path(self, remote_url: str, fs: CloudOrLocalFS) -> str:
         """
