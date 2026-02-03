@@ -272,8 +272,6 @@ class TestIntegrationErrorScenarios:
         )
 
         # Mock to simulate failure during metadata write
-        original_write_metadata = DatasetFSWriter._write_metadata
-
         def failing_write_metadata(fs, dataset_path, dataset):
             # Documents already written, now fail on metadata
             raise IOError("Simulated failure during metadata write")

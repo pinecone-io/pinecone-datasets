@@ -351,9 +351,6 @@ class TestCatalogErrorPaths:
         """Test loading dataset with network timeout"""
         catalog = Catalog(base_path="gs://test-bucket/catalog")
 
-        mock_ds = Mock(spec=Dataset)
-        mock_ds.from_path.side_effect = TimeoutError("Network timeout")
-
         with patch(
             "pinecone_datasets.catalog.Dataset.from_path",
             side_effect=TimeoutError("Network timeout"),
