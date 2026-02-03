@@ -89,6 +89,10 @@ class DatasetFSReader:
                 protocol = "gs://"
             elif dataset_path.startswith("s3://"):
                 protocol = "s3://"
+            elif dataset_path.startswith("https://storage.googleapis.com/"):
+                protocol = "gs://"
+            elif dataset_path.startswith("https://s3.amazonaws.com/"):
+                protocol = "s3://"
 
             # First, collect all the dataframes
             dfs = []
