@@ -123,12 +123,22 @@ full metadata schema can be found in `pinecone_datasets.dataset_metadata.Dataset
 
 ### The 'blob' column
 
-Pinecone dataset ship with a blob column which is inteneded to be used for storing additional data that is not part of the dataset schema. however, it is sometime useful to store additional data in the dataset, for example, a document text. We added a utility function to move data from the blob column to the metadata column. This is useful for example when upserting a dataset to an index and want to use the metadata to store text data.
+Pinecone datasets ship with a blob column which is intended to be used for storing additional data that is not part of the dataset schema. The blob column is a dict that can contain any data and is not returned when iterating over the dataset. It is useful for storing additional information such as raw document text or other metadata that you may want to access later.
+
+If you need to move data from the blob column to the metadata column (for example, when upserting to an index), you can manually process the dataset documents. Here's an example:
 
 ```python
-from pinecone_datasets import import_documents_keys_from_blob_to_metadata
+from pinecone_datasets import load_dataset
 
-new_dataset = import_documents_keys_from_blob_to_metadata(dataset, keys=["text"])
+dataset = load_dataset("your-dataset-name")
+
+# Access blob data from documents
+for doc in dataset.documents.iter_documents():
+    if 'blob' in doc and 'text' in doc['blob']:
+        # Process or move blob data to metadata as needed
+        if 'metadata' not in doc:
+            doc['metadata'] = {}
+        doc['metadata']['text'] = doc['blob']['text']
 ```
 
 ## Usage saving
