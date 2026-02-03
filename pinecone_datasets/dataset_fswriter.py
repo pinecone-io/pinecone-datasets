@@ -5,6 +5,7 @@ import warnings
 from typing import TYPE_CHECKING, Optional
 
 from .fs import CloudOrLocalFS, get_cloud_fs
+from .retry import create_cloud_storage_retry_decorator
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -14,6 +15,8 @@ else:
     pd = None
 
 logger = logging.getLogger(__name__)
+
+retry_decorator = create_cloud_storage_retry_decorator()
 
 
 class DatasetFSWriter:
@@ -29,6 +32,7 @@ class DatasetFSWriter:
         DatasetFSWriter._write_metadata(fs, dataset_path, dataset)
 
     @staticmethod
+    @retry_decorator
     def _write_documents(fs: CloudOrLocalFS, dataset_path: str, dataset: "Dataset"):
         documents_path = os.path.join(dataset_path, "documents")
         fs.makedirs(documents_path, exist_ok=True)
@@ -51,6 +55,7 @@ class DatasetFSWriter:
             dataset.documents["metadata"] = documents_metadata_copy
 
     @staticmethod
+    @retry_decorator
     def _write_queries(fs: CloudOrLocalFS, dataset_path: str, dataset: "Dataset"):
         if dataset.queries.empty:
             warnings.warn("Queries are empty, not saving queries")
@@ -75,6 +80,7 @@ class DatasetFSWriter:
                 dataset.queries["filter"] = queries_filter_copy
 
     @staticmethod
+    @retry_decorator
     def _write_metadata(fs: CloudOrLocalFS, dataset_path: str, dataset: "Dataset"):
         metadata_path = os.path.join(dataset_path, "metadata.json")
         logger.debug(

@@ -11,6 +11,7 @@ from .dataset import Dataset
 from .dataset_fswriter import DatasetFSWriter
 from .dataset_metadata import DatasetMetadata
 from .fs import get_cloud_fs
+from .retry import create_cloud_storage_retry_decorator
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -19,6 +20,8 @@ else:
 
 
 logger = logging.getLogger(__name__)
+
+retry_decorator = create_cloud_storage_retry_decorator()
 
 
 class Catalog(BaseModel):
@@ -34,6 +37,7 @@ class Catalog(BaseModel):
     base_path: str = Field(default=None)
     datasets: list[DatasetMetadata] = Field(default_factory=list)
 
+    @retry_decorator
     def load(self, **kwargs) -> "Catalog":
         """Loads metadata about all datasets from the catalog."""
         fs = get_cloud_fs(self.base_path, **kwargs)
