@@ -1,13 +1,15 @@
-import os
 import json
-import warnings
 import logging
+import os
+import warnings
+from typing import TYPE_CHECKING, Optional
 
-from .fs import get_cloud_fs, CloudOrLocalFS
-from typing import Optional, TYPE_CHECKING
+from .fs import CloudOrLocalFS, get_cloud_fs
 
 if TYPE_CHECKING:
     import pandas as pd
+
+    from .dataset import Dataset
 else:
     pd = None
 

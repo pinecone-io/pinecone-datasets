@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import List, Optional, Any, Dict
+from typing import Any, Optional
+
 from pydantic import BaseModel
 
 
@@ -30,8 +31,8 @@ class DatasetMetadata(BaseModel):
     dense_model: DenseModelMetadata
     sparse_model: Optional[SparseModelMetdata] = None
     description: Optional[str] = None
-    tags: Optional[List[str]] = None
-    args: Optional[Dict[str, Any]] = None
+    tags: Optional[list[str]] = None
+    args: Optional[dict[str, Any]] = None
 
     @staticmethod
     def empty() -> "DatasetMetadata":
