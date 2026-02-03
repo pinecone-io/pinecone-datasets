@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import warnings
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Literal, Optional
 
 import pandas as pd
@@ -72,6 +73,40 @@ class DatasetFSReader:
         return fs.exists(os.path.join(dataset_path, data_type))
 
     @staticmethod
+    def _download_and_read_parquet(
+        path: str,
+        use_cache: bool,
+        protocol: Optional[str],
+        fs: CloudOrLocalFS,
+    ) -> pd.DataFrame:
+        """
+        Download (if needed) and read a single parquet file.
+
+        Args:
+            path: Path to parquet file
+            use_cache: Whether to use caching
+            protocol: Protocol prefix (e.g., 'gs://', 's3://')
+            fs: Filesystem object
+
+        Returns:
+            DataFrame from the parquet file
+        """
+        if use_cache and protocol:
+            # Reconstruct full URL if path doesn't have protocol
+            if not path.startswith(protocol):
+                full_path = f"{protocol}{path}"
+            else:
+                full_path = path
+            # Download to cache and read from local path
+            local_path = get_cached_path(full_path, fs, show_progress=False)
+            piece = pq.read_pandas(local_path)
+        else:
+            # Read directly from filesystem
+            piece = pq.read_pandas(path, filesystem=fs)
+
+        return piece.to_pandas()
+
+    @staticmethod
     def _safe_read_from_path(
         fs: CloudOrLocalFS,
         dataset_path: str,
@@ -94,23 +129,48 @@ class DatasetFSReader:
             elif dataset_path.startswith("https://s3.amazonaws.com/"):
                 protocol = "s3://"
 
-            # First, collect all the dataframes
+            # Download and read parquet files in parallel
+            from . import cfg
+
+            # Determine number of workers (don't use more workers than files)
+            max_workers = min(cfg.Cache.max_parallel_downloads, len(read_path))
+
             dfs = []
-            for path in tqdm(read_path, desc=f"Loading {data_type}"):
-                if use_cache_for_dataset and protocol:
-                    # Reconstruct full URL if path doesn't have protocol
-                    if not path.startswith(protocol):
-                        full_path = f"{protocol}{path}"
-                    else:
-                        full_path = path
-                    # Download to cache and read from local path
-                    local_path = get_cached_path(full_path, fs)
-                    piece = pq.read_pandas(local_path)
-                else:
-                    # Read directly from filesystem
-                    piece = pq.read_pandas(path, filesystem=fs)
-                df_piece = piece.to_pandas()
-                dfs.append(df_piece)
+            if max_workers > 1 and len(read_path) > 1:
+                # Parallel download for multiple files
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    # Submit all download tasks
+                    future_to_path = {
+                        executor.submit(
+                            DatasetFSReader._download_and_read_parquet,
+                            path,
+                            use_cache_for_dataset,
+                            protocol,
+                            fs,
+                        ): path
+                        for path in read_path
+                    }
+
+                    # Collect results with progress bar
+                    with tqdm(
+                        total=len(read_path), desc=f"Loading {data_type}"
+                    ) as pbar:
+                        for future in as_completed(future_to_path):
+                            try:
+                                df_piece = future.result()
+                                dfs.append(df_piece)
+                                pbar.update(1)
+                            except Exception as e:
+                                path = future_to_path[future]
+                                logger.error(f"Failed to download {path}: {e}")
+                                raise
+            else:
+                # Serial download for single file or when max_workers=1
+                for path in tqdm(read_path, desc=f"Loading {data_type}"):
+                    df_piece = DatasetFSReader._download_and_read_parquet(
+                        path, use_cache_for_dataset, protocol, fs
+                    )
+                    dfs.append(df_piece)
 
             if not dfs:
                 raise ValueError(f"No parquet files found in {read_path_str}")
