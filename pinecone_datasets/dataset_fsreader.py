@@ -1,16 +1,16 @@
-import os
 import json
 import logging
+import os
 import warnings
 from typing import Literal, Optional
 
 import pandas as pd
 import pyarrow.parquet as pq
-from .tqdm import tqdm
 
 from .cfg import Schema
 from .dataset_metadata import DatasetMetadata
 from .fs import CloudOrLocalFS
+from .tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -111,9 +111,7 @@ class DatasetFSReader:
 
         else:
             warnings.warn(
-                "WARNING: No data found at: {}. Returning empty dataframe".format(
-                    read_path_str
-                ),
+                f"WARNING: No data found at: {read_path_str}. Returning empty dataframe",
                 UserWarning,
                 stacklevel=0,
             )

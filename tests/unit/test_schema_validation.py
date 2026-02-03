@@ -1,7 +1,7 @@
 import json
-import pytest
 
 import pandas as pd
+import pytest
 from pydantic import ValidationError
 
 from pinecone_datasets import Dataset, DatasetMetadata, DenseModelMetadata
@@ -194,7 +194,7 @@ def test_datasets_schema_name_queries_missing_propery(tmpdir):
 
 def test_datasets_schema_metadata_wrong(tmpdir):
     with pytest.raises(ValidationError):
-        metadata: DatasetMetadata = DatasetMetadata(
+        DatasetMetadata(
             created_at="2021-01-01 00:00:00.000000",
             documents=2,
             queries=2,

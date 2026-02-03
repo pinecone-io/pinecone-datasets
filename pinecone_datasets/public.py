@@ -1,5 +1,5 @@
-from .dataset import Dataset
 from .catalog import Catalog
+from .dataset import Dataset
 
 global catalog
 catalog = None

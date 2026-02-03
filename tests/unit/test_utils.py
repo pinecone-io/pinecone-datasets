@@ -1,9 +1,9 @@
-import pandas as pd
 import numpy as np
-import pytest
+import pandas as pd
+
+from pinecone_datasets.dataset import Dataset
 from pinecone_datasets.dataset_fsreader import DatasetFSReader
 from pinecone_datasets.dataset_fswriter import DatasetFSWriter
-from pinecone_datasets.dataset import Dataset
 
 
 def test_read_pandas_dataframe(tmpdir):
@@ -35,7 +35,7 @@ def test_read_pandas_dataframe(tmpdir):
 
     # create tempdir
     dataset_name = "test_read_pandas_dataframe"
-    dataset_path = tmpdir.mkdir(dataset_name)
+    tmpdir.mkdir(dataset_name)
 
     read_df = Dataset._read_pandas_dataframe(
         df, column_mapping=None, schema=schema_documents
