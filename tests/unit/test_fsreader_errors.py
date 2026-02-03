@@ -3,12 +3,9 @@ import os
 from unittest.mock import Mock, patch
 
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
 import pytest
 
 from pinecone_datasets.dataset_fsreader import DatasetFSReader
-from pinecone_datasets.dataset_metadata import DatasetMetadata
 
 
 class TestFSReaderErrorPaths:
@@ -260,17 +257,17 @@ class TestFSReaderErrorPaths:
 
         # Simulate network error
         with patch("pyarrow.parquet.read_pandas") as mock_read:
-            mock_read.side_effect = IOError("Network connection failed")
+            mock_read.side_effect = OSError("Network connection failed")
 
-            with pytest.raises(IOError):
+            with pytest.raises(OSError):
                 DatasetFSReader.read_documents(mock_fs, "gs://bucket/dataset")
 
     def test_read_metadata_network_error(self):
         """Test reading metadata with simulated network error"""
         mock_fs = Mock()
-        mock_fs.open.side_effect = IOError("Network connection failed")
+        mock_fs.open.side_effect = OSError("Network connection failed")
 
-        with pytest.raises(IOError):
+        with pytest.raises(OSError):
             DatasetFSReader.read_metadata(mock_fs, "gs://bucket/dataset")
 
     def test_convert_metadata_null_value(self):

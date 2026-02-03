@@ -255,7 +255,7 @@ class TestFSErrorPaths:
         """Test filesystem with null bytes in path"""
         # May raise ValueError or similar depending on implementation
         try:
-            fs = get_cloud_fs("/path/with/\x00/null")
+            get_cloud_fs("/path/with/\x00/null")
             # If it doesn't raise, that's also valid behavior
         except ValueError:
             pass  # Expected behavior
