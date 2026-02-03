@@ -20,22 +20,6 @@ from pinecone_datasets.fs import get_cached_path, get_cloud_fs, should_use_cache
 logger = logging.getLogger(__name__)
 
 
-@pytest.fixture
-def temp_cache_dir():
-    """Create a temporary cache directory for testing."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        yield tmpdir
-
-
-@pytest.fixture(autouse=True)
-def setup_cache_dir(temp_cache_dir):
-    """Set up cache directory for each test."""
-    set_cache_dir(temp_cache_dir)
-    yield
-    # Cleanup after test
-    clear_cache()
-
-
 class TestCacheIntegration:
     def test_cache_manager_with_local_fs(self, temp_cache_dir, tmpdir):
         """Test that caching works with local filesystem."""
