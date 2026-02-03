@@ -428,7 +428,7 @@ class TestFSWriterErrorPaths:
         assert dataset.documents["metadata"].iloc[0] == original_meta_value
 
     def test_write_queries_preserves_original_filter_on_error(self, tmpdir):
-        """Test that original filter is preserved even if write fails"""
+        """Test that original filter is preserved even if queries write fails"""
         dataset_path = str(tmpdir.mkdir("dataset"))
 
         documents = pd.DataFrame(
@@ -453,20 +453,20 @@ class TestFSWriterErrorPaths:
         )
         original_filter_value = dataset.queries["filter"].iloc[0]
 
-        # Mock to_parquet to raise error on queries write
-        mock_fs = Mock()
-        mock_fs.makedirs.return_value = None
+        # Use real filesystem for documents write, then mock to fail only on queries write
+        from fsspec.implementations.local import LocalFileSystem
 
-        with patch(
-            "pinecone_datasets.dataset_fswriter.get_cloud_fs", return_value=mock_fs
+        # First write documents successfully
+        DatasetFSWriter._write_documents(LocalFileSystem(), dataset_path, dataset)
+
+        # Now mock to_parquet to fail when writing queries
+        with patch.object(
+            pd.DataFrame, "to_parquet", side_effect=OSError("Write failed")
         ):
-            with patch.object(
-                pd.DataFrame, "to_parquet", side_effect=OSError("Write failed")
-            ):
-                try:
-                    DatasetFSWriter.write_dataset(dataset_path, dataset)
-                except OSError:
-                    pass
+            try:
+                DatasetFSWriter._write_queries(LocalFileSystem(), dataset_path, dataset)
+            except OSError:
+                pass
 
         # Verify original filter is preserved
         assert dataset.queries["filter"].iloc[0] == original_filter_value
