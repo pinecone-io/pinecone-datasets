@@ -169,42 +169,46 @@ dataset.to_path("s3://my-bucket/my-subdir/my-dataset")
 
 ## Running tests
 
-This project is using poetry for dependency managemet. To start developing, on project root directory run:
+This project uses uv for dependency management. To start developing, on project root directory run:
 
 ```bash
-poetry install --with dev
+# Install uv if you haven't already
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install dependencies
+uv sync --all-extras
 ```
 
-To run test locally run 
+To run tests locally run:
 
 ```bash
-poetry run pytest test/unit --cov pinecone_datasets
+uv run pytest tests/unit --cov pinecone_datasets
 ```
 
 ## Code formatting and linting
 
-This project uses [ruff](https://github.com/astral-sh/ruff) for code formatting and linting. Ruff is a fast, modern Python linter and formatter written in Rust.
+This project uses [ruff](https://github.com/astral-sh/ruff) for code formatting and linting. Ruff is a fast, modern Python linter and formatter written in Rust, perfectly paired with uv (both from Astral).
 
 To format code:
 
 ```bash
-poetry run ruff format .
+uv run ruff format .
 ```
 
 To check code formatting without making changes:
 
 ```bash
-poetry run ruff format --check .
+uv run ruff format --check .
 ```
 
 To run linting checks:
 
 ```bash
-poetry run ruff check .
+uv run ruff check .
 ```
 
 To automatically fix linting issues:
 
 ```bash
-poetry run ruff check --fix .
+uv run ruff check --fix .
 ```

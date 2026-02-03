@@ -1,42 +1,41 @@
-[tool.poetry]
+[project]
 name = "pinecone-datasets"
 version = "1.0.2"
 description = "Load datasets to explore Pinecone"
-authors = ["Pinecone Support <support@pinecone.io>"]
+authors = [
+    {name = "Pinecone Support", email = "support@pinecone.io"},
+]
 maintainers = [
-    "Amnon Catav <amnon@pinecone.io>",
-    "Roy Miara <miararoy@gmail.com>",
-    "Jen Hamon <jhamon@pinecone.io>",
+    {name = "Amnon Catav", email = "amnon@pinecone.io"},
+    {name = "Roy Miara", email = "miararoy@gmail.com"},
+    {name = "Jen Hamon", email = "jhamon@pinecone.io"},
 ]
 readme = "README.md"
+requires-python = ">=3.9,<3.14"
+dependencies = [
+    "fsspec>=2025.2.0",
+    "gcsfs>=2025.2.0",
+    "s3fs>=2025.2.0",
+    "pydantic>=2.0.0",
+    "pandas>=2.0.0",
+    "pyarrow>=18.0.0",
+    "tenacity>=9.0.0",
+]
 
-
-[tool.poetry.dependencies]
-python = ">=3.9,<3.14"
-fsspec = "^2025.2.0"
-gcsfs = "^2025.2.0"
-s3fs = "^2025.2.0"
-pydantic = "^2.0.0"
-pandas = "^2.0.0"
-pyarrow = "^18.0.0"
-tenacity = "^9.0.0"
-
-
-[tool.poetry.group.dev]
-optional = true
-
-[tool.poetry.group.dev.dependencies]
-ipykernel = "^6.21.1"
-ruff = "^0.8.0"
-pytest-cov = "^4.0.0"
-mypy = "^1.0.1"
-pytest = "^7.2.2"
-pytest-html = "^3.2.0"
-pdoc = "^13.0.0"
-toml = "^0.10.2"
-pytest-xdist = "^3.3.1"
-tuna = "^0.5.11"
-tqdm = "^4.67.1"
+[project.optional-dependencies]
+dev = [
+    "ipykernel>=6.21.1",
+    "ruff>=0.8.0",
+    "pytest-cov>=4.0.0",
+    "mypy>=1.0.1",
+    "pytest>=7.2.2",
+    "pytest-html>=3.2.0",
+    "pdoc>=13.0.0",
+    "toml>=0.10.2",
+    "pytest-xdist>=3.3.1",
+    "tuna>=0.5.11",
+    "tqdm>=4.67.1",
+]
 
 
 [tool.ruff]
@@ -53,5 +52,5 @@ ignore = ["E501"]  # Ignore line-too-long (black doesn't enforce this in docstri
 
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"

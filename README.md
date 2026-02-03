@@ -1,10 +1,12 @@
 # Pinecone Datasets
 
-## install
+## Install
 
 ```bash
 pip install pinecone-datasets
 ```
+
+For development, see [MAINTAINERS.md](MAINTAINERS.md) for setup instructions using uv.
 
 ### Loading public datasets
 
