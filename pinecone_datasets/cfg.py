@@ -9,11 +9,13 @@ class Storage:
 
 class Cache:
     cache_dir: str = os.getenv(
-        "PINECONE_DATASETS_CACHE_DIR",
-        os.path.expanduser("~/.pinecone-datasets/cache")
+        "PINECONE_DATASETS_CACHE_DIR", os.path.expanduser("~/.pinecone-datasets/cache")
     )
-    use_cache: bool = os.getenv("PINECONE_DATASETS_USE_CACHE", "true").lower() in ("true", "1", "yes")
-    max_size_gb: float = float(os.getenv("PINECONE_DATASETS_CACHE_MAX_SIZE", "0")) or None
+    use_cache: bool = os.getenv("PINECONE_DATASETS_USE_CACHE", "true").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
 
 
 class Schema:

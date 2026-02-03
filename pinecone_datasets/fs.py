@@ -24,10 +24,10 @@ def is_cloud_path(path: str) -> bool:
         True if path is cloud storage (GCS or S3), False otherwise
     """
     return (
-        path.startswith("gs://") or 
-        path.startswith("s3://") or 
-        "storage.googleapis.com" in path or 
-        "s3.amazonaws.com" in path
+        path.startswith("gs://")
+        or path.startswith("s3://")
+        or path.startswith("https://storage.googleapis.com/")
+        or path.startswith("https://s3.amazonaws.com/")
     )
 
 
@@ -44,16 +44,18 @@ def should_use_cache(path: str, use_cache: Optional[bool] = None) -> bool:
     """
     if use_cache is not None:
         return use_cache
-    
+
     # Default: use cache for cloud paths if enabled in config
     if is_cloud_path(path):
         return cfg.Cache.use_cache
-    
+
     # Don't cache local paths by default
     return False
 
 
-def get_cloud_fs(path: str, use_cache: Optional[bool] = None, **kwargs) -> CloudOrLocalFS:
+def get_cloud_fs(
+    path: str, use_cache: Optional[bool] = None, **kwargs
+) -> CloudOrLocalFS:
     """
     returns a filesystem object for the given path, if it is a cloud storage path (gs:// or s3://)
 
@@ -68,13 +70,13 @@ def get_cloud_fs(path: str, use_cache: Optional[bool] = None, **kwargs) -> Cloud
     """
     is_anon = path == cfg.Storage.endpoint
 
-    if path.startswith("gs://") or "storage.googleapis.com" in path:
+    if path.startswith("gs://") or path.startswith("https://storage.googleapis.com/"):
         gcsfs = import_module("gcsfs")
         if kwargs.get("token", None):
             fs = gcsfs.GCSFileSystem(**kwargs)
         else:
             fs = gcsfs.GCSFileSystem(token="anon" if is_anon else None, **kwargs)
-    elif path.startswith("s3://") or "s3.amazonaws.com" in path:
+    elif path.startswith("s3://") or path.startswith("https://s3.amazonaws.com/"):
         s3fs = import_module("s3fs")
         fs = s3fs.S3FileSystem(anon=is_anon, **kwargs)
     else:
@@ -83,7 +85,9 @@ def get_cloud_fs(path: str, use_cache: Optional[bool] = None, **kwargs) -> Cloud
     return fs
 
 
-def get_cached_path(path: str, fs: CloudOrLocalFS, use_cache: Optional[bool] = None) -> str:
+def get_cached_path(
+    path: str, fs: CloudOrLocalFS, use_cache: Optional[bool] = None
+) -> str:
     """
     Get local path to file, using cache if appropriate.
 
@@ -101,6 +105,7 @@ def get_cached_path(path: str, fs: CloudOrLocalFS, use_cache: Optional[bool] = N
     """
     if should_use_cache(path, use_cache):
         from .cache import get_cache_manager
+
         cache_manager = get_cache_manager()
         return cache_manager.get_cached_path(path, fs)
     return path

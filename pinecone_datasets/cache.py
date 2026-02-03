@@ -2,7 +2,6 @@ import hashlib
 import json
 import logging
 import os
-import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -16,18 +15,16 @@ class CacheManager:
     Manages local caching of remote dataset files with support for resumable downloads.
     """
 
-    def __init__(self, cache_dir: Optional[str] = None, max_size_gb: Optional[float] = None):
+    def __init__(self, cache_dir: Optional[str] = None):
         """
         Initialize the CacheManager.
 
         Args:
             cache_dir: Directory to store cached files. Defaults to ~/.pinecone-datasets/cache
-            max_size_gb: Maximum cache size in GB. If None, no limit is enforced.
         """
         from . import cfg
 
         self.cache_dir = cache_dir or cfg.Cache.cache_dir
-        self.max_size_gb = max_size_gb or cfg.Cache.max_size_gb
         self._ensure_cache_dir()
 
     def _ensure_cache_dir(self) -> None:
@@ -59,7 +56,13 @@ class CacheManager:
         """Get partial download file path."""
         return cache_path + ".partial"
 
-    def _write_metadata(self, metadata_path: str, remote_url: str, expected_size: int, downloaded_bytes: int) -> None:
+    def _write_metadata(
+        self,
+        metadata_path: str,
+        remote_url: str,
+        expected_size: int,
+        downloaded_bytes: int,
+    ) -> None:
         """
         Write metadata for a partial download.
 
@@ -85,12 +88,14 @@ class CacheManager:
             Metadata dict or None if metadata is invalid
         """
         try:
-            with open(metadata_path, "r") as f:
+            with open(metadata_path) as f:
                 return json.load(f)
-        except (json.JSONDecodeError, FileNotFoundError):
+        except (json.JSONDecodeError, FileNotFoundError, OSError, ValueError):
             return None
 
-    def _validate_cache(self, cache_path: str, remote_url: str, fs: CloudOrLocalFS) -> bool:
+    def _validate_cache(
+        self, cache_path: str, remote_url: str, fs: CloudOrLocalFS
+    ) -> bool:
         """
         Validate that a cached file is complete and matches the remote file.
 
@@ -114,7 +119,9 @@ class CacheManager:
             logger.debug(f"Cache validation failed: {e}")
             return False
 
-    def _validate_partial(self, metadata_path: str, remote_url: str, fs: CloudOrLocalFS) -> bool:
+    def _validate_partial(
+        self, metadata_path: str, remote_url: str, fs: CloudOrLocalFS
+    ) -> bool:
         """
         Validate that partial download metadata is still valid for resuming.
 
@@ -138,7 +145,7 @@ class CacheManager:
             # Check remote file size matches
             remote_size = fs.size(remote_url)
             if metadata["expected_size"] != remote_size:
-                logger.debug(f"Remote file size changed, cannot resume download")
+                logger.debug("Remote file size changed, cannot resume download")
                 return False
 
             return True
@@ -146,7 +153,9 @@ class CacheManager:
             logger.debug(f"Partial validation failed: {e}")
             return False
 
-    def _download_file(self, remote_url: str, fs: CloudOrLocalFS, output_path: str, start_byte: int = 0) -> None:
+    def _download_file(
+        self, remote_url: str, fs: CloudOrLocalFS, output_path: str, start_byte: int = 0
+    ) -> None:
         """
         Download a file from remote storage with resume support.
 
@@ -157,12 +166,14 @@ class CacheManager:
             start_byte: Byte offset to start from (for resuming)
         """
         file_size = fs.size(remote_url)
-        mode = 'ab' if start_byte > 0 else 'wb'
-        metadata_path = self._get_metadata_path(output_path.replace('.partial', ''))
+        mode = "ab" if start_byte > 0 else "wb"
+        metadata_path = self._get_metadata_path(output_path.replace(".partial", ""))
 
-        logger.debug(f"Downloading {remote_url} to {output_path} (starting at byte {start_byte})")
+        logger.debug(
+            f"Downloading {remote_url} to {output_path} (starting at byte {start_byte})"
+        )
 
-        with fs.open(remote_url, 'rb') as remote:
+        with fs.open(remote_url, "rb") as remote:
             if start_byte > 0:
                 remote.seek(start_byte)
 
@@ -179,7 +190,9 @@ class CacheManager:
 
                     # Update metadata every 10MB for crash recovery
                     if bytes_written % (10 * 1024 * 1024) < chunk_size:
-                        self._write_metadata(metadata_path, remote_url, file_size, bytes_written)
+                        self._write_metadata(
+                            metadata_path, remote_url, file_size, bytes_written
+                        )
 
     def get_cached_path(self, remote_url: str, fs: CloudOrLocalFS) -> str:
         """
@@ -217,7 +230,7 @@ class CacheManager:
                 start_byte = os.path.getsize(partial_path)
                 logger.info(f"Resuming download from byte {start_byte}")
             else:
-                logger.debug(f"Cannot resume partial download, starting over")
+                logger.debug("Cannot resume partial download, starting over")
                 os.remove(partial_path)
                 if os.path.exists(metadata_path):
                     os.remove(metadata_path)
@@ -248,7 +261,9 @@ class CacheManager:
             True if file is cached and valid, False otherwise
         """
         cache_path = self._get_cache_path(remote_url)
-        return os.path.exists(cache_path) and self._validate_cache(cache_path, remote_url, fs)
+        return os.path.exists(cache_path) and self._validate_cache(
+            cache_path, remote_url, fs
+        )
 
     def clear_cache(self, pattern: Optional[str] = None) -> int:
         """
@@ -298,7 +313,9 @@ class CacheManager:
 
         if cache_path_obj.exists():
             for file_path in cache_path_obj.rglob("*"):
-                if file_path.is_file() and not file_path.name.endswith(('.meta', '.partial')):
+                if file_path.is_file() and not file_path.name.endswith(
+                    (".meta", ".partial")
+                ):
                     total_size += file_path.stat().st_size
                     file_count += 1
 

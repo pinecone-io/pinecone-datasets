@@ -1,8 +1,7 @@
-import json
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
@@ -37,7 +36,7 @@ class TestCacheManager:
         """Test that CacheManager creates cache directory on initialization."""
         cache_dir = os.path.join(temp_cache_dir, "new_cache")
         assert not os.path.exists(cache_dir)
-        
+
         manager = CacheManager(cache_dir=cache_dir)
         assert os.path.exists(cache_dir)
         assert manager.cache_dir == cache_dir
@@ -70,7 +69,9 @@ class TestCacheManager:
         expected_size = 1024
         downloaded_bytes = 512
 
-        cache_manager._write_metadata(metadata_path, remote_url, expected_size, downloaded_bytes)
+        cache_manager._write_metadata(
+            metadata_path, remote_url, expected_size, downloaded_bytes
+        )
         assert os.path.exists(metadata_path)
 
         metadata = cache_manager._read_metadata(metadata_path)
@@ -81,7 +82,9 @@ class TestCacheManager:
     def test_read_metadata_invalid_file(self, cache_manager, temp_cache_dir):
         """Test that reading invalid metadata returns None."""
         # Non-existent file
-        metadata = cache_manager._read_metadata(os.path.join(temp_cache_dir, "nonexistent.meta"))
+        metadata = cache_manager._read_metadata(
+            os.path.join(temp_cache_dir, "nonexistent.meta")
+        )
         assert metadata is None
 
         # Invalid JSON
@@ -95,12 +98,12 @@ class TestCacheManager:
         """Test cache validation for valid cached file."""
         cache_path = os.path.join(temp_cache_dir, "cached.parquet")
         remote_url = "gs://bucket/file.parquet"
-        
+
         # Create cached file with correct size
         file_size = 1024
         with open(cache_path, "wb") as f:
             f.write(b"x" * file_size)
-        
+
         mock_fs.size.return_value = file_size
         assert cache_manager._validate_cache(cache_path, remote_url, mock_fs) is True
 
@@ -108,17 +111,22 @@ class TestCacheManager:
         """Test cache validation fails when size doesn't match."""
         cache_path = os.path.join(temp_cache_dir, "cached.parquet")
         remote_url = "gs://bucket/file.parquet"
-        
+
         # Create cached file with incorrect size
         with open(cache_path, "wb") as f:
             f.write(b"x" * 512)
-        
+
         mock_fs.size.return_value = 1024
         assert cache_manager._validate_cache(cache_path, remote_url, mock_fs) is False
 
     def test_validate_cache_nonexistent(self, cache_manager, mock_fs):
         """Test cache validation fails for non-existent file."""
-        assert cache_manager._validate_cache("/nonexistent/file", "gs://bucket/file", mock_fs) is False
+        assert (
+            cache_manager._validate_cache(
+                "/nonexistent/file", "gs://bucket/file", mock_fs
+            )
+            is False
+        )
 
     def test_validate_partial_valid(self, cache_manager, mock_fs, temp_cache_dir):
         """Test partial download validation for valid metadata."""
@@ -128,10 +136,14 @@ class TestCacheManager:
 
         cache_manager._write_metadata(metadata_path, remote_url, expected_size, 512)
         mock_fs.size.return_value = expected_size
-        
-        assert cache_manager._validate_partial(metadata_path, remote_url, mock_fs) is True
 
-    def test_validate_partial_url_mismatch(self, cache_manager, mock_fs, temp_cache_dir):
+        assert (
+            cache_manager._validate_partial(metadata_path, remote_url, mock_fs) is True
+        )
+
+    def test_validate_partial_url_mismatch(
+        self, cache_manager, mock_fs, temp_cache_dir
+    ):
         """Test partial validation fails when URL doesn't match."""
         metadata_path = os.path.join(temp_cache_dir, "test.meta")
         remote_url = "gs://bucket/file.parquet"
@@ -139,36 +151,43 @@ class TestCacheManager:
 
         cache_manager._write_metadata(metadata_path, remote_url, 1024, 512)
         mock_fs.size.return_value = 1024
-        
-        assert cache_manager._validate_partial(metadata_path, different_url, mock_fs) is False
 
-    def test_validate_partial_size_changed(self, cache_manager, mock_fs, temp_cache_dir):
+        assert (
+            cache_manager._validate_partial(metadata_path, different_url, mock_fs)
+            is False
+        )
+
+    def test_validate_partial_size_changed(
+        self, cache_manager, mock_fs, temp_cache_dir
+    ):
         """Test partial validation fails when remote file size changed."""
         metadata_path = os.path.join(temp_cache_dir, "test.meta")
         remote_url = "gs://bucket/file.parquet"
 
         cache_manager._write_metadata(metadata_path, remote_url, 1024, 512)
         mock_fs.size.return_value = 2048  # Remote file changed size
-        
-        assert cache_manager._validate_partial(metadata_path, remote_url, mock_fs) is False
+
+        assert (
+            cache_manager._validate_partial(metadata_path, remote_url, mock_fs) is False
+        )
 
     def test_download_file(self, cache_manager, temp_cache_dir):
         """Test downloading a file from remote storage."""
         remote_url = "gs://bucket/file.parquet"
         output_path = os.path.join(temp_cache_dir, "output.parquet")
-        
+
         # Mock filesystem with file content
         mock_fs = MagicMock()
         test_data = b"test file content" * 1000
         mock_fs.size.return_value = len(test_data)
-        
+
         mock_file = MagicMock()
         mock_file.read.side_effect = [test_data, b""]  # Return data then EOF
         mock_fs.open.return_value.__enter__.return_value = mock_file
         mock_fs.open.return_value.__exit__.return_value = False
-        
+
         cache_manager._download_file(remote_url, mock_fs, output_path, start_byte=0)
-        
+
         assert os.path.exists(output_path)
         with open(output_path, "rb") as f:
             assert f.read() == test_data
@@ -177,25 +196,27 @@ class TestCacheManager:
         """Test resuming a partial download."""
         remote_url = "gs://bucket/file.parquet"
         output_path = os.path.join(temp_cache_dir, "output.parquet")
-        
+
         # Create partial file
         partial_data = b"already downloaded"
         with open(output_path, "wb") as f:
             f.write(partial_data)
-        
+
         # Mock filesystem
         mock_fs = MagicMock()
         remaining_data = b"remaining content"
         total_size = len(partial_data) + len(remaining_data)
         mock_fs.size.return_value = total_size
-        
+
         mock_file = MagicMock()
         mock_file.read.side_effect = [remaining_data, b""]
         mock_fs.open.return_value.__enter__.return_value = mock_file
         mock_fs.open.return_value.__exit__.return_value = False
-        
-        cache_manager._download_file(remote_url, mock_fs, output_path, start_byte=len(partial_data))
-        
+
+        cache_manager._download_file(
+            remote_url, mock_fs, output_path, start_byte=len(partial_data)
+        )
+
         with open(output_path, "rb") as f:
             content = f.read()
             assert content == partial_data + remaining_data
@@ -204,12 +225,12 @@ class TestCacheManager:
         """Test is_cached returns True for valid cached file."""
         remote_url = "gs://bucket/file.parquet"
         cache_path = cache_manager._get_cache_path(remote_url)
-        
+
         # Create valid cached file
         file_size = 1024
         with open(cache_path, "wb") as f:
             f.write(b"x" * file_size)
-        
+
         mock_fs.size.return_value = file_size
         assert cache_manager.is_cached(remote_url, mock_fs) is True
 
@@ -224,7 +245,7 @@ class TestCacheManager:
         Path(temp_cache_dir, "file1.parquet").write_text("data1")
         Path(temp_cache_dir, "file2.parquet").write_text("data2")
         Path(temp_cache_dir, "file1.parquet.meta").write_text("{}")
-        
+
         count = cache_manager.clear_cache()
         assert count == 3
         assert len(list(Path(temp_cache_dir).glob("*"))) == 0
@@ -234,7 +255,7 @@ class TestCacheManager:
         # Create files with different extensions
         Path(temp_cache_dir, "file1.parquet").write_text("data1")
         Path(temp_cache_dir, "file2.csv").write_text("data2")
-        
+
         count = cache_manager.clear_cache(pattern="*.parquet")
         assert count == 1
         assert not Path(temp_cache_dir, "file1.parquet").exists()
@@ -253,7 +274,7 @@ class TestCacheManager:
         Path(temp_cache_dir, "file1.parquet").write_bytes(b"x" * 1024)
         Path(temp_cache_dir, "file2.parquet").write_bytes(b"x" * 2048)
         Path(temp_cache_dir, "file1.parquet.meta").write_text("{}")  # Should be ignored
-        
+
         info = cache_manager.get_cache_info()
         assert info["file_count"] == 2
         assert info["total_size_bytes"] == 1024 + 2048
@@ -262,19 +283,19 @@ class TestCacheManager:
     def test_get_cached_path_new_download(self, cache_manager, temp_cache_dir):
         """Test getting cached path for new file (triggers download)."""
         remote_url = "gs://bucket/file.parquet"
-        
+
         # Mock filesystem
         mock_fs = MagicMock()
         test_data = b"test content"
         mock_fs.size.return_value = len(test_data)
-        
+
         mock_file = MagicMock()
         mock_file.read.side_effect = [test_data, b""]
         mock_fs.open.return_value.__enter__.return_value = mock_file
         mock_fs.open.return_value.__exit__.return_value = False
-        
+
         cached_path = cache_manager.get_cached_path(remote_url, mock_fs)
-        
+
         assert os.path.exists(cached_path)
         assert cached_path.startswith(temp_cache_dir)
         with open(cached_path, "rb") as f:
@@ -284,15 +305,15 @@ class TestCacheManager:
         """Test getting cached path when file is already cached."""
         remote_url = "gs://bucket/file.parquet"
         cache_path = cache_manager._get_cache_path(remote_url)
-        
+
         # Pre-populate cache
         test_data = b"cached content"
         with open(cache_path, "wb") as f:
             f.write(test_data)
-        
+
         mock_fs = MagicMock()
         mock_fs.size.return_value = len(test_data)
-        
+
         # Should return cached path without downloading
         cached_path = cache_manager.get_cached_path(remote_url, mock_fs)
         assert cached_path == cache_path
@@ -310,7 +331,7 @@ class TestCacheGlobalFunctions:
         """Test global cache_info function."""
         set_cache_dir(temp_cache_dir)
         Path(temp_cache_dir, "test.parquet").write_bytes(b"x" * 1024)
-        
+
         info = cache_info()
         assert info["file_count"] == 1
         assert info["total_size_bytes"] == 1024
@@ -319,7 +340,7 @@ class TestCacheGlobalFunctions:
         """Test global clear_cache function."""
         set_cache_dir(temp_cache_dir)
         Path(temp_cache_dir, "test.parquet").write_text("data")
-        
+
         count = clear_cache()
         assert count == 1
         assert len(list(Path(temp_cache_dir).glob("*"))) == 0
