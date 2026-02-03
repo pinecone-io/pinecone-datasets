@@ -168,7 +168,11 @@ class CacheManager:
         file_size = fs.size(remote_url)
         mode = "ab" if start_byte > 0 else "wb"
         # Remove .partial suffix to get base cache path for metadata
-        base_path = output_path[: -len(".partial")] if output_path.endswith(".partial") else output_path
+        base_path = (
+            output_path[: -len(".partial")]
+            if output_path.endswith(".partial")
+            else output_path
+        )
         metadata_path = self._get_metadata_path(base_path)
 
         logger.debug(
