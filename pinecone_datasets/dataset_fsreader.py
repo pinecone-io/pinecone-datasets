@@ -96,7 +96,7 @@ class DatasetFSReader:
 
             # First, collect all the dataframes
             dfs = []
-            for path in tqdm(read_path, desc=f"Loading {data_type} parquet files"):
+            for path in tqdm(read_path, desc=f"Loading {data_type}"):
                 if use_cache_for_dataset and protocol:
                     # Reconstruct full URL if path doesn't have protocol
                     if not path.startswith(protocol):
