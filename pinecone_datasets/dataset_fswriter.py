@@ -31,7 +31,7 @@ class DatasetFSWriter:
         documents_path = os.path.join(dataset_path, "documents")
         fs.makedirs(documents_path, exist_ok=True)
 
-        documents_metadta_copy = dataset.documents["metadata"].copy()
+        documents_metadata_copy = dataset.documents["metadata"].copy()
         try:
             logger.debug(
                 f"writing dataset {dataset.metadata.name} documents to {documents_path}"
@@ -46,7 +46,7 @@ class DatasetFSWriter:
                 filesystem=fs,
             )
         finally:
-            dataset.documents["metadata"] = documents_metadta_copy
+            dataset.documents["metadata"] = documents_metadata_copy
 
     @staticmethod
     def _write_queries(fs: CloudOrLocalFS, dataset_path: str, dataset: "Dataset"):
