@@ -48,6 +48,7 @@ indent-style = "space"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
+ignore = ["E501"]  # Ignore line-too-long (black doesn't enforce this in docstrings)
 
 
 [build-system]
