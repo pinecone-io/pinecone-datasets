@@ -9,7 +9,7 @@ import pyarrow.parquet as pq
 
 from .cfg import Schema
 from .dataset_metadata import DatasetMetadata
-from .fs import CloudOrLocalFS
+from .fs import CloudOrLocalFS, get_cached_path, is_cloud_path
 from .retry import create_cloud_storage_retry_decorator
 from .tqdm import tqdm
 
@@ -80,10 +80,35 @@ class DatasetFSReader:
         read_path_str = os.path.join(dataset_path, data_type, "*.parquet")
         read_path = fs.glob(read_path_str)
         if DatasetFSReader._does_datatype_exist(fs, dataset_path, data_type):
+            # Determine if we should use cache based on dataset_path
+            use_cache_for_dataset = is_cloud_path(dataset_path)
+
+            # Determine protocol prefix for reconstructing full URLs
+            protocol = None
+            if dataset_path.startswith("gs://"):
+                protocol = "gs://"
+            elif dataset_path.startswith("s3://"):
+                protocol = "s3://"
+            elif dataset_path.startswith("https://storage.googleapis.com/"):
+                protocol = "gs://"
+            elif dataset_path.startswith("https://s3.amazonaws.com/"):
+                protocol = "s3://"
+
             # First, collect all the dataframes
             dfs = []
             for path in tqdm(read_path, desc=f"Loading {data_type} parquet files"):
-                piece = pq.read_pandas(path, filesystem=fs)
+                if use_cache_for_dataset and protocol:
+                    # Reconstruct full URL if path doesn't have protocol
+                    if not path.startswith(protocol):
+                        full_path = f"{protocol}{path}"
+                    else:
+                        full_path = path
+                    # Download to cache and read from local path
+                    local_path = get_cached_path(full_path, fs)
+                    piece = pq.read_pandas(local_path)
+                else:
+                    # Read directly from filesystem
+                    piece = pq.read_pandas(path, filesystem=fs)
                 df_piece = piece.to_pandas()
                 dfs.append(df_piece)
 
