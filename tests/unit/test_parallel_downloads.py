@@ -1,6 +1,5 @@
 """Tests for parallel downloading functionality."""
 
-import os
 from unittest.mock import Mock, patch
 
 import pandas as pd
@@ -150,7 +149,10 @@ class TestParallelDownloads:
             {"id": ["1"], "values": [[0.1]], "sparse_values": [None], "metadata": [{}]}
         )
 
-        with patch("pinecone_datasets.dataset_fsreader.get_cached_path", return_value="/tmp/cached.parquet"):
+        with patch(
+            "pinecone_datasets.dataset_fsreader.get_cached_path",
+            return_value="/tmp/cached.parquet",
+        ):
             with patch("pyarrow.parquet.read_pandas") as mock_read:
                 mock_piece = Mock()
                 mock_piece.to_pandas.return_value = mock_df
