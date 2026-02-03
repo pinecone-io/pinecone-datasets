@@ -1,7 +1,7 @@
 import warnings
 import os
 import json
-from typing import List, Optional, Union, TYPE_CHECKING
+from typing import Any, List, Optional, Union, TYPE_CHECKING
 
 import logging
 from pydantic import BaseModel, ValidationError, Field
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class Catalog(BaseModel):
-    def __init__(self, base_path: Optional[str] = None, **kwargs):
+    def __init__(self, base_path: Optional[str] = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         if base_path is None:
             self.base_path = os.environ.get(

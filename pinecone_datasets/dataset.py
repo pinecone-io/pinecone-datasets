@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def iter_pandas_dataframe_slices(
-    df: "pd.DataFrame", batch_size, return_indexes
+    df: "pd.DataFrame", batch_size: int, return_indexes: bool
 ) -> Generator[List[Dict[str, Any]], None, None]:
     for i in range(0, len(df), batch_size):
         if return_indexes:
@@ -38,7 +38,7 @@ def iter_pandas_dataframe_single(
 
 class Dataset:
     @classmethod
-    def from_path(cls, dataset_path, **kwargs):
+    def from_path(cls, dataset_path: str, **kwargs: Any) -> "Dataset":
         """
         Create a Dataset object from local or cloud storage
         Args:
@@ -57,7 +57,7 @@ class Dataset:
         documents_column_mapping: Optional[Dict] = None,
         queries: Optional["pd.DataFrame"] = None,
         queries_column_mapping: Optional[Dict] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> "Dataset":
         """
         Create a Dataset object from a pandas DataFrame
