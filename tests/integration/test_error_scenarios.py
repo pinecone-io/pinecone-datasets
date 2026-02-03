@@ -382,7 +382,7 @@ class TestIntegrationErrorScenarios:
         assert len(dataset_names) == num_datasets
 
     def test_network_retry_scenario(self, tmpdir):
-        """Test simulated network retry scenario"""
+        """Test that retry logic handles transient network failures"""
         dataset_path = str(tmpdir.mkdir("dataset"))
         documents_path = os.path.join(dataset_path, "documents")
         os.makedirs(documents_path)
@@ -402,31 +402,29 @@ class TestIntegrationErrorScenarios:
         with open(os.path.join(dataset_path, "metadata.json"), "w") as f:
             json.dump(metadata, f)
 
-        # Simulate intermittent network failures
+        # Simulate intermittent network failures that succeed after 2 retries
         call_count = [0]
 
-        def flaky_open(*args, **kwargs):
+        def flaky_open(path, *args, **kwargs):
             call_count[0] += 1
             if call_count[0] < 3:
-                raise OSError("Network error")
-            # Use real implementation
-            from fsspec.implementations.local import LocalFileSystem
+                # Fail the first 2 attempts
+                raise ConnectionError("Network error")
+            # Succeed on the 3rd attempt
+            import builtins
 
-            return LocalFileSystem().open(*args, **kwargs)
+            return builtins.open(path, *args, **kwargs)
 
         from fsspec.implementations.local import LocalFileSystem
 
         fs = LocalFileSystem()
 
-        # Mock open to be flaky
+        # Mock open to be flaky but eventually succeed
         with patch.object(fs, "open", side_effect=flaky_open):
-            # First attempt should fail
-            with pytest.raises(OSError):
-                DatasetFSReader.read_metadata(fs, dataset_path)
-
-            # Second attempt should also fail
-            with pytest.raises(OSError):
-                DatasetFSReader.read_metadata(fs, dataset_path)
+            # Should succeed after retries
+            result = DatasetFSReader.read_metadata(fs, dataset_path)
+            assert result.name == "test"
+            assert call_count[0] == 3  # Verify it took 3 attempts
 
     def test_dataset_schema_evolution(self, tmpdir):
         """Test handling datasets with schema changes"""

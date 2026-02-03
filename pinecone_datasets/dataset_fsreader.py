@@ -10,13 +10,17 @@ import pyarrow.parquet as pq
 from .cfg import Schema
 from .dataset_metadata import DatasetMetadata
 from .fs import CloudOrLocalFS
+from .retry import create_cloud_storage_retry_decorator
 from .tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
+retry_decorator = create_cloud_storage_retry_decorator()
+
 
 class DatasetFSReader:
     @staticmethod
+    @retry_decorator
     def read_documents(fs: CloudOrLocalFS, dataset_path: str) -> pd.DataFrame:
         logger.debug(f"reading documents from {dataset_path}")
         df = DatasetFSReader._safe_read_from_path(fs, dataset_path, "documents")
@@ -28,6 +32,7 @@ class DatasetFSReader:
         return df
 
     @staticmethod
+    @retry_decorator
     def read_queries(fs: CloudOrLocalFS, dataset_path: str) -> pd.DataFrame:
         logger.debug(f"reading queries from {dataset_path}")
         df = DatasetFSReader._safe_read_from_path(fs, dataset_path, "queries")
@@ -40,6 +45,7 @@ class DatasetFSReader:
         return df
 
     @staticmethod
+    @retry_decorator
     def read_metadata(fs: CloudOrLocalFS, dataset_path: str) -> DatasetMetadata:
         logger.debug(f"reading metadata from {dataset_path}")
         with fs.open(os.path.join(dataset_path, "metadata.json"), "rb") as f:
