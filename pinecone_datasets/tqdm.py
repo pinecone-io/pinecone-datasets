@@ -19,8 +19,7 @@ except ImportError:
 
         def __iter__(self):
             # Just iterate over the underlying iterable
-            for item in self.iterable:
-                yield item
+            yield from self.iterable
 
         def update(self, n=1):
             # No-op: This stub doesn't track progress

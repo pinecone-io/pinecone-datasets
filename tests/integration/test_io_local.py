@@ -1,9 +1,9 @@
-import pytest
-import pandas as pd
 import logging
+
+import pandas as pd
 from pandas.testing import assert_frame_equal as pd_assert_frame_equal
 
-from pinecone_datasets import Dataset, Catalog, DenseModelMetadata, DatasetMetadata
+from pinecone_datasets import Catalog, Dataset, DatasetMetadata, DenseModelMetadata
 
 logger = logging.getLogger(__name__)
 

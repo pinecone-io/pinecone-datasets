@@ -1,7 +1,8 @@
-import pytest
 import os
 
-from pinecone_datasets import list_datasets, load_dataset, Dataset
+import pytest
+
+from pinecone_datasets import Dataset, list_datasets, load_dataset
 from tests.utils.test_public_datasets import deep_list_cmp
 
 

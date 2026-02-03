@@ -1,5 +1,5 @@
-from typing import Union, TYPE_CHECKING
 from importlib import import_module
+from typing import TYPE_CHECKING, Union
 
 from pinecone_datasets import cfg
 

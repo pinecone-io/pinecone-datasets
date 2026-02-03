@@ -1,6 +1,5 @@
-import os
-import s3fs
 import gcsfs
+import s3fs
 
 from pinecone_datasets.fs import get_cloud_fs
 

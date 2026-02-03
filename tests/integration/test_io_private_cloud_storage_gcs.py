@@ -1,17 +1,16 @@
+import os
+import random
 from datetime import datetime
 
 import pandas as pd
-import random
 from pandas.testing import assert_frame_equal as pd_assert_frame_equal
 
 from pinecone_datasets import (
-    Dataset,
     Catalog,
-    list_datasets,
+    Dataset,
     DatasetMetadata,
     DenseModelMetadata,
 )
-import os
 
 GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 if not GOOGLE_APPLICATION_CREDENTIALS:

@@ -1,16 +1,16 @@
 import logging
+from collections.abc import Generator, Iterator
+from typing import TYPE_CHECKING, Any, Optional
 from urllib.parse import urlparse
-from typing import Any, Generator, Iterator, List, Dict, Optional, Tuple
 
 from .cfg import Schema
 from .dataset_metadata import DatasetMetadata
 from .fs import get_cloud_fs
 from .utils import deprecated
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
     import pandas as pd
+
     from .dataset_fsreader import DatasetFSReader
 else:
     pd = None  # Placeholder for runtime
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def iter_pandas_dataframe_slices(
     df: "pd.DataFrame", batch_size: int, return_indexes: bool
-) -> Generator[List[Dict[str, Any]], None, None]:
+) -> Generator[list[dict[str, Any]], None, None]:
     for i in range(0, len(df), batch_size):
         if return_indexes:
             yield (i, df.iloc[i : i + batch_size].to_dict(orient="records"))
@@ -31,7 +31,7 @@ def iter_pandas_dataframe_slices(
 
 def iter_pandas_dataframe_single(
     df: "pd.DataFrame",
-) -> Generator[Dict[str, Any], None, None]:
+) -> Generator[dict[str, Any], None, None]:
     for i in range(0, len(df), 1):
         yield df.iloc[i : i + 1].to_dict(orient="records")[0]
 
@@ -54,9 +54,9 @@ class Dataset:
         cls,
         documents: "pd.DataFrame",
         metadata: DatasetMetadata,
-        documents_column_mapping: Optional[Dict] = None,
+        documents_column_mapping: Optional[dict] = None,
         queries: Optional["pd.DataFrame"] = None,
-        queries_column_mapping: Optional[Dict] = None,
+        queries_column_mapping: Optional[dict] = None,
         **kwargs: Any,
     ) -> "Dataset":
         """
@@ -87,8 +87,8 @@ class Dataset:
     @staticmethod
     def _read_pandas_dataframe(
         df: "pd.DataFrame",
-        column_mapping: Dict[str, str],
-        schema: List[Tuple[str, bool, Any]],
+        column_mapping: dict[str, str],
+        schema: list[tuple[str, bool, Any]],
     ) -> "pd.DataFrame":
         """
         Reads a pandas DataFrame and validates it against a schema.
@@ -163,7 +163,7 @@ class Dataset:
         if key in ["documents", "queries"]:
             return getattr(self, key)
         else:
-            raise KeyError("Dataset does not have key: {}".format(key))
+            raise KeyError(f"Dataset does not have key: {key}")
 
     def __len__(self) -> int:
         return self.documents.shape[0]
@@ -196,7 +196,7 @@ class Dataset:
 
     def iter_documents(
         self, batch_size: int = 1, return_indexes=False
-    ) -> Iterator[List[Dict[str, Any]]]:
+    ) -> Iterator[list[dict[str, Any]]]:
         """
         Iterates over the documents in the dataset.
 
@@ -221,7 +221,7 @@ class Dataset:
         else:
             raise ValueError("batch_size must be greater than 0")
 
-    def iter_queries(self) -> Iterator[Dict[str, Any]]:
+    def iter_queries(self) -> Iterator[dict[str, Any]]:
         """
         Iterates over the queries in the dataset.
 
