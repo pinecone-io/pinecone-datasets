@@ -1,8 +1,19 @@
 # from polars.datatypes import Utf8, Float32, List, Struct, Field, UInt32
 
+import os
+
 
 class Storage:
     endpoint: str = "gs://pinecone-datasets-dev"
+
+
+class Cache:
+    cache_dir: str = os.getenv(
+        "PINECONE_DATASETS_CACHE_DIR",
+        os.path.expanduser("~/.pinecone-datasets/cache")
+    )
+    use_cache: bool = os.getenv("PINECONE_DATASETS_USE_CACHE", "true").lower() in ("true", "1", "yes")
+    max_size_gb: float = float(os.getenv("PINECONE_DATASETS_CACHE_MAX_SIZE", "0")) or None
 
 
 class Schema:
