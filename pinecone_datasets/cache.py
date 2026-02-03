@@ -211,7 +211,7 @@ class CacheManager:
             else output_path
         )
         metadata_path = self._get_metadata_path(base_path)
-        
+
         # Get filename for progress bar description
         filename = os.path.basename(remote_url)
 
@@ -247,7 +247,11 @@ class CacheManager:
                         # Update metadata every 10MB for crash recovery
                         if bytes_written % (10 * 1024 * 1024) < chunk_size:
                             self._write_metadata(
-                                metadata_path, remote_url, file_size, bytes_written, etag
+                                metadata_path,
+                                remote_url,
+                                file_size,
+                                bytes_written,
+                                etag,
                             )
 
     def get_cached_path(self, remote_url: str, fs: CloudOrLocalFS) -> str:
