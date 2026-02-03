@@ -6,5 +6,7 @@ dist/
 .mypy_cache/
 scratchpad.ipynb
 .pycache/
+__pycache__/
+*.pyc
 .pytest_cache/
 .coverage

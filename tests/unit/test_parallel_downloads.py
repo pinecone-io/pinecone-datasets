@@ -5,12 +5,11 @@ Unit tests for parallel download functionality.
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch, call
+from unittest.mock import patch
 
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-import pytest
 
 from pinecone_datasets import cfg
 from pinecone_datasets.dataset_fsreader import DatasetFSReader
@@ -41,6 +40,7 @@ class TestParallelDownloads:
         with patch.dict(os.environ, {"PINECONE_DATASETS_MAX_PARALLEL_DOWNLOADS": "10"}):
             # Need to reload the module for env var to take effect
             import importlib
+
             from pinecone_datasets import cfg as cfg_module
 
             importlib.reload(cfg_module)

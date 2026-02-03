@@ -3,7 +3,7 @@ import logging
 import os
 import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Literal, Optional, Tuple
+from typing import Literal, Optional
 
 import pandas as pd
 import pyarrow.parquet as pq
@@ -78,7 +78,7 @@ class DatasetFSReader:
         fs: CloudOrLocalFS,
         use_cache: bool,
         protocol: Optional[str],
-    ) -> Tuple[int, pd.DataFrame]:
+    ) -> tuple[int, pd.DataFrame]:
         """
         Download (if needed) and read a single parquet file.
 
