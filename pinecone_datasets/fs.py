@@ -53,16 +53,12 @@ def should_use_cache(path: str, use_cache: Optional[bool] = None) -> bool:
     return False
 
 
-def get_cloud_fs(
-    path: str, use_cache: Optional[bool] = None, **kwargs
-) -> CloudOrLocalFS:
+def get_cloud_fs(path: str, **kwargs) -> CloudOrLocalFS:
     """
     returns a filesystem object for the given path, if it is a cloud storage path (gs:// or s3://)
 
     Args:
         path (str): the path to the file or directory
-        use_cache (bool, optional): Whether to use caching for this filesystem.
-            If None, defaults to True for cloud paths (when cfg.Cache.use_cache is True) and False for local.
         **kwargs: additional arguments to pass to the filesystem constructor
 
     Returns:
