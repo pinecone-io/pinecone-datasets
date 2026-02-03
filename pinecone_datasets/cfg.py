@@ -16,6 +16,9 @@ class Cache:
         "1",
         "yes",
     )
+    max_parallel_downloads: int = int(
+        os.getenv("PINECONE_DATASETS_MAX_PARALLEL_DOWNLOADS", "4")
+    )
 
 
 class Schema:

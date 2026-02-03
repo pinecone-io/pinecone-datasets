@@ -82,7 +82,10 @@ def get_cloud_fs(path: str, **kwargs) -> CloudOrLocalFS:
 
 
 def get_cached_path(
-    path: str, fs: CloudOrLocalFS, use_cache: Optional[bool] = None
+    path: str,
+    fs: CloudOrLocalFS,
+    use_cache: Optional[bool] = None,
+    show_progress: bool = True,
 ) -> str:
     """
     Get local path to file, using cache if appropriate.
@@ -95,6 +98,8 @@ def get_cached_path(
         path: Remote or local file path
         fs: Filesystem object
         use_cache: Whether to use caching. If None, uses default based on path type.
+        show_progress: Whether to show download progress bar. Useful to disable
+            during parallel downloads to avoid visual clutter.
 
     Returns:
         Local file path (either cached or original)
@@ -103,5 +108,5 @@ def get_cached_path(
         from .cache import get_cache_manager
 
         cache_manager = get_cache_manager()
-        return cache_manager.get_cached_path(path, fs)
+        return cache_manager.get_cached_path(path, fs, show_progress=show_progress)
     return path

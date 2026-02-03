@@ -40,7 +40,51 @@ Each dataset has three main attributes, `documents`, `queries`, and `metadata` w
 
 Pinecone Datasets is build on top of pandas. `documents` and `queries` are lazily-loaded pandas dataframes. This means that you can use all the pandas API to access the data. In addition, we provide some helper functions to access the data in a more convenient way. 
 
-accessing the documents and queries dataframes is done using the `documents` and `queries` properties. These properties are lazy and will only load the data when accessed. 
+accessing the documents and queries dataframes is done using the `documents` and `queries` properties. These properties are lazy and will only load the data when accessed.
+
+### Download Performance
+
+When loading datasets from cloud storage (GCS/S3), the library automatically:
+
+- **Caches files locally** - Downloaded files are cached in `~/.pinecone-datasets/cache` for instant reuse
+- **Downloads in parallel** - Multiple parquet files are downloaded simultaneously (default: 4 parallel downloads)
+- **Shows progress feedback** - Progress bars display download speed, ETA, and bytes transferred
+- **Supports resumable downloads** - Interrupted downloads automatically resume from where they left off
+
+For datasets with multiple parquet files, this provides 3-4× faster loading compared to serial downloads.
+
+**Configuration:**
+
+You can customize the parallel download behavior using environment variables:
+
+```bash
+# Set maximum parallel downloads (default: 4)
+export PINECONE_DATASETS_MAX_PARALLEL_DOWNLOADS=8
+
+# Disable caching entirely (not recommended)
+export PINECONE_DATASETS_USE_CACHE=false
+
+# Change cache directory (default: ~/.pinecone-datasets/cache)
+export PINECONE_DATASETS_CACHE_DIR=/path/to/cache
+```
+
+Or programmatically:
+
+```python
+from pinecone_datasets import set_cache_dir, cache_info, clear_cache
+
+# Set custom cache directory
+set_cache_dir("/path/to/cache")
+
+# Check cache size
+info = cache_info()
+print(f"Cache size: {info['total_size_mb']} MB")
+print(f"Files cached: {info['file_count']}")
+
+# Clear cache
+cleared = clear_cache()  # Clear all
+cleared = clear_cache(pattern="*.parquet")  # Clear specific pattern
+``` 
 
 ```python
 from pinecone_datasets import list_datasets, load_dataset

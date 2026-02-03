@@ -191,6 +191,7 @@ class CacheManager:
         output_path: str,
         start_byte: int = 0,
         etag: Optional[str] = None,
+        show_progress: bool = True,
     ) -> None:
         """
         Download a file from remote storage with resume support and progress feedback.
@@ -201,6 +202,7 @@ class CacheManager:
             output_path: Local output path
             start_byte: Byte offset to start from (for resuming)
             etag: ETag or modification time for content validation
+            show_progress: Whether to show progress bar during download
         """
         file_size = fs.size(remote_url)
         mode = "ab" if start_byte > 0 else "wb"
@@ -219,15 +221,22 @@ class CacheManager:
             f"Downloading {remote_url} to {output_path} (starting at byte {start_byte})"
         )
 
-        # Create progress bar for download
-        with tqdm(
-            total=file_size,
-            initial=start_byte,
-            unit="B",
-            unit_scale=True,
-            unit_divisor=1024,
-            desc=f"Downloading {filename}",
-        ) as pbar:
+        # Create progress bar for download (or dummy context if disabled)
+        pbar = (
+            tqdm(
+                total=file_size,
+                initial=start_byte,
+                unit="B",
+                unit_scale=True,
+                unit_divisor=1024,
+                desc=f"Downloading {filename}",
+                disable=not show_progress,
+            )
+            if show_progress
+            else None
+        )
+
+        try:
             with fs.open(remote_url, "rb") as remote:
                 if start_byte > 0:
                     remote.seek(start_byte)
@@ -242,7 +251,8 @@ class CacheManager:
                             break
                         local.write(chunk)
                         bytes_written += len(chunk)
-                        pbar.update(len(chunk))
+                        if pbar:
+                            pbar.update(len(chunk))
 
                         # Update metadata every 10MB for crash recovery
                         if bytes_written % (10 * 1024 * 1024) < chunk_size:
@@ -253,8 +263,13 @@ class CacheManager:
                                 bytes_written,
                                 etag,
                             )
+        finally:
+            if pbar:
+                pbar.close()
 
-    def get_cached_path(self, remote_url: str, fs: CloudOrLocalFS) -> str:
+    def get_cached_path(
+        self, remote_url: str, fs: CloudOrLocalFS, show_progress: bool = True
+    ) -> str:
         """
         Get local path to cached file, downloading/resuming if needed.
 
@@ -266,6 +281,7 @@ class CacheManager:
         Args:
             remote_url: Remote file URL
             fs: Filesystem object
+            show_progress: Whether to show download progress bar
 
         Returns:
             Local path to cached file
@@ -300,7 +316,9 @@ class CacheManager:
         expected_size = fs.size(remote_url)
         etag = self._get_file_etag(remote_url, fs)
         self._write_metadata(metadata_path, remote_url, expected_size, start_byte, etag)
-        self._download_file(remote_url, fs, partial_path, start_byte, etag)
+        self._download_file(
+            remote_url, fs, partial_path, start_byte, etag, show_progress
+        )
 
         # Finalize: rename partial to final and clean up metadata
         os.rename(partial_path, cache_path)

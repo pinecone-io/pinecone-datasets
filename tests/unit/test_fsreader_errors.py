@@ -261,7 +261,7 @@ class TestFSReaderErrorPaths:
             # Patch get_cached_path to bypass caching for this test
             with patch(
                 "pinecone_datasets.dataset_fsreader.get_cached_path",
-                side_effect=lambda p, fs: p,
+                side_effect=lambda p, fs, **kwargs: p,
             ):
                 with pytest.raises(OSError):
                     DatasetFSReader.read_documents(mock_fs, "gs://bucket/dataset")
