@@ -180,6 +180,7 @@ class TestCacheManager:
         mock_fs = MagicMock()
         test_data = b"test file content" * 1000
         mock_fs.size.return_value = len(test_data)
+        mock_fs.info.return_value = {"ETag": "test-etag-download"}
 
         mock_file = MagicMock()
         mock_file.read.side_effect = [test_data, b""]  # Return data then EOF
@@ -207,6 +208,7 @@ class TestCacheManager:
         remaining_data = b"remaining content"
         total_size = len(partial_data) + len(remaining_data)
         mock_fs.size.return_value = total_size
+        mock_fs.info.return_value = {"ETag": "test-etag-resume"}
 
         mock_file = MagicMock()
         mock_file.read.side_effect = [remaining_data, b""]
@@ -288,6 +290,7 @@ class TestCacheManager:
         mock_fs = MagicMock()
         test_data = b"test content"
         mock_fs.size.return_value = len(test_data)
+        mock_fs.info.return_value = {"ETag": "test-etag-123"}
 
         mock_file = MagicMock()
         mock_file.read.side_effect = [test_data, b""]
@@ -313,6 +316,7 @@ class TestCacheManager:
 
         mock_fs = MagicMock()
         mock_fs.size.return_value = len(test_data)
+        mock_fs.info.return_value = {"ETag": "test-etag-cached"}
 
         # Should return cached path without downloading
         cached_path = cache_manager.get_cached_path(remote_url, mock_fs)

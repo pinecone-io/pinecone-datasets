@@ -56,12 +56,31 @@ class CacheManager:
         """Get partial download file path."""
         return cache_path + ".partial"
 
+    def _get_file_etag(self, remote_url: str, fs: CloudOrLocalFS) -> Optional[str]:
+        """
+        Get ETag or modification time for file content validation.
+
+        Args:
+            remote_url: Remote file URL
+            fs: Filesystem object
+
+        Returns:
+            ETag string if available, None otherwise
+        """
+        try:
+            info = fs.info(remote_url)
+            # Try to get ETag first (most reliable for content changes)
+            return info.get("ETag") or info.get("etag") or info.get("mtime")
+        except Exception:
+            return None
+
     def _write_metadata(
         self,
         metadata_path: str,
         remote_url: str,
         expected_size: int,
         downloaded_bytes: int,
+        etag: Optional[str] = None,
     ) -> None:
         """
         Write metadata for a partial download.
@@ -71,11 +90,13 @@ class CacheManager:
             remote_url: Remote file URL
             expected_size: Expected total file size
             downloaded_bytes: Number of bytes downloaded so far
+            etag: ETag or modification time for content validation
         """
         metadata = {
             "remote_url": remote_url,
             "expected_size": expected_size,
             "downloaded_bytes": downloaded_bytes,
+            "etag": etag,
         }
         with open(metadata_path, "w") as f:
             json.dump(metadata, f)
@@ -148,13 +169,27 @@ class CacheManager:
                 logger.debug("Remote file size changed, cannot resume download")
                 return False
 
+            # Check ETag/mtime if available to detect content changes
+            if "etag" in metadata and metadata["etag"]:
+                current_etag = self._get_file_etag(remote_url, fs)
+                if current_etag and current_etag != metadata["etag"]:
+                    logger.debug(
+                        "Remote file content changed (ETag mismatch), cannot resume download"
+                    )
+                    return False
+
             return True
         except Exception as e:
             logger.debug(f"Partial validation failed: {e}")
             return False
 
     def _download_file(
-        self, remote_url: str, fs: CloudOrLocalFS, output_path: str, start_byte: int = 0
+        self,
+        remote_url: str,
+        fs: CloudOrLocalFS,
+        output_path: str,
+        start_byte: int = 0,
+        etag: Optional[str] = None,
     ) -> None:
         """
         Download a file from remote storage with resume support.
@@ -164,6 +199,7 @@ class CacheManager:
             fs: Filesystem object
             output_path: Local output path
             start_byte: Byte offset to start from (for resuming)
+            etag: ETag or modification time for content validation
         """
         file_size = fs.size(remote_url)
         mode = "ab" if start_byte > 0 else "wb"
@@ -197,7 +233,7 @@ class CacheManager:
                     # Update metadata every 10MB for crash recovery
                     if bytes_written % (10 * 1024 * 1024) < chunk_size:
                         self._write_metadata(
-                            metadata_path, remote_url, file_size, bytes_written
+                            metadata_path, remote_url, file_size, bytes_written, etag
                         )
 
     def get_cached_path(self, remote_url: str, fs: CloudOrLocalFS) -> str:
@@ -244,8 +280,9 @@ class CacheManager:
 
         # Download file
         expected_size = fs.size(remote_url)
-        self._write_metadata(metadata_path, remote_url, expected_size, start_byte)
-        self._download_file(remote_url, fs, partial_path, start_byte)
+        etag = self._get_file_etag(remote_url, fs)
+        self._write_metadata(metadata_path, remote_url, expected_size, start_byte, etag)
+        self._download_file(remote_url, fs, partial_path, start_byte, etag)
 
         # Finalize: rename partial to final and clean up metadata
         os.rename(partial_path, cache_path)
