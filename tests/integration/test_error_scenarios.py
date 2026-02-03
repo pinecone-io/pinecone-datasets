@@ -1,14 +1,12 @@
-import pytest
+import concurrent.futures
 import json
 import os
-import pandas as pd
-import tempfile
-import shutil
-from unittest.mock import Mock, patch
-import concurrent.futures
-import threading
 
-from pinecone_datasets import Dataset, Catalog, DatasetMetadata, DenseModelMetadata
+import pandas as pd
+import pytest
+from unittest.mock import patch
+
+from pinecone_datasets import Catalog, Dataset, DatasetMetadata, DenseModelMetadata
 from pinecone_datasets.dataset_fsreader import DatasetFSReader
 from pinecone_datasets.dataset_fswriter import DatasetFSWriter
 
@@ -274,7 +272,7 @@ class TestIntegrationErrorScenarios:
         # Mock to simulate failure during metadata write
         def failing_write_metadata(fs, dataset_path, dataset):
             # Documents already written, now fail on metadata
-            raise IOError("Simulated failure during metadata write")
+            raise OSError("Simulated failure during metadata write")
 
         with patch.object(
             DatasetFSWriter, "_write_metadata", side_effect=failing_write_metadata

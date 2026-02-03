@@ -1,11 +1,12 @@
-import pytest
 import json
 import os
-import pandas as pd
-from unittest.mock import Mock, patch, MagicMock
 
-from pinecone_datasets.catalog import Catalog
+import pandas as pd
+import pytest
+from unittest.mock import Mock, patch
+
 from pinecone_datasets import Dataset, DatasetMetadata, DenseModelMetadata
+from pinecone_datasets.catalog import Catalog
 
 
 class TestCatalogErrorPaths:
@@ -16,10 +17,10 @@ class TestCatalogErrorPaths:
         catalog = Catalog(base_path="gs://test-bucket/catalog")
 
         mock_fs = Mock()
-        mock_fs.glob.side_effect = IOError("Network connection failed")
+        mock_fs.glob.side_effect = OSError("Network connection failed")
 
         with patch("pinecone_datasets.catalog.get_cloud_fs", return_value=mock_fs):
-            with pytest.raises(IOError):
+            with pytest.raises(OSError):
                 catalog.load()
 
     def test_load_catalog_invalid_json(self, tmpdir):
@@ -288,10 +289,10 @@ class TestCatalogErrorPaths:
 
         mock_fs = Mock()
         mock_fs.glob.return_value = ["gs://test-bucket/catalog/dataset1/metadata.json"]
-        mock_fs.open.side_effect = IOError("Cannot open file")
+        mock_fs.open.side_effect = OSError("Cannot open file")
 
         with patch("pinecone_datasets.catalog.get_cloud_fs", return_value=mock_fs):
-            with pytest.raises(IOError):
+            with pytest.raises(OSError):
                 catalog.load()
 
     def test_list_datasets_as_dataframe(self, tmpdir):
@@ -382,9 +383,9 @@ class TestCatalogErrorPaths:
         # Mock DatasetFSWriter to raise network error
         with patch(
             "pinecone_datasets.catalog.DatasetFSWriter.write_dataset",
-            side_effect=IOError("Network error"),
+            side_effect=OSError("Network error"),
         ):
-            with pytest.raises(IOError):
+            with pytest.raises(OSError):
                 catalog.save_dataset(dataset)
 
     def test_load_catalog_empty_metadata_file(self, tmpdir):

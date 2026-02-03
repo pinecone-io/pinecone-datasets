@@ -1,6 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from importlib import import_module
+from unittest.mock import Mock, patch
 
 from pinecone_datasets.fs import get_cloud_fs
 
