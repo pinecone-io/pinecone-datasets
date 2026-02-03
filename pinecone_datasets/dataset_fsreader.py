@@ -82,14 +82,14 @@ class DatasetFSReader:
         if DatasetFSReader._does_datatype_exist(fs, dataset_path, data_type):
             # Determine if we should use cache based on dataset_path
             use_cache_for_dataset = is_cloud_path(dataset_path)
-            
+
             # Determine protocol prefix for reconstructing full URLs
             protocol = None
             if dataset_path.startswith("gs://"):
                 protocol = "gs://"
             elif dataset_path.startswith("s3://"):
                 protocol = "s3://"
-            
+
             # First, collect all the dataframes
             dfs = []
             for path in tqdm(read_path, desc=f"Loading {data_type} parquet files"):
