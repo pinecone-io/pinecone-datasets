@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import warnings
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Union
 
 from pydantic import BaseModel, Field, ValidationError
 
@@ -25,7 +25,7 @@ retry_decorator = create_cloud_storage_retry_decorator()
 
 
 class Catalog(BaseModel):
-    def __init__(self, base_path: Optional[str] = None, **kwargs: Any) -> None:
+    def __init__(self, base_path: str | None = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         if base_path is None:
             self.base_path = os.environ.get(

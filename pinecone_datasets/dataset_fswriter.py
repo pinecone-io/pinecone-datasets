@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import warnings
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from .fs import CloudOrLocalFS, get_cloud_fs
 from .retry import create_cloud_storage_retry_decorator
@@ -90,7 +90,7 @@ class DatasetFSWriter:
             json.dump(dataset.metadata.model_dump(), f)
 
     @staticmethod
-    def _convert_metadata_from_dict_to_json(metadata: Optional[dict]) -> str:
+    def _convert_metadata_from_dict_to_json(metadata: dict | None) -> str:
         import pandas as pd
 
         if pd.isna(metadata):

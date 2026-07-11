@@ -54,9 +54,9 @@ class Dataset:
         cls,
         documents: "pd.DataFrame",
         metadata: DatasetMetadata,
-        documents_column_mapping: Optional[dict] = None,
+        documents_column_mapping: dict | None = None,
         queries: Optional["pd.DataFrame"] = None,
-        queries_column_mapping: Optional[dict] = None,
+        queries_column_mapping: dict | None = None,
         **kwargs: Any,
     ) -> "Dataset":
         """
