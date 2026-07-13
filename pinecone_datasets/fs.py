@@ -1,5 +1,5 @@
 from importlib import import_module
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 
 from pinecone_datasets import cfg
 
@@ -8,9 +8,9 @@ if TYPE_CHECKING:
     import s3fs
     from fsspec.implementations.local import LocalFileSystem
 
-    CloudOrLocalFS = Union[gcsfs.GCSFileSystem, s3fs.S3FileSystem, LocalFileSystem]
+    CloudOrLocalFS = gcsfs.GCSFileSystem | s3fs.S3FileSystem | LocalFileSystem
 else:
-    CloudOrLocalFS = Union[object]  # type: ignore
+    CloudOrLocalFS = object  # type: ignore
 
 
 def is_cloud_path(path: str) -> bool:
@@ -31,7 +31,7 @@ def is_cloud_path(path: str) -> bool:
     )
 
 
-def should_use_cache(path: str, use_cache: Optional[bool] = None) -> bool:
+def should_use_cache(path: str, use_cache: bool | None = None) -> bool:
     """
     Determine if caching should be used for a given path.
 
@@ -82,7 +82,7 @@ def get_cloud_fs(path: str, **kwargs) -> CloudOrLocalFS:
 
 
 def get_cached_path(
-    path: str, fs: CloudOrLocalFS, use_cache: Optional[bool] = None
+    path: str, fs: CloudOrLocalFS, use_cache: bool | None = None
 ) -> str:
     """
     Get local path to file, using cache if appropriate.

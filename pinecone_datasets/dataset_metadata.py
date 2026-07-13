@@ -1,18 +1,18 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
 
 class DenseModelMetadata(BaseModel):
     name: str
-    tokenizer: Optional[str] = None
+    tokenizer: str | None = None
     dimension: int
 
 
 class SparseModelMetdata(BaseModel):
-    name: Optional[str] = None
-    tokenizer: Optional[str] = None
+    name: str | None = None
+    tokenizer: str | None = None
 
 
 def get_time_now() -> str:
@@ -24,15 +24,15 @@ class DatasetMetadata(BaseModel):
     created_at: str
     documents: int
     queries: int
-    source: Optional[str] = None
-    license: Optional[str] = None
-    bucket: Optional[str] = None
-    task: Optional[str] = None
+    source: str | None = None
+    license: str | None = None
+    bucket: str | None = None
+    task: str | None = None
     dense_model: DenseModelMetadata
-    sparse_model: Optional[SparseModelMetdata] = None
-    description: Optional[str] = None
-    tags: Optional[list[str]] = None
-    args: Optional[dict[str, Any]] = None
+    sparse_model: SparseModelMetdata | None = None
+    description: str | None = None
+    tags: list[str] | None = None
+    args: dict[str, Any] | None = None
 
     @staticmethod
     def empty() -> "DatasetMetadata":

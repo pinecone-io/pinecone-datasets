@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import warnings
-from typing import Literal, Optional
+from typing import Literal
 
 import pandas as pd
 import pyarrow.parquet as pq
@@ -53,7 +53,7 @@ class DatasetFSReader:
         return DatasetMetadata(**metadata)
 
     @staticmethod
-    def _convert_metadata_from_json_to_dict(metadata: Optional[str] = None) -> dict:
+    def _convert_metadata_from_json_to_dict(metadata: str | None = None) -> dict:
         if metadata is None:
             return None
         elif isinstance(metadata, dict):

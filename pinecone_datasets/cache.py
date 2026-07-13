@@ -3,7 +3,6 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Optional
 
 from .fs import CloudOrLocalFS
 from .tqdm import tqdm
@@ -16,7 +15,7 @@ class CacheManager:
     Manages local caching of remote dataset files with support for resumable downloads.
     """
 
-    def __init__(self, cache_dir: Optional[str] = None):
+    def __init__(self, cache_dir: str | None = None):
         """
         Initialize the CacheManager.
 
@@ -57,7 +56,7 @@ class CacheManager:
         """Get partial download file path."""
         return cache_path + ".partial"
 
-    def _get_file_etag(self, remote_url: str, fs: CloudOrLocalFS) -> Optional[str]:
+    def _get_file_etag(self, remote_url: str, fs: CloudOrLocalFS) -> str | None:
         """
         Get ETag or modification time for file content validation.
 
@@ -81,7 +80,7 @@ class CacheManager:
         remote_url: str,
         expected_size: int,
         downloaded_bytes: int,
-        etag: Optional[str] = None,
+        etag: str | None = None,
     ) -> None:
         """
         Write metadata for a partial download.
@@ -102,7 +101,7 @@ class CacheManager:
         with open(metadata_path, "w") as f:
             json.dump(metadata, f)
 
-    def _read_metadata(self, metadata_path: str) -> Optional[dict]:
+    def _read_metadata(self, metadata_path: str) -> dict | None:
         """
         Read metadata from a partial download.
 
@@ -190,7 +189,7 @@ class CacheManager:
         fs: CloudOrLocalFS,
         output_path: str,
         start_byte: int = 0,
-        etag: Optional[str] = None,
+        etag: str | None = None,
     ) -> None:
         """
         Download a file from remote storage with resume support and progress feedback.
@@ -326,7 +325,7 @@ class CacheManager:
             cache_path, remote_url, fs
         )
 
-    def clear_cache(self, pattern: Optional[str] = None) -> int:
+    def clear_cache(self, pattern: str | None = None) -> int:
         """
         Clear cache files matching pattern.
 
@@ -390,7 +389,7 @@ class CacheManager:
 
 
 # Global cache manager instance
-_cache_manager: Optional[CacheManager] = None
+_cache_manager: CacheManager | None = None
 
 
 def get_cache_manager() -> CacheManager:
@@ -417,7 +416,7 @@ def cache_info() -> dict:
     return get_cache_manager().get_cache_info()
 
 
-def clear_cache(pattern: Optional[str] = None) -> int:
+def clear_cache(pattern: str | None = None) -> int:
     """
     Clear cache files matching pattern.
 
