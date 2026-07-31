@@ -52,7 +52,7 @@ class RetryConfig:
             return 10
 
 
-def is_retryable_error(exception: Exception) -> bool:
+def is_retryable_error(exception: BaseException) -> bool:
     """
     Determine if an exception is a transient error that should be retried.
 
@@ -113,10 +113,11 @@ def is_retryable_error(exception: Exception) -> bool:
 
 def log_retry_attempt(retry_state: RetryCallState) -> None:
     """Log retry attempts for debugging."""
-    if retry_state.attempt_number > 1:
+    if retry_state.attempt_number > 1 and retry_state.outcome is not None:
         exception = retry_state.outcome.exception()
+        fn_name = retry_state.fn.__name__ if retry_state.fn is not None else "unknown"
         logger.warning(
-            f"Retry attempt {retry_state.attempt_number} for {retry_state.fn.__name__} "
+            f"Retry attempt {retry_state.attempt_number} for {fn_name} "
             f"after error: {type(exception).__name__}: {exception}"
         )
 

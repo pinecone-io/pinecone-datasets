@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     import pandas as pd
 
     from .dataset_fsreader import DatasetFSReader
+    from .fs import CloudOrLocalFS
 else:
     pd = None  # Placeholder for runtime
     DatasetFSReader = None  # Placeholder for runtime
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 def iter_pandas_dataframe_slices(
     df: "pd.DataFrame", batch_size: int, return_indexes: bool
-) -> Generator[list[dict[str, Any]], None, None]:
+) -> Generator[list[dict[str, Any]] | tuple[int, list[dict[str, Any]]], None, None]:
     for i in range(0, len(df), batch_size):
         if return_indexes:
             yield (i, df.iloc[i : i + batch_size].to_dict(orient="records"))
@@ -87,7 +88,7 @@ class Dataset:
     @staticmethod
     def _read_pandas_dataframe(
         df: "pd.DataFrame",
-        column_mapping: dict[str, str],
+        column_mapping: dict[str, str] | None,
         schema: list[tuple[str, bool, Any]],
     ) -> "pd.DataFrame":
         """
@@ -119,7 +120,7 @@ class Dataset:
 
     def __init__(
         self,
-        dataset_path: str,
+        dataset_path: str | None,
         **kwargs,
     ) -> None:
         """
@@ -144,6 +145,8 @@ class Dataset:
             ```
 
         """
+        self._dataset_path: str | None
+        self._fs: CloudOrLocalFS | None
         if dataset_path is not None:
             endpoint = urlparse(dataset_path)._replace(path="").geturl()
             self._fs = get_cloud_fs(endpoint, **kwargs)
@@ -155,9 +158,9 @@ class Dataset:
         else:
             self._dataset_path = None
             self._fs = None
-        self._documents = None
-        self._queries = None
-        self._metadata = None
+        self._documents: pd.DataFrame | None = None
+        self._queries: pd.DataFrame | None = None
+        self._metadata: DatasetMetadata | None = None
 
     def __getitem__(self, key: str):
         if key in ["documents", "queries"]:
@@ -192,11 +195,15 @@ class Dataset:
             from .dataset_fsreader import DatasetFSReader
 
             self._metadata = DatasetFSReader.read_metadata(self._fs, self._dataset_path)
+        if self._metadata is None:
+            raise ValueError(
+                "Dataset has no metadata; set it via from_pandas or from_path"
+            )
         return self._metadata
 
     def iter_documents(
-        self, batch_size: int = 1, return_indexes=False
-    ) -> Iterator[list[dict[str, Any]]]:
+        self, batch_size: int = 1, return_indexes: bool = False
+    ) -> Iterator[list[dict[str, Any]] | tuple[int, list[dict[str, Any]]]]:
         """
         Iterates over the documents in the dataset.
 

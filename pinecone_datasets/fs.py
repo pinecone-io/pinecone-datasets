@@ -1,5 +1,5 @@
 from importlib import import_module
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeAlias
 
 from pinecone_datasets import cfg
 
@@ -8,7 +8,9 @@ if TYPE_CHECKING:
     import s3fs
     from fsspec.implementations.local import LocalFileSystem
 
-    CloudOrLocalFS = gcsfs.GCSFileSystem | s3fs.S3FileSystem | LocalFileSystem
+    CloudOrLocalFS: TypeAlias = (
+        gcsfs.GCSFileSystem | s3fs.S3FileSystem | LocalFileSystem
+    )
 else:
     CloudOrLocalFS = object  # type: ignore
 
