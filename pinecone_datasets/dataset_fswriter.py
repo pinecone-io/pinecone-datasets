@@ -90,7 +90,7 @@ class DatasetFSWriter:
             json.dump(dataset.metadata.model_dump(), f)
 
     @staticmethod
-    def _convert_metadata_from_dict_to_json(metadata: dict | None) -> str:
+    def _convert_metadata_from_dict_to_json(metadata: dict | None) -> str | None:
         import pandas as pd
 
         if pd.isna(metadata):

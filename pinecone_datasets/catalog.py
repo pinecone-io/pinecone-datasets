@@ -34,7 +34,7 @@ class Catalog(BaseModel):
         else:
             self.base_path = base_path
 
-    base_path: str = Field(default=None)
+    base_path: str = Field(default=None)  # type: ignore[assignment]  # always set in __init__ before use
     datasets: list[DatasetMetadata] = Field(default_factory=list)
 
     @retry_decorator

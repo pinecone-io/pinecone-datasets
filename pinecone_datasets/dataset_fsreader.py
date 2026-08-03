@@ -53,7 +53,7 @@ class DatasetFSReader:
         return DatasetMetadata(**metadata)
 
     @staticmethod
-    def _convert_metadata_from_json_to_dict(metadata: str | None = None) -> dict:
+    def _convert_metadata_from_json_to_dict(metadata: str | None = None) -> dict | None:
         if metadata is None:
             return None
         elif isinstance(metadata, dict):
