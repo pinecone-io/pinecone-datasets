@@ -83,7 +83,7 @@ jobs:
       run: uv run pytest -n 4 --html=report.html --cov pinecone_datasets tests/unit
     
     - name: upload pytest report.html
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       if: always()
       with:
         name: dataset-pytest-report-py${{ matrix.python-version }}
