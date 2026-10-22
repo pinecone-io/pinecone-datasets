@@ -20,9 +20,9 @@ jobs:
       matrix:
         python-version: ['3.12']
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -45,7 +45,7 @@ jobs:
     name: Dependency audit
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Install uv
       uses: astral-sh/setup-uv@v5
     - name: Audit locked dependencies
@@ -63,9 +63,9 @@ jobs:
         python-version: [3.11, 3.12, 3.13]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -83,7 +83,7 @@ jobs:
       run: uv run pytest -n 4 --html=report.html --cov pinecone_datasets tests/unit
     
     - name: upload pytest report.html
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       if: always()
       with:
         name: dataset-pytest-report-py${{ matrix.python-version }}

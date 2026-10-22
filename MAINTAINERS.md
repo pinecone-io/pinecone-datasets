@@ -40,6 +40,7 @@ queries_df = ...
 
 # 2. Create metadata to describe the dataset
 import datatime
+
 metadata = DatasetMetadata(
     name="new-dataset-name",
     created_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
@@ -52,11 +53,7 @@ metadata = DatasetMetadata(
 )
 
 # 3. Take all this, and instantiate a Dataset
-ds = Dataset.from_pandas(
-    documents=documents_df,
-    queries=queries_df,
-    metadata=metadata
-)
+ds = Dataset.from_pandas(documents=documents_df, queries=queries_df, metadata=metadata)
 
 # 4. Save to catalog (requires gcloud auth step above)
 catalog = Catalog(base_path="gs://pinecone-datasets-dev")
@@ -134,11 +131,11 @@ dataset = load_dataset("your-dataset-name")
 
 # Access blob data from documents
 for doc in dataset.documents.iter_documents():
-    if 'blob' in doc and 'text' in doc['blob']:
+    if "blob" in doc and "text" in doc["blob"]:
         # Process or move blob data to metadata as needed
-        if 'metadata' not in doc:
-            doc['metadata'] = {}
-        doc['metadata']['text'] = doc['blob']['text']
+        if "metadata" not in doc:
+            doc["metadata"] = {}
+        doc["metadata"]["text"] = doc["blob"]["text"]
 ```
 
 ## Usage saving

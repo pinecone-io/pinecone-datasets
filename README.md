@@ -58,9 +58,8 @@ query_df: pd.DataFrame = dataset.queries
 The `Dataset` class has helpers for iterating over your dataset. This is useful for upserting a dataset to an index, or for benchmarking.
 
 ```python
-
 # List Iterator, where every list of size N Dicts with ("id", "values", "sparse_values", "metadata")
-dataset.iter_documents(batch_size=n) 
+dataset.iter_documents(batch_size=n)
 
 # Dict Iterator, where every dict has ("vector", "sparse_vector", "filter", "top_k")
 dataset.iter_queries()
@@ -78,17 +77,17 @@ from pinecone_datasets import load_dataset, list_datasets
 for ds in list_datasets():
     print(ds)
 
-# Download embeddings data 
+# Download embeddings data
 dataset = load_dataset(dataset_name)
 
 # Instantiate a Pinecone client using API key from app.pinecone.io
-pc = Pinecone(api_key='key')
+pc = Pinecone(api_key="key")
 
 # Create a Pinecone index
 index_config = pc.create_index(
     name="demo-index",
     dimension=dataset.metadata.dense_model.dimension,
-    spec=ServerlessSpec(cloud="aws", region="us-east1")
+    spec=ServerlessSpec(cloud="aws", region="us-east1"),
 )
 
 # Instantiate an index client
