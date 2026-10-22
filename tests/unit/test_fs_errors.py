@@ -21,9 +21,10 @@ class TestFSErrorPaths:
         fs = get_cloud_fs("gs://test-bucket")
         assert fs is not None
 
-    def test_get_cloud_fs_with_invalid_token(self):
+    def test_get_cloud_fs_with_invalid_token(self, monkeypatch):
         """Test getting cloud filesystem with invalid token parameter"""
-        # Should still create filesystem, token validation happens during operations
+        # gcsfs validates raw tokens against Google's tokeninfo endpoint unless disabled
+        monkeypatch.setenv("FETCH_RAW_TOKEN_EXPIRY", "false")
         fs = get_cloud_fs("gs://test-bucket", token="invalid_token")
         assert fs is not None
 
@@ -177,8 +178,9 @@ class TestFSErrorPaths:
         fs = get_cloud_fs("s3://test-bucket", token="custom_token")
         assert fs is not None
 
-    def test_get_cloud_fs_gcs_with_custom_token(self):
+    def test_get_cloud_fs_gcs_with_custom_token(self, monkeypatch):
         """Test GCS filesystem with custom token parameter"""
+        monkeypatch.setenv("FETCH_RAW_TOKEN_EXPIRY", "false")
         fs = get_cloud_fs("gs://test-bucket", token="custom_token")
         assert fs is not None
 
