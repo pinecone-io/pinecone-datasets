@@ -2,7 +2,7 @@
 .. include:: ../README.md
 """
 
-__version__ = "1.0.2"
+__version__ = "1.1.0"
 
 
 from .cache import cache_info as cache_info

@@ -7,4 +7,4 @@ with open("pyproject.toml", "rb") as f:
 
 
 def test_version():
-    assert __version__ == "1.0.2"
+    assert __version__ == "1.1.0"
