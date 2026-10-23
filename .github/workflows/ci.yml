@@ -27,7 +27,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
     
     - name: Install dependencies
       run: uv sync --all-extras
@@ -47,7 +47,7 @@ jobs:
     steps:
     - uses: actions/checkout@v7
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
     - name: Audit locked dependencies
       run: |
         uv export --format requirements-txt --all-extras --no-emit-project > requirements-audit.txt
@@ -70,7 +70,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
     
     - name: Install dependencies
       run: uv sync --all-extras

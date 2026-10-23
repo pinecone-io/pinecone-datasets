@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
 
       - run: uv sync --all-extras
       # ADJUST THIS: build your documentation into docs/.
